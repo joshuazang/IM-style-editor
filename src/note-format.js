@@ -1,6 +1,68 @@
 /* Inlined into the static bundle by tools/package-release.py. */
 const imFormat = (() => {
-  const schemaVersion = 1;
+  const schemaVersion = 2;
+  const documentStart = '#!im-style-editor 1';
+  const documentEnd = ':::end-im-style-editor';
+  const object = value => value && typeof value === 'object' && !Array.isArray(value);
+  // Text remains human-readable. Escape only backslashes, carriage returns and
+  // reserved delimiter lines, so even delimiter-looking messages are unambiguous.
+  const encodeBody = text => text.replace(/\\/g, '\\\\').replace(/\r/g, '\\r')
+    .split('\n').map(line => line.startsWith(':::') ? '\\' + line : line).join('\n');
+  const decodeBody = text => text.split('\n').map(line => {
+    if (line.startsWith('\\:::')) line = line.slice(1);
+    else if (line.startsWith(':::')) throw new Error('Unexpected record inside a message');
+    return line.replace(/\\([\\r])|\\/g, (match, escape) => {
+      if (!escape) throw new Error('Unrecognized message escape');
+      return escape === 'r' ? '\r' : '\\';
+    });
+  }).join('\n');
+  function portable(messages, settings) {
+    const lines = [documentStart, ':::settings ' + JSON.stringify(settings)];
+    for (const message of copyMessages(messages)) {
+      const { text, ...metadata } = message;
+      lines.push(':::bubble ' + JSON.stringify(metadata), encodeBody(text), ':::end-bubble');
+    }
+    lines.push(documentEnd);
+    return lines.join('\n') + '\n';
+  }
+  function inspect(text) {
+    if (typeof text !== 'string') text = '';
+    const lines = text.replace(/\r\n/g, '\n').split('\n');
+    const recognizable = lines.some(line => /^#!im-style-editor(?:\s|$)/.test(line)) ||
+      lines.some(line => line === documentEnd) || /^:::(?:settings |bubble )/.test(lines[0]);
+    if (!recognizable) return { kind: 'plain' };
+    try {
+      if (lines.shift() !== documentStart) throw new Error('Missing or unsupported document header');
+      const settingsLine = lines.shift();
+      if (!settingsLine?.startsWith(':::settings ')) throw new Error('Missing settings record');
+      const settings = JSON.parse(settingsLine.slice(12));
+      if (!object(settings)) throw new Error('Invalid settings record');
+      const messages = [], ids = new Set();
+      let i = 0;
+      while (i < lines.length && lines[i] !== documentEnd) {
+        if (!lines[i].startsWith(':::bubble ')) throw new Error('Missing bubble boundary');
+        const metadata = JSON.parse(lines[i++].slice(10));
+        if (!object(metadata) || typeof metadata.id !== 'string' || !metadata.id || ids.has(metadata.id) ||
+            'text' in metadata || !Array.isArray(metadata.reactions) ||
+            !metadata.reactions.every(tag => typeof tag === 'string') ||
+            ('separatorAfter' in metadata && typeof metadata.separatorAfter !== 'string')) {
+          throw new Error('Invalid or duplicate bubble record');
+        }
+        ids.add(metadata.id);
+        const start = i;
+        while (i < lines.length && lines[i] !== ':::end-bubble') i++;
+        if (i === lines.length || i === start) throw new Error('Unclosed bubble');
+        messages.push({ ...metadata, text: decodeBody(lines.slice(start, i).join('\n')) });
+        i++;
+      }
+      if (lines[i++] !== documentEnd || lines.slice(i).some(line => line !== '')) {
+        throw new Error('Unclosed document or text outside its boundaries');
+      }
+      return { kind: 'portable', messages, settings };
+    } catch (error) {
+      return { kind: 'damaged', error: error.message, text };
+    }
+  }
   const newMessage = text => ({ id: (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`), text, reactions: [] });
   const serialize = messages => messages.map((message, index) => message.text +
     (index < messages.length - 1 ? (typeof message.separatorAfter === 'string' ? message.separatorAfter : '\n') : '')).join('');
@@ -104,7 +166,7 @@ const imFormat = (() => {
     const content = note.content || {};
     const text = typeof content.text === 'string' ? content.text : '';
     const saved = note.clientData?.imStyleEditor;
-    const protectedState = saved?.schemaVersion === schemaVersion && validMessages(saved.messages) ? saved : null;
+    const protectedState = [1, schemaVersion].includes(saved?.schemaVersion) && validMessages(saved.messages) ? saved : null;
     const legacy = validMessages(content.appendEditorMessageData) ? {
       messages: content.appendEditorMessageData, settings: content.appendEditorSettings
     } : null;
@@ -114,32 +176,50 @@ const imFormat = (() => {
     return { text, state, protectedState };
   }
   const readMessages = note => {
+    const document = inspect(note.content?.text);
+    if (document.kind === 'portable') return copyMessages(document.messages);
+    if (document.kind === 'damaged') return [];
     const { text, state } = stateFor(note);
     return state ? reconcile(text, state.messages) : fromLegacyRanges(text, note.content?.appendEditorMessages);
   };
-  const readSettings = note => stateFor(note).state?.settings || note.content?.appendEditorSettings || {};
+  const readSettings = note => {
+    const document = inspect(note.content?.text);
+    return document.kind === 'portable' ? document.settings :
+      stateFor(note).state?.settings || note.content?.appendEditorSettings || {};
+  };
   const isCurrent = (note, messages, settings) => {
-    const saved = stateFor(note).protectedState;
-    return !!saved && serialize(saved.messages) === note.content.text &&
+    const saved = note.clientData?.imStyleEditor;
+    return saved?.schemaVersion === schemaVersion && portable(messages, settings) === note.content.text &&
       JSON.stringify(copyMessages(saved.messages)) === JSON.stringify(copyMessages(messages)) &&
       JSON.stringify(saved.settings) === JSON.stringify(settings);
   };
   function write(note, messages, settings) {
+    const document = inspect(note.content?.text);
+    if (document.kind === 'damaged') throw new Error('Damaged note records: original text was not changed');
     const savedMessages = copyMessages(messages);
     const savedSettings = JSON.parse(JSON.stringify(settings));
-    const text = serialize(savedMessages);
+    const text = portable(savedMessages, savedSettings);
+    // Keep the exact pre-migration text and any recoverable legacy records once.
+    // This is additional recovery data; portable text is the primary format.
+    const previous = note.clientData?.imStyleEditor;
+    const migrationBackup = previous?.migrationBackup ||
+      (document.kind === 'plain' ? {
+        text: note.content?.text || '',
+        messages: readMessages(note), settings: readSettings(note)
+      } : undefined);
     // clientData is Standard Notes' per-note, per-editor storage. It is saved
     // in the note's component-data domain, independently of the plain text.
     note.clientData = { ...(note.clientData || {}), imStyleEditor: {
-      schemaVersion, messages: savedMessages, settings: savedSettings
+      schemaVersion, messages: savedMessages, settings: savedSettings,
+      ...(migrationBackup ? { migrationBackup } : {})
     } };
     note.content = { ...note.content, text,
       appendEditorMessageData: savedMessages,
       appendEditorSettings: savedSettings,
       appendEditorMessages: spansFor(savedMessages).map(({ start, end }) => ({ start, end })),
-      preview_plain: text.slice(0, 160) || ' ', preview_html: undefined
+      preview_plain: serialize(savedMessages).slice(0, 160) || ' ', preview_html: undefined
     };
     return note;
   }
-  return { serialize, fromPlainText, readMessages, readSettings, reconcile, isCurrent, write };
+  return { serialize, portable, inspect, fromPlainText, readMessages, readSettings, reconcile, isCurrent, write };
 })();

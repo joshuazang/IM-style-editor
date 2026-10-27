@@ -20,7 +20,9 @@ window.openPlain = () => {
     delete notes[activeUuid].content.appendEditorMessages;
     delete notes[activeUuid].content.appendEditorSettings;
   });
-  // Native clientData remains with the note, outside another editor's custom fields.
+  // Model the user's failing path: only content.text survives editor conversion.
+  delete notes[activeUuid].clientData;
+  // No per-editor metadata is required to restore the portable document.
   delete notes[activeUuid].content.appendEditorMessageData;
   delete notes[activeUuid].content.appendEditorMessages;
   delete notes[activeUuid].content.appendEditorSettings;

@@ -24,7 +24,8 @@ assert.equal(format.fromPlainText('one\nline\n\ntwo').length, 2);
 assert.equal(format.fromPlainText('one\nline\n\ntwo')[0].text, 'one\nline');
 let note = { uuid: 'note-a', clientData: { anotherSetting: 42 }, content: { title: 'Unchanged', text: '', appData: { other: { protected: true } } } };
 format.write(note, messages, settings);
-const plain = note.content.text;
+const portable = note.content.text;
+const plain = format.serialize(messages);
 assert.equal(note.content.title, 'Unchanged');
 assert.equal(note.clientData.anotherSetting, 42);
 assert.deepEqual(clone(note.content.appData), { other: { protected: true } });
@@ -34,9 +35,9 @@ for (let i = 0; i < 10; i++) {
   const restored = format.readMessages(note);
   assert.deepEqual(clone(restored), messages);
   assert.deepEqual(clone(format.readSettings(note)), settings);
-  assert.equal(note.content.text, plain);
+  assert.equal(note.content.text, portable);
   format.write(note, restored, format.readSettings(note));
-  exact(note);
+  assert.equal(format.serialize(restored), plain);
 }
 const old = { content: { text: plain, appendEditorMessageData: clone(messages), appendEditorSettings: settings } };
 assert.deepEqual(clone(format.readMessages(old)), messages);
@@ -44,6 +45,7 @@ const legacyRanges = { content: { text: 'first\nsecond\n\ntrailing', appendEdito
 exact(legacyRanges);
 exact({ content: { text: 'keep every character\n\nnext', appendEditorMessages: [{ start: 999, end: 1000 }] } });
 const edited = clone(note);
+edited.content.text = plain;
 edited.content.text = plain.replace('Second message', 'Second revised message');
 const revised = format.readMessages(edited);
 assert.equal(format.serialize(revised), edited.content.text);
@@ -54,13 +56,14 @@ exact(edited);
 const cleared = clone(note); cleared.content.text = '';
 assert.equal(format.readMessages(cleared).length, 0);
 // When an old editor changes categories, its matching legacy data takes priority.
-const oldEditor = clone(note); oldEditor.content.appendEditorMessageData[0].reactions = ['✅'];
+const oldEditor = clone(note); oldEditor.content.text = plain; oldEditor.content.appendEditorMessageData[0].reactions = ['✅'];
 assert.deepEqual(clone(format.readMessages(oldEditor)[0].reactions), ['✅']);
 let seed = 90210;
 const random = n => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed % n; };
 const chars = ['a', ' ', '\n', '\r\n', '🙂', '猫', '\t', 'xyz'];
 for (let i = 0; i < 1000; i++) {
   const target = clone(note);
+  target.content.text = plain;
   const left = random(plain.length + 1), right = left + random(plain.length - left + 1);
   let replacement = '';
   for (let j = 0, n = random(12); j < n; j++) replacement += chars[random(chars.length)];

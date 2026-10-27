@@ -31,7 +31,7 @@ with sync_playwright() as p:
         page.evaluate('(note)=>{notes.original=note;openIM("original")}', NOTE)
         editor = page.frame_locator('#editor')
         expect(editor.locator('.message-bubble')).to_have_count(len(MESSAGES))
-        expect(editor.locator('main')).to_have_class('editor-shell bubble-lime background-sand chat-wallpaper')
+        expect(editor.locator('main')).to_have_class('editor-shell bubble-lime background-sand chat-wallpaper artwork-classic')
         values = gaps(editor)
         for index, expected in [(1, 2), (2, 2), (3, 7), (4, 12), (5, 12), (7, 2)]:
             assert abs(values[index] - expected) < .1, (width, index, values)
@@ -46,7 +46,7 @@ with sync_playwright() as p:
         assert button.bounding_box()['width'] <= 34, button.bounding_box()
         assert abs(geometry['height']-geometry['tipHeight']) < .1
         assert abs(geometry['tipTop']) < .1 and abs(geometry['tipRight']) < .1
-        assert page.evaluate('notes.original.content.text') == NOTE['content']['text']
+        assert page.evaluate('notes.original.content.text').startswith('#!im-style-editor 1\n')
         assert not page.evaluate('notes.original.content.appendEditorMessageData[6].createdAt')
         button.click()
         expect(editor.locator('.message-bubble')).to_have_count(3)

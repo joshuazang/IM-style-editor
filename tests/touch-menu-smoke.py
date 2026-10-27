@@ -31,7 +31,7 @@ with sync_playwright() as p:
  expect(field).to_be_visible()
  assert field.evaluate('el=>{el.focus();el.select();return el.selectionEnd-el.selectionStart}')>0
  field.fill('Edited after a long press');editor.get_by_role('button',name='Save',exact=True).click()
- page.wait_for_function("onboarding.note.content.text==='Edited after a long press'")
+ page.wait_for_function("onboarding.note.clientData?.imStyleEditor?.messages[0].text==='Edited after a long press'")
  print('PASS: editing and selecting text inside the edit field still works')
  body=editor.locator('.message-body').first;box=body.bounding_box();x=box['x']+20;y=box['y']+10
  touch('touchStart',x,y);touch('touchMove',x,y+35);page.wait_for_timeout(650);touch('touchEnd')

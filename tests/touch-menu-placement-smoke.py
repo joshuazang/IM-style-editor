@@ -21,7 +21,7 @@ with sync_playwright() as p:
     page.evaluate('(note)=>{notes.original=note;openIM("original")}',NOTE)
     editor=page.frame_locator('#editor')
     expect(editor.locator('.message-bubble')).to_have_count(25)
-    page.wait_for_function('notes.original.clientData?.imStyleEditor?.schemaVersion===1')
+    page.wait_for_function('notes.original.clientData?.imStyleEditor?.schemaVersion===2')
     log=editor.get_by_role('log');log.evaluate('el=>el.scrollTop=el.scrollHeight')
     target=editor.locator('.message-body').last
     before=target.bounding_box();scroll=log.evaluate('el=>el.scrollTop')
@@ -42,7 +42,7 @@ with sync_playwright() as p:
     assert log.evaluate('el=>el.scrollTop')==scroll
     editor.get_by_role('menuitem',name='Delete',exact=True).dispatch_event('click',{'detail':1})
     assert not dialogs,dialogs
-    assert page.evaluate('notes.original.content.text')==NOTE['content']['text']
+    assert page.evaluate('notes.original.clientData.imStyleEditor.messages')==NOTE['content']['appendEditorMessageData']
     editor.get_by_role('menuitem',name='Edit',exact=True).tap()
     expect(editor.get_by_role('textbox',name='Edit message',exact=True)).to_have_value('Message 24')
     editor.get_by_role('button',name='Cancel',exact=True).tap()
