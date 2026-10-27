@@ -10,7 +10,7 @@ def fixture_messages(messages):
  for message in result:message['id']=fixture_id(message['id'])
  return result
 
-CONTROLS={'@@IM:SETTINGS','@@IM:END-SETTINGS','@@IM:BUBBLE','@@IM:TEXT','@@IM:END-BUBBLE','@@IM:END'}
+CONTROLS={'@@IM:SETTINGS','@@IM:END-SETTINGS','@@IM:BUBBLE','@@IM:CONTENT','@@IM:END-BUBBLE','@@IM:END'}
 def document(messages,settings):
  mapping={'bubbleTheme':'bubble-theme','backgroundTheme':'background-theme','wallpaper':'wallpaper','artwork':'artwork','scale':'scale','reactionOrder':'reaction-order','deletedEmojis':'deleted-emojis'}
  bubble={'id':'id','createdAt':'created','editedAt':'edited','reactions':'reactions','separatorAfter':'separator-after','forwarding':'forwarding'}
@@ -20,10 +20,10 @@ def document(messages,settings):
   unknown={k:v for k,v in values.items() if k not in mapping and (extra!='extra-metadata' or k!='text')}
   if unknown:result.append(f'{extra}: {dump(unknown)}')
   return result
- lines=['#!im-style-editor 2','#!encoding utf-8','='*60,'@@IM:SETTINGS',*fields(settings,mapping,'extra-settings'),'@@IM:END-SETTINGS','='*60]
+ lines=['#!im-style-editor 2','#!encoding utf-8','','@@IM:SETTINGS',*fields(settings,mapping,'extra-settings'),'@@IM:END-SETTINGS','']
  for message in messages:
   body='\n'.join(('\\'+line if line.startswith('\\') or line.removesuffix('\r') in CONTROLS else line) for line in message['text'].split('\n'))
-  lines+=['@@IM:BUBBLE',*fields(message,bubble,'extra-metadata'),'-'*60,'@@IM:TEXT',body,'@@IM:END-BUBBLE','='*60]
+  lines+=['@@IM:BUBBLE',*fields(message,bubble,'extra-metadata'),'@@IM:CONTENT','','',body,'','', '@@IM:END-BUBBLE','']
  return '\n'.join([*lines,'@@IM:END',''])
 
 def prepare_note(note):

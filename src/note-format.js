@@ -1,9 +1,8 @@
-/* Version 2: line-oriented archival text. Decoration is never parsed as structure. */
+/* Version 2: line-oriented archival text with exact blank-line content framing. */
 const imFormat = (() => {
   const header = '#!im-style-editor 2';
   const encoding = '#!encoding utf-8';
-  const controls = new Set(['@@IM:SETTINGS', '@@IM:END-SETTINGS', '@@IM:BUBBLE', '@@IM:TEXT', '@@IM:END-BUBBLE', '@@IM:END']);
-  const major = '='.repeat(60), minor = '-'.repeat(60);
+  const controls = new Set(['@@IM:SETTINGS', '@@IM:END-SETTINGS', '@@IM:BUBBLE', '@@IM:CONTENT', '@@IM:END-BUBBLE', '@@IM:END']);
   const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
   const clone = value => JSON.parse(JSON.stringify(value));
   const validId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{21}[AQgw]$/.test(value);
@@ -55,9 +54,9 @@ const imFormat = (() => {
   function portable(messages, settings) {
     validateMessages(messages);
     validateSettings(settings);
-    const lines = [header, encoding, major, '@@IM:SETTINGS', ...fields(settings, settingsFields, 'extra-settings'), '@@IM:END-SETTINGS', major];
-    for (const message of messages) lines.push('@@IM:BUBBLE', ...fields(message, bubbleFields, 'extra-metadata'), minor,
-      '@@IM:TEXT', encodeBody(message.text), '@@IM:END-BUBBLE', major);
+    const lines = [header, encoding, '', '@@IM:SETTINGS', ...fields(settings, settingsFields, 'extra-settings'), '@@IM:END-SETTINGS', ''];
+    for (const message of messages) lines.push('@@IM:BUBBLE', ...fields(message, bubbleFields, 'extra-metadata'),
+      '@@IM:CONTENT', '', '', encodeBody(message.text), '', '', '@@IM:END-BUBBLE', '');
     lines.push('@@IM:END');
     return lines.join('\n') + '\n';
   }
@@ -128,17 +127,21 @@ const imFormat = (() => {
         if (rows[i]?.line === '@@IM:END') { i++; break; }
         if (rows[i++]?.line !== '@@IM:BUBBLE') throw new Error('Missing bubble or document end');
         const metadata = [];
-        while (i < rows.length && rows[i].line !== '@@IM:TEXT') metadata.push(rows[i++].line);
+        while (i < rows.length && rows[i].line !== '@@IM:CONTENT') metadata.push(rows[i++].line);
         const textMarker = rows[i++];
-        if (textMarker?.line !== '@@IM:TEXT' || textMarker.next === text.length) throw new Error('Missing text control line');
+        if (textMarker?.line !== '@@IM:CONTENT' || textMarker.next === text.length) throw new Error('Missing text control line');
         const bodyStart = textMarker.next;
         while (i < rows.length && rows[i].line !== '@@IM:END-BUBBLE') {
           if (controls.has(rows[i].line)) throw new Error('Unexpected control line inside a message');
           i++;
         }
         const end = rows[i++];
-        if (!end || end.start <= bodyStart || text[end.start - 1] !== '\n') throw new Error('Missing bubble end or framing newline');
-        messages.push({ ...parseFields(metadata, bubbleFields, 'extra-metadata'), text: decodeBody(text.slice(bodyStart, end.start - 1)) });
+        if (!end) throw new Error('Missing bubble end');
+        const framed = text.slice(bodyStart, end.start);
+        // Two empty lines precede the payload. After it, one line terminator
+        // plus two empty lines precede the end marker. Never trim the payload.
+        if (framed.length < 5 || !framed.startsWith('\n\n') || !framed.endsWith('\n\n\n')) throw new Error('Missing content framing blank lines');
+        messages.push({ ...parseFields(metadata, bubbleFields, 'extra-metadata'), text: decodeBody(framed.slice(2, -3)) });
       }
       if (rows.slice(i).some(row => !decoration(row.line))) throw new Error('Unexpected data after document end');
       validateMessages(messages);
