@@ -9,4 +9,4 @@ The canonical install manifest is `im-style-editor.ext.json`. Each release also 
 
 Readable note-storage helpers live in `src/`. The packager inlines them before hashing the runtime bundle; do not add a separate mutable script URL. Already-published hashed assets are restored from Git after their changes are copied into a new asset. See `docs/note-format.md` for the storage schema and round-trip checks.
 
-Version 2.7.0 introduces self-contained plain-text bubble records. Do not revert the runtime to an older reader for migrated notes. Both SVG artwork files must remain in the release archive.
+Editor 3.0.0 writes plaintext format 2 only. This is an intentional clean break; do not add format-1 migration code or test fixtures. Read `docs/note-format.md` and the complete `docs/example-format-2.txt` example. Both SVG artwork files must remain in the release archive.

@@ -1,71 +1,39 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const crypto = require('node:crypto');
-const f = vm.runInNewContext(fs.readFileSync('src/note-format.js','utf8')+';imFormat',{crypto});
-const copy = x => JSON.parse(JSON.stringify(x));
-const messages = [
- {id:'first',text:'First line\n\nBlank lines stay inside this bubble\r\nWindows line\rreturn',reactions:['⭐','✅'],createdAt:'2026-01-01T03:20:00.123Z',separatorAfter:'\n\n',custom:{keep:true}},
- {id:'second',text:':::end-bubble\n:::bubble {"id":"fake"}\n\\:::literal\nC:\\notes\\new.txt\n中文🙂 <script>alert(1)</script>\n',reactions:['❤️'],createdAt:'2026-01-02T12:00:00Z',editedAt:'2026-01-03T12:00:00Z'},
- {id:'empty',text:'',reactions:[]},
-];
-const settings={bubbleTheme:'lime',backgroundTheme:'sand',artwork:'garden',reactionOrder:['❤️','⭐','✅'],scale:1.12};
-let note={uuid:'a',clientData:{other:'keep'},content:{text:f.serialize(messages),title:'Keep title',references:[{uuid:'b'}],appendEditorMessageData:copy(messages),appendEditorSettings:copy(settings)}};
-const original=copy(note);
-f.write(note,messages,settings);
-assert.equal(note.clientData.imStyleEditor.schemaVersion,2);
-assert.equal(note.clientData.imStyleEditor.migrationBackup.text,original.content.text);
-assert.deepEqual(copy(note.clientData.imStyleEditor.migrationBackup.messages),messages);
-assert.equal(note.clientData.other,'keep');assert.equal(note.content.title,'Keep title');
-assert.deepEqual(copy(note.content.references),[{uuid:'b'}]);
-const text=note.content.text;
-assert.ok(text.startsWith('#!im-style-editor 1\n:::settings '));
-assert.ok(text.includes(':::bubble {"id":"first"'));
-assert.equal(f.inspect(text).kind,'portable');
-for(let i=0;i<25;i++){
- // Text-only export into a fresh note: no clientData or legacy custom fields survive.
- note={uuid:'copy-'+i,content:{text:note.content.text}};
- assert.deepEqual(copy(f.readMessages(note)),messages);
- assert.deepEqual(copy(f.readSettings(note)),settings);
- f.write(note,f.readMessages(note),f.readSettings(note));
- assert.equal(note.content.text,text);
- assert.ok(f.isCurrent(note,f.readMessages(note),settings));
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
+const f=vm.runInNewContext(fs.readFileSync('src/note-format.js','utf8')+';imFormat',{crypto,btoa});
+const clone=v=>JSON.parse(JSON.stringify(v));
+const settings={bubbleTheme:'lime',backgroundTheme:'sand',wallpaper:true,artwork:'classic',scale:1.12,reactionOrder:['✅','⭐'],deletedEmojis:['🦋'],custom:{nested:['中文',null,true]},text:'Keep unknown settings too'};
+const make=(text,extras={})=>({id:f.newId(),text,reactions:[],...extras});
+function round(messages,config=settings){const text=f.portable(messages,config),parsed=f.inspect(text);assert.equal(parsed.kind,'portable',parsed.error);assert.deepEqual(clone(parsed.messages),messages);assert.deepEqual(clone(parsed.settings),config);assert.equal(f.portable(parsed.messages,parsed.settings),text);return text;}
+const ids=new Set();for(let i=0;i<10000;i++){const id=f.newId();assert.match(id,/^[A-Za-z0-9_-]{21}[AQgw]$/);assert.equal(Buffer.from(id,'base64url').length,16);assert.ok(!ids.has(id));ids.add(id);}
+// Verify all sixteen bytes, including high bits, reach the output without UUID masks.
+for(let n=0;n<256;n++){const bytes=Uint8Array.from({length:16},(_,i)=>(n+i)%256);const custom=vm.runInNewContext(fs.readFileSync('src/note-format.js','utf8')+';imFormat',{btoa,crypto:{getRandomValues:target=>{target.set(bytes);return target}}});assert.equal(custom.newId(),Buffer.from(bytes).toString('base64url'));}
+const bodies=['',' ','\t\t','\n','\n\n','\r','\r\n','\n \t\r\n  ','Chinese 中文：你好！ English punctuation—… “quotes”. 🙂🧑🏽‍💻','A\n\nB\nC\n','='.repeat(80)+'\n'+'-'.repeat(70),'#!im-style-editor 2\n#!encoding utf-8','I saw @@IM:END-BUBBLE today.\n@@ in prose\n@@IM:UNRESERVED','@@IM:END-BUBBLE','@@IM:TEXT\r\n@@IM:BUBBLE\n@@IM:END\n@@IM:SETTINGS\n@@IM:END-SETTINGS','\\abc\n\\@@IM:END-BUBBLE\n\\\\literal\nC:\\notes\\new.txt','Long line '+ 'mixed 文🙂!'.repeat(100000)];
+for(const body of bodies)round([make(body,{createdAt:'2026-10-27T14:12:19.028Z',editedAt:'2026-10-27T14:12:35.628Z',reactions:['⭐'],separatorAfter:'\r\n',custom:{value:'kept'},forwarding:{sourceMessageId:f.newId(),sourceNoteId:'source'}})]);
+const messages=[make('First message'),make('Second\n\nintentional paragraph',{createdAt:'2026-01-01T00:00:00Z',reactions:['✅']}),make('第三条消息 🙂')];
+const clean=round(messages);
+assert.deepEqual(clone(f.inspect('===\n----\n'+clean.replace('#!encoding utf-8','---\n#!encoding utf-8')).messages),messages);
+const removeDecoration=text=>{let body=false;return text.split('\n').filter(line=>{if(line==='@@IM:TEXT'){body=true;return true}if(line==='@@IM:END-BUBBLE'){body=false;return true}return body||!(/^[=-]+$/.test(line));}).join('\n');};
+assert.deepEqual(clone(f.inspect(removeDecoration(clean)).messages),messages);
+assert.deepEqual(clone(f.inspect(clean.replace(/^[=-]+$/gm,'[---==:://..~~~]')).messages),messages);
+// Add, remove, move and duplicate decoration everywhere outside message bodies.
+const varied=clean.replace(/^@@IM:(?!END-BUBBLE)/gm,'---\n=\n@@IM:').replace(/@@IM:END-SETTINGS\n/,'@@IM:END-SETTINGS\n----------------\n===\n');
+assert.deepEqual(clone(f.inspect(varied).messages),messages);
+const inside=round([make('====\n----\nActual content\n======\n------')]);
+assert.equal(f.inspect(inside).messages[0].text,'====\n----\nActual content\n======\n------');
+// Deleting body lines is a deliberate content edit, never a boundary change.
+assert.equal(f.inspect(inside.replace(/^[=-]+\n/gm,'')).messages.length,1);
+const blocks=clean.match(/^@@IM:BUBBLE\n[\s\S]*?^@@IM:END-BUBBLE\n/gm);
+assert.deepEqual(clone(f.inspect(clean.replace(blocks[1],'')).messages).map(m=>m.id),[messages[0].id,messages[2].id]);
+const reordered=clean.replace(blocks[0],'SWAP-BLOCK').replace(blocks[2],blocks[0]).replace('SWAP-BLOCK',blocks[2]);
+assert.deepEqual(clone(f.inspect(reordered).messages).map(m=>m.id),[messages[2].id,messages[1].id,messages[0].id]);
+const changedSettings=f.inspect(clean.replace('bubble-theme: lime','bubble-theme: sky').replace('scale: 1.12','scale: 1.4'));
+assert.equal(changedSettings.settings.bubbleTheme,'sky');assert.equal(changedSettings.settings.scale,1.4);
+const originalIds=messages.map(m=>m.id);round([messages[2],{...messages[0],text:'Edited'},messages[1]]);round([messages[2],messages[0]]);assert.deepEqual(messages.map(m=>m.id),originalIds);
+const thousands=Array.from({length:5000},(_,i)=>make(`Message ${i}\n中文🙂\n\nmore`,{reactions:i%2?['⭐']:[]}));round(thousands);round([],{});
+let seed=123456;const random=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n};const chars=[' ','\t','\n','\r','\r\n','文','🙂','@@','\\','=', '-', 'abc', '\u0000','\u2028'];
+for(let i=0;i<1500;i++){let body='';for(let j=0,n=random(100);j<n;j++)body+=chars[random(chars.length)];round([make(body)],{...settings,scale:i%2?1.12:1.4});}
+for(const bad of [clean+'Unframed user text',clean.replace('@@IM:END-BUBBLE',''),clean.replace('@@IM:TEXT',''),clean.replace('@@IM:END-SETTINGS',''),clean.replace('@@IM:END\n',''),clean.replace(/id: [^\n]+/,'id: invalid'),clean.replace('reactions: []','reactions: null'),clean.replace('wallpaper: true','wallpaper: 123'),clean.replace('scale: 1.12','scale: {bad'),clean.replace('id: ','id : '),clean.replace('reactions: []','unknown-field: []'),clean.replace('@@IM:BUBBLE\n',`@@IM:BUBBLE\nid: ${messages[0].id}\n`),clean.replace(messages[1].id,messages[0].id),'#!im-style-editor 1\n:::settings {}\n']){
+ assert.equal(f.inspect(bad).kind,'damaged',bad);const note={content:{text:bad}};const before=JSON.stringify(note);assert.throws(()=>f.write(note,messages,settings));assert.equal(JSON.stringify(note),before);assert.equal(f.recover(bad),null);
 }
-assert.deepEqual(copy(f.readMessages({content:{text:text.replace(/\n/g,'\r\n')}})),messages);
-// Broken hidden mirrors cannot prevent restoration from a complete document.
-for (const mirror of [{schemaVersion:2}, {schemaVersion:2,messages:null},
-  {schemaVersion:2,messages:[null]}, {schemaVersion:2,messages:[{id:'stale',text:'wrong'}]}]) {
-  const target={content:{text},clientData:{imStyleEditor:mirror}};
-  assert.deepEqual(copy(f.readMessages(target)),messages);
-  assert.equal(f.isCurrent(target,messages,settings),false);
-  f.write(target,f.readMessages(target),f.readSettings(target));
-  assert.equal(target.content.text,text);
-  assert.ok(f.isCurrent(target,messages,settings));
-}
-const edited=text.replace('First line','Edited in the plain editor').replace('Blank lines stay','More\n\nblank lines stay');
-const restored=f.readMessages({content:{text:edited},clientData:original.clientData});
-assert.equal(restored.length,3);assert.equal(restored[0].id,'first');
-assert.equal(restored[0].text,messages[0].text.replace('First line','Edited in the plain editor').replace('Blank lines stay','More\n\nblank lines stay'));
-assert.equal(restored[0].createdAt,messages[0].createdAt);assert.deepEqual(copy(restored[0].reactions),messages[0].reactions);
-assert.deepEqual(copy(restored[1]),messages[1]);
-// Explicit record edits, not stale hidden copies, determine time/category/order.
-const changed=text.replace('2026-01-01T03:20:00.123Z','2026-02-01T03:20:00.123Z').replace('"reactions":["⭐","✅"]','"reactions":["💡"]');
-assert.equal(f.readMessages({content:{text:changed},clientData:note.clientData})[0].createdAt,'2026-02-01T03:20:00.123Z');
-assert.deepEqual(copy(f.readMessages({content:{text:changed}})[0].reactions),['💡']);
-const damaged=[text.replace(':::end-bubble',''),text.replace(':::settings {',':::settings nope{'),text.replace('"id":"second"','"id":"first"'),text.replace(':::end-im-style-editor',''),text.replace('#!im-style-editor 1','#!im-style-editor 9'),text+'Appended outside the document',text.slice(text.indexOf(':::settings ')),text.replace('C:\\\\notes','C:\\qnotes')];
-for(const value of damaged){
- assert.equal(f.inspect(value).kind,'damaged',value);
- const target={content:{text:value},clientData:copy(note.clientData)};const before=JSON.stringify(target);
- assert.throws(()=>f.write(target,messages,settings),/original text was not changed/);
- assert.equal(JSON.stringify(target),before);
-}
-let seed=34987;const random=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n};
-const chars=['a','\n','\r','\r\n','\\',':::','🙂','猫',' ','\t','\u2028','"'];
-for(let i=0;i<1200;i++){
- let body='';for(let j=0,n=random(100);j<n;j++)body+=chars[random(chars.length)];
- const source=[{id:String(i),text:body,reactions:['⭐'],separatorAfter:'\r\n',createdAt:'2026-01-01T12:00:00Z'},{id:'tail',text:'\n',reactions:[]}];
- const encoded=f.portable(source,settings);const parsed=f.inspect(encoded);
- assert.equal(parsed.kind,'portable',encoded);assert.deepEqual(copy(parsed.messages),source);
- assert.equal(f.portable(parsed.messages,parsed.settings),encoded);
-}
-console.log('PASS: 1,200 portable-text fuzz cases; 25 text-only transfers preserve boundaries, exact bodies, IDs, times, tags, settings; damaged records never overwritten');
+assert.throws(()=>f.portable(messages,{wallpaper:'yes'}));
+console.log('PASS: exact v2 text/metadata/settings; 5,000 bubbles; 1,500 Unicode/whitespace fuzz cases; 10,000 IDs + all-byte encoding; decoration independence; malformed input protected');

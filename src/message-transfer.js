@@ -1,6 +1,6 @@
 /* Portable clipboard forwarding: includes selected records only, never backups. */
 const imTransfer = (() => {
-  const header = '#!im-style-forward 1';
+  const header = '#!im-style-forward 2';
   const clone = value => JSON.parse(JSON.stringify(value));
   const object = value => value && typeof value === 'object' && !Array.isArray(value);
   const stable = value => JSON.stringify(value, function(key, item) {
@@ -10,7 +10,7 @@ const imTransfer = (() => {
   function create(messages, settings, sourceNoteId) {
     const appearance = Object.fromEntries(['bubbleTheme','backgroundTheme','wallpaper','artwork','scale','reactionOrder']
       .filter(key => key in settings).map(key => [key, settings[key]]));
-    return header + '\n' + JSON.stringify({ format: 'im-style-forward', version: 1,
+    return header + '\n' + JSON.stringify({ format: 'im-style-forward', version: 2,
       sourceNoteId, exportedAt: new Date().toISOString(), messages: clone(messages), settings: appearance
     }, null, 2) + '\n';
   }
@@ -21,7 +21,7 @@ const imTransfer = (() => {
       let payload;
       if (normalized.startsWith(header)) {
         payload = JSON.parse(normalized.slice(header.length).trim());
-        if (!object(payload) || payload.format !== 'im-style-forward' || payload.version !== 1 ||
+        if (!object(payload) || payload.format !== 'im-style-forward' || payload.version !== 2 ||
             typeof payload.sourceNoteId !== 'string' || !object(payload.settings)) throw new Error('Invalid export');
       } else {
         const parsed = imFormat.inspect(raw);
@@ -29,6 +29,7 @@ const imTransfer = (() => {
         payload = { messages: parsed.messages, settings: parsed.settings, sourceNoteId: '' };
       }
       if (!Array.isArray(payload.messages) || !payload.messages.length) throw new Error('No messages to import');
+      imFormat.validateMessages(payload.messages);
       const ids = new Set();
       for (const message of payload.messages) {
         if (!object(message) || typeof message.id !== 'string' || !message.id || ids.has(message.id) ||
@@ -60,7 +61,7 @@ const imTransfer = (() => {
       if (duplicate) { skipped++; continue; }
       const message = clone(source);
       if (used.has(message.id)) {
-        do { message.id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+        do { message.id = imFormat.newId(); }
         while (used.has(message.id));
       }
       message.forwarding = { sourceMessageId: source.id, sourceNoteId: payload.sourceNoteId, forwardedAt: now,

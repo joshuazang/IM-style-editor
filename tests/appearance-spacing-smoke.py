@@ -1,3 +1,4 @@
+from fixture_v2 import fixture_id, fixture_messages, prepare_note
 """Check time-based visible gaps, symmetric badges and fresh-note default colors."""
 import os
 from pathlib import Path
@@ -9,8 +10,10 @@ TIMES = ['2026-01-01T08:00:00Z', '2026-01-01T08:00:00Z', '2026-01-01T08:05:00Z',
          None, None, '2026-01-02T08:00:00Z']
 MESSAGES = [dict(id=f'm{i}', text=f'Message {i}', reactions=['⭐'] if i in [0, 1, 4] else [],
                  **({'createdAt': time} if time else {})) for i, time in enumerate(TIMES)]
+MESSAGES=fixture_messages(MESSAGES)
 NOTE = {'uuid': 'original', 'content_type': 'Note', 'content': {
     'text': '\n'.join(m['text'] for m in MESSAGES), 'appendEditorMessageData': MESSAGES}}
+NOTE=prepare_note(NOTE)
 
 def gaps(editor):
     return editor.locator('.message-bubble').evaluate_all('''nodes => nodes.map((node,index)=>{
@@ -46,7 +49,7 @@ with sync_playwright() as p:
         assert button.bounding_box()['width'] <= 34, button.bounding_box()
         assert abs(geometry['height']-geometry['tipHeight']) < .1
         assert abs(geometry['tipTop']) < .1 and abs(geometry['tipRight']) < .1
-        assert page.evaluate('notes.original.content.text').startswith('#!im-style-editor 1\n')
+        assert page.evaluate('notes.original.content.text').startswith('#!im-style-editor 2\n')
         assert not page.evaluate('notes.original.content.appendEditorMessageData[6].createdAt')
         button.click()
         expect(editor.locator('.message-bubble')).to_have_count(3)

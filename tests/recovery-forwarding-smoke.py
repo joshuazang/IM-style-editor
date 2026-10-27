@@ -1,15 +1,18 @@
-"""Flattened-record recovery and actual clipboard forwarding across note frames."""
+from fixture_v2 import fixture_id, fixture_messages, prepare_note
+"""Actual clipboard forwarding and save-failure safety across note frames."""
 import json,os
 from pathlib import Path
 from playwright.sync_api import expect,sync_playwright
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8000').rstrip('/')
 HOST=Path(__file__).with_name('editor-roundtrip-host.html').read_text()
-FLAT=Path(__file__).with_name('fixtures').joinpath('collapsed-note.txt').read_text()
 RECORDS=[{'id':'first','text':'Forward this\n\nwith blank lines\n:::end-bubble and C:\\notes 🙂','createdAt':'2026-10-27T12:00:00.123Z','editedAt':'2026-10-27T12:01:00Z','reactions':['⭐'],'custom':{'keep':'yes'}},
  {'id':'second','text':'Second selected message','createdAt':'2026-10-27T12:03:00Z','reactions':['✅'],'separatorAfter':'\n\n'},
  {'id':'not-selected','text':'PRIVATE UNSELECTED MESSAGE','reactions':[]}]
+RECORDS=fixture_messages(RECORDS)
 SOURCE={'uuid':'source','content_type':'Note','content':{'title':'Source','text':''.join(m['text']+(m.get('separatorAfter','\n') if i<len(RECORDS)-1 else '') for i,m in enumerate(RECORDS)),'appendEditorMessageData':RECORDS}}
+SOURCE=prepare_note(SOURCE)
 DEST={'uuid':'dest','content_type':'Note','content':{'title':'Keep destination title','text':'Destination keep me','appendEditorMessageData':[{'id':'first','text':'Destination keep me','reactions':[]}],'appendEditorSettings':{'bubbleTheme':'sky','backgroundTheme':'mist','scale':1.4,'wallpaper':False,'reactionOrder':['❤️']}}}
+DEST=prepare_note(DEST)
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)
  for width in [390,1200]:
@@ -17,28 +20,7 @@ with sync_playwright() as p:
   page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
   page.route(BASE+'/__forward',lambda r:r.fulfill(content_type='text/html',body=HOST))
   page.goto(BASE+'/__forward')
-  page.evaluate('(text)=>{notes.recovery={uuid:"recovery",content_type:"Note",content:{text}};openIM("recovery")}',FLAT)
   editor=page.frame_locator('#editor')
-  expect(editor.get_by_role('alert')).to_contain_text('record separators')
-  expect(editor.locator('.recovery-preview article')).to_have_count(20)
-  assert page.evaluate('notes.recovery.content.text')==FLAT
-  assert page.evaluate('saves.length')==0
-  if width==390:page.screenshot(path='/tmp/im-recovery-280.png')
-  if width==390:page.evaluate('rejectSaves=true')
-  editor.get_by_role('button',name='Restore recovered bubbles',exact=True).click()
-  expect(editor.locator('.message-bubble')).to_have_count(20)
-  if width==390:
-   expect(editor.get_by_role('alert')).to_contain_text('Could not save')
-   assert page.evaluate('notes.recovery.content.text')==FLAT
-   page.evaluate('rejectSaves=false');editor.get_by_role('button',name='Retry save',exact=True).click()
-  page.wait_for_function('notes.recovery.clientData?.imStyleEditor?.messages.length===20')
-  assert page.evaluate('notes.recovery.clientData.imStyleEditor.settings.recoveryOriginal.text')==FLAT
-  assert page.evaluate('notes.recovery.clientData.imStyleEditor.messages[0].createdAt')=='2026-01-01T12:00:01.000Z'
-  assert page.evaluate('notes.recovery.clientData.imStyleEditor.messages[0].reactions')==['⭐']
-  page.evaluate('openPlain();openIM()');expect(editor.locator('.message-bubble')).to_have_count(20)
-  page.wait_for_function('notes.recovery.clientData?.imStyleEditor?.schemaVersion===2')
-  assert page.evaluate('notes.recovery.clientData.imStyleEditor.settings.recoveryOriginal.text')==FLAT
-  print(f'PASS width={width}: 20 example bubbles restored only on request, exact raw backup survives text-only conversion')
   page.evaluate('(source)=>{notes.source=source;openIM("source")}',SOURCE)
   expect(editor.locator('.message-bubble')).to_have_count(3)
   editor.locator('.message-body').first.click(button='right');editor.get_by_role('menuitem',name='Select',exact=True).click()
@@ -47,7 +29,7 @@ with sync_playwright() as p:
   editor.get_by_role('button',name='Copy for forwarding',exact=True).click()
   expect(editor.locator('.transfer-notice')).to_contain_text('2 messages copied')
   clipboard=page.evaluate('navigator.clipboard.readText()')
-  assert clipboard.startswith('#!im-style-forward 1\n')
+  assert clipboard.startswith('#!im-style-forward 2\n')
   payload=json.loads(clipboard.split('\n',1)[1]);assert payload['messages']==RECORDS[:2]
   assert 'PRIVATE UNSELECTED MESSAGE' not in clipboard
   page.evaluate('(note)=>{notes.dest=note;openIM("dest")}',DEST)
@@ -69,10 +51,10 @@ with sync_playwright() as p:
   expect(editor.locator('.forwarded-label')).to_have_count(2)
   saved=page.evaluate('notes.dest.clientData.imStyleEditor')
   assert saved['messages'][0]['text']=='Destination keep me'
-  first=saved['messages'][1];assert first['id']!='first' and first['forwarding']['sourceMessageId']=='first'
+  first=saved['messages'][1];assert first['id']!=fixture_id('first') and first['forwarding']['sourceMessageId']==fixture_id('first')
   assert first['forwarding']['sourceNoteId']=='source'
   for key in ['text','createdAt','editedAt','reactions','custom']:assert first[key]==RECORDS[0][key]
-  assert saved['messages'][2]['id']=='second'
+  assert saved['messages'][2]['id']==fixture_id('second')
   for key in ['bubbleTheme','backgroundTheme','wallpaper','scale']:assert saved['settings'][key]==DEST['content']['appendEditorSettings'][key]
   assert saved['settings']['reactionOrder']==['❤️','✅','⭐']
   assert page.evaluate('notes.dest.content.title')=='Keep destination title'
@@ -81,7 +63,7 @@ with sync_playwright() as p:
   assert page.evaluate('saves.length')==old_saves
   page.evaluate('openPlain();openIM()');expect(editor.locator('.forwarded-label')).to_have_count(2)
   page.wait_for_function('notes.dest.clientData?.imStyleEditor?.messages.length===3')
-  assert page.evaluate('notes.dest.clientData.imStyleEditor.messages[1].forwarding.sourceMessageId')=='first'
+  assert page.evaluate('notes.dest.clientData.imStyleEditor.messages[1].forwarding.sourceMessageId')==fixture_id('first')
   print(f'PASS width={width}: actual clipboard selection transfer preserves complete metadata, collision IDs, destination settings; duplicate import changes nothing')
   # Explicit fallback when the browser denies reading the clipboard.
   frame=page.locator('#editor').content_frame

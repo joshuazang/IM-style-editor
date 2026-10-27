@@ -1,3 +1,4 @@
+from fixture_v2 import fixture_id, fixture_messages, prepare_note
 """A bottom-screen hold must never release onto an active Delete action."""
 import os
 from pathlib import Path
@@ -5,8 +6,10 @@ from playwright.sync_api import expect, sync_playwright
 BASE = os.environ.get('IM_STYLE_EDITOR_BASE_URL', 'http://127.0.0.1:8000').rstrip('/')
 HOST = Path(__file__).with_name('editor-roundtrip-host.html').read_text()
 MESSAGES = [dict(id=f'm{i}', text=f'Message {i}', createdAt=f'2026-01-01T08:{i:02d}:00Z', reactions=[]) for i in range(25)]
+MESSAGES=fixture_messages(MESSAGES)
 NOTE = {'uuid':'original','content_type':'Note','content':{'text':'\n'.join(m['text'] for m in MESSAGES),
         'appendEditorMessageData':MESSAGES}}
+NOTE=prepare_note(NOTE)
 with sync_playwright() as p:
     browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)
     context=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
@@ -21,7 +24,7 @@ with sync_playwright() as p:
     page.evaluate('(note)=>{notes.original=note;openIM("original")}',NOTE)
     editor=page.frame_locator('#editor')
     expect(editor.locator('.message-bubble')).to_have_count(25)
-    page.wait_for_function('notes.original.clientData?.imStyleEditor?.schemaVersion===2')
+    page.wait_for_function('notes.original.clientData?.imStyleEditor?.schemaVersion===3')
     log=editor.get_by_role('log');log.evaluate('el=>el.scrollTop=el.scrollHeight')
     target=editor.locator('.message-body').last
     before=target.bounding_box();scroll=log.evaluate('el=>el.scrollTop')
@@ -60,7 +63,7 @@ with sync_playwright() as p:
     page.set_viewport_size({'width':390,'height':844})
     # A very long category menu scrolls above the hold point rather than covering it.
     large=dict(NOTE);large['content']=dict(NOTE['content'],appendEditorSettings={'reactionOrder':['⭐'+str(i) for i in range(100)]})
-    page.evaluate('(note)=>{notes.original=note;openIM("original")}',large)
+    page.evaluate('(note)=>{notes.original=note;openIM("original")}',prepare_note(large))
     expect(editor.locator('.message-bubble')).to_have_count(25)
     log=editor.get_by_role('log');log.evaluate('el=>el.scrollTop=el.scrollHeight')
     target=editor.locator('.message-body').last;b=target.bounding_box();x=b['x']+20;y=b['y']+10

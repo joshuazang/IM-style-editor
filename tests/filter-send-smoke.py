@@ -1,3 +1,4 @@
+from fixture_v2 import fixture_id, fixture_messages, prepare_note
 """Sending inherits only the current emoji filter; selected filters retain frost."""
 import os
 from pathlib import Path
@@ -6,7 +7,9 @@ BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8000').rstrip('
 HOST=Path(__file__).with_name('editor-roundtrip-host.html').read_text()
 ORDER=['📌','💡','❤️','⭐','✅','🛍️']
 MESSAGES=[dict(id=str(i),text=f'Underlying message {i}',reactions=['⭐'] if i%2==0 else ['❤️'],createdAt='2026-01-01T12:00:00Z') for i in range(18)]
+MESSAGES=fixture_messages(MESSAGES)
 NOTE={'uuid':'original','content_type':'Note','content':{'text':'\n'.join(m['text'] for m in MESSAGES),'appendEditorMessageData':MESSAGES,'appendEditorSettings':{'reactionOrder':ORDER}}}
+NOTE=prepare_note(NOTE)
 
 def material(locator):
  return locator.evaluate('''el=>{const s=getComputedStyle(el),canvas=document.createElement('canvas');canvas.width=canvas.height=1;const c=canvas.getContext('2d');c.fillStyle=s.backgroundColor;c.fillRect(0,0,1,1);return {alpha:c.getImageData(0,0,1,1).data[3],blur:s.backdropFilter||s.webkitBackdropFilter,border:parseFloat(s.borderTopWidth),borderColor:s.borderTopColor,before:getComputedStyle(el,'::before').content,color:s.color}}''')

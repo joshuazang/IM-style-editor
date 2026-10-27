@@ -1,306 +1,179 @@
-/* Inlined into the static bundle by tools/package-release.py. */
+/* Version 2: line-oriented archival text. Decoration is never parsed as structure. */
 const imFormat = (() => {
-  const schemaVersion = 2;
-  const documentStart = '#!im-style-editor 1';
-  const documentEnd = ':::end-im-style-editor';
-  const object = value => value && typeof value === 'object' && !Array.isArray(value);
-  // Text remains human-readable. Escape only backslashes, carriage returns and
-  // reserved delimiter lines, so even delimiter-looking messages are unambiguous.
-  const encodeBody = text => text.replace(/\\/g, '\\\\').replace(/\r/g, '\\r')
-    .split('\n').map(line => line.startsWith(':::') ? '\\' + line : line).join('\n');
-  const decodeBody = text => text.split('\n').map(line => {
-    if (line.startsWith('\\:::')) line = line.slice(1);
-    else if (line.startsWith(':::')) throw new Error('Unexpected record inside a message');
-    return line.replace(/\\([\\r])|\\/g, (match, escape) => {
-      if (!escape) throw new Error('Unrecognized message escape');
-      return escape === 'r' ? '\r' : '\\';
-    });
-  }).join('\n');
-  function portable(messages, settings) {
-    const lines = [documentStart, ':::settings ' + JSON.stringify(settings)];
-    for (const message of copyMessages(messages)) {
-      const { text, ...metadata } = message;
-      lines.push(':::bubble ' + JSON.stringify(metadata), encodeBody(text), ':::end-bubble');
+  const header = '#!im-style-editor 2';
+  const encoding = '#!encoding utf-8';
+  const controls = new Set(['@@IM:SETTINGS', '@@IM:END-SETTINGS', '@@IM:BUBBLE', '@@IM:TEXT', '@@IM:END-BUBBLE', '@@IM:END']);
+  const major = '='.repeat(60), minor = '-'.repeat(60);
+  const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const validId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{21}[AQgw]$/.test(value);
+  function newId() {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  const newMessage = text => ({ id: newId(), text, reactions: [] });
+  function validateMessages(messages) {
+    if (!Array.isArray(messages)) throw new Error('Messages must be an array');
+    const ids = new Set();
+    for (const message of messages) {
+      if (!object(message) || !validId(message.id) || ids.has(message.id) || typeof message.text !== 'string' ||
+          !Array.isArray(message.reactions) || !message.reactions.every(tag => typeof tag === 'string') ||
+          ('createdAt' in message && typeof message.createdAt !== 'string') ||
+          ('editedAt' in message && typeof message.editedAt !== 'string') ||
+          ('separatorAfter' in message && typeof message.separatorAfter !== 'string')) throw new Error('Invalid or duplicate bubble metadata');
+      ids.add(message.id);
     }
-    lines.push(documentEnd);
+  }
+  function validateSettings(settings) {
+    if (!object(settings)) throw new Error('Settings must be an object');
+    for (const key of ['bubbleTheme','backgroundTheme','artwork']) if (key in settings && typeof settings[key] !== 'string') throw new Error('Invalid setting ' + key);
+    if ('wallpaper' in settings && typeof settings.wallpaper !== 'boolean') throw new Error('Wallpaper must be boolean');
+    if ('scale' in settings && (typeof settings.scale !== 'number' || !Number.isFinite(settings.scale) || settings.scale <= 0)) throw new Error('Scale must be positive');
+    for (const key of ['reactionOrder','deletedEmojis']) if (key in settings && (!Array.isArray(settings[key]) || !settings[key].every(tag => typeof tag === 'string'))) throw new Error('Invalid emoji settings');
+  }
+  const logical = line => line.endsWith('\r') ? line.slice(0, -1) : line;
+  // Optional ASCII punctuation is accepted as decoration, never as a boundary.
+  const decoration = line => /^[\t\x20-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]*$/.test(line);
+  const encodeBody = text => text.split('\n').map(line => line.startsWith('\\') || controls.has(logical(line)) ? '\\' + line : line).join('\n');
+  const decodeBody = text => text.split('\n').map(line =>
+    line.startsWith('\\\\') || (line.startsWith('\\') && controls.has(logical(line.slice(1)))) ? line.slice(1) : line).join('\n');
+  const bubbleFields = { id: 'id', createdAt: 'created', editedAt: 'edited', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding' };
+  const settingsFields = { bubbleTheme: 'bubble-theme', backgroundTheme: 'background-theme', wallpaper: 'wallpaper', artwork: 'artwork', scale: 'scale', reactionOrder: 'reaction-order', deletedEmojis: 'deleted-emojis' };
+  const valueText = value => typeof value === 'string' && /^[A-Za-z0-9_.:+-]+$/.test(value) && !/^(?:true|false|null|[-+]?\d)/.test(value) ? value : JSON.stringify(value);
+  function fields(record, mapping, extrasName) {
+    const lines = [], extras = {};
+    for (const [key, label] of Object.entries(mapping)) if (Object.hasOwn(record, key)) {
+      // IDs and timestamps are readable bare tokens; string parsing is field-aware.
+      const value = record[key];
+      lines.push(label + ': ' + (typeof value === 'string' && ['id','createdAt','editedAt'].includes(key) && /^[A-Za-z0-9_.:+-]+$/.test(value) ? value : valueText(value)));
+    }
+    for (const [key, value] of Object.entries(record)) if (!Object.hasOwn(mapping, key) && !(extrasName === 'extra-metadata' && key === 'text')) extras[key] = value;
+    if (Object.keys(extras).length) lines.push(extrasName + ': ' + JSON.stringify(extras));
+    return lines;
+  }
+  function portable(messages, settings) {
+    validateMessages(messages);
+    validateSettings(settings);
+    const lines = [header, encoding, major, '@@IM:SETTINGS', ...fields(settings, settingsFields, 'extra-settings'), '@@IM:END-SETTINGS', major];
+    for (const message of messages) lines.push('@@IM:BUBBLE', ...fields(message, bubbleFields, 'extra-metadata'), minor,
+      '@@IM:TEXT', encodeBody(message.text), '@@IM:END-BUBBLE', major);
+    lines.push('@@IM:END');
     return lines.join('\n') + '\n';
+  }
+  function parseFields(lines, mapping, extrasName) {
+    const inverse = Object.fromEntries(Object.entries(mapping).map(([key, label]) => [label, key]));
+    const record = {}, seen = new Set();
+    for (const line of lines) {
+      if (controls.has(line) || /^@@IM:/.test(line) || /^#!/.test(line)) throw new Error('Unexpected control line in metadata');
+      // Optional punctuation is decoration, never the start/end of message text.
+      if (decoration(line)) continue;
+      const match = /^([a-z][a-z-]*): (.*)$/.exec(line);
+      if (!match) throw new Error('Malformed metadata field or prose outside message text');
+      if (!Object.hasOwn(inverse, match[1]) && match[1] !== extrasName) throw new Error('Unknown metadata field; use ' + extrasName);
+      if (seen.has(match[1])) throw new Error('Duplicate metadata field');
+      const [, label, raw] = match;
+      seen.add(label);
+      let value;
+      if (['id','created','edited'].includes(label) && !raw.startsWith('"')) value = raw;
+      else if (/^[A-Za-z][A-Za-z0-9_.+-]*$/.test(raw) && !['true','false','null'].includes(raw)) value = raw;
+      else value = JSON.parse(raw);
+      if (label === extrasName) {
+        if (!object(value)) throw new Error('Extra metadata must be an object');
+        for (const [key, item] of Object.entries(value)) {
+          if (Object.hasOwn(mapping,key) || (extrasName === 'extra-metadata' && key === 'text')) throw new Error('Extra metadata shadows a reserved field');
+          Object.defineProperty(record, key, { value: item, enumerable: true, writable: true, configurable: true });
+        }
+      } else record[inverse[label]] = value;
+    }
+    return record;
   }
   function inspect(text) {
     if (typeof text !== 'string') text = '';
-    const lines = text.replace(/\r\n/g, '\n').split('\n');
-    const recognizable = /#!im-style-editor(?:\s|$)/.test(text) ||
-      lines.some(line => line === documentEnd) || /^:::(?:settings |bubble )/.test(lines[0]);
-    if (!recognizable) return { kind: 'plain' };
+    // Recognize unsupported archival documents, but never read/migrate their data.
+    if (!/^#!im-style-editor\b/m.test(text) && !/^@@IM:/m.test(text)) return { kind: 'plain' };
     try {
-      if (lines.shift() !== documentStart) throw new Error('Missing or unsupported document header');
-      const settingsLine = lines.shift();
-      if (!settingsLine?.startsWith(':::settings ')) throw new Error('Missing settings record');
-      const settings = JSON.parse(settingsLine.slice(12));
-      if (!object(settings)) throw new Error('Invalid settings record');
-      const messages = [], ids = new Set();
+      const rows = [];
+      let start = 0;
+      for (let i = 0; i < text.length; i++) if (text[i] === '\n') {
+        rows.push({ line: logical(text.slice(start, i)), start, next: i + 1 }); start = i + 1;
+      }
+      if (start < text.length) rows.push({ line: logical(text.slice(start)), start, next: text.length });
       let i = 0;
-      while (i < lines.length && lines[i] !== documentEnd) {
-        if (!lines[i].startsWith(':::bubble ')) throw new Error('Missing bubble boundary');
-        const metadata = JSON.parse(lines[i++].slice(10));
-        if (!object(metadata) || typeof metadata.id !== 'string' || !metadata.id || ids.has(metadata.id) ||
-            'text' in metadata || !Array.isArray(metadata.reactions) ||
-            !metadata.reactions.every(tag => typeof tag === 'string') ||
-            ('separatorAfter' in metadata && typeof metadata.separatorAfter !== 'string')) {
-          throw new Error('Invalid or duplicate bubble record');
+      const headerLine = expected => {
+        while (i < rows.length && decoration(rows[i].line)) i++;
+        if (rows[i++]?.line !== expected) throw new Error('Unsupported format or encoding header; only format 2 is supported');
+      };
+      headerLine(header); headerLine(encoding);
+      const seek = expected => {
+        while (i < rows.length && !controls.has(rows[i].line)) {
+          if (!decoration(rows[i].line)) throw new Error('Unexpected text outside records');
+          i++;
         }
-        ids.add(metadata.id);
-        const start = i;
-        while (i < lines.length && lines[i] !== ':::end-bubble') i++;
-        if (i === lines.length || i === start) throw new Error('Unclosed bubble');
-        messages.push({ ...metadata, text: decodeBody(lines.slice(start, i).join('\n')) });
-        i++;
-      }
-      if (lines[i++] !== documentEnd || lines.slice(i).some(line => line !== '')) {
-        throw new Error('Unclosed document or text outside its boundaries');
-      }
-      return { kind: 'portable', messages, settings };
-    } catch (error) {
-      return { kind: 'damaged', error: error.message, text };
-    }
-  }
-  // Recovery is opt-in: tolerate missing boundary newlines, but never silently
-  // rewrite a damaged document or discard text outside its envelope.
-  function recover(text) {
-    if (typeof text !== 'string' || inspect(text).kind === 'portable') return null;
-    const start = text.indexOf(documentStart);
-    if (start < 0) return null;
-    let cursor = start + documentStart.length;
-    const whitespace = () => { while (/\s/.test(text[cursor] || '') && cursor < text.length) cursor++; };
-    const token = value => {
-      whitespace();
-      if (!text.startsWith(value, cursor)) throw new Error('Incomplete record');
-      cursor += value.length;
-    };
-    const json = () => {
-      whitespace();
-      if (text[cursor] !== '{') throw new Error('Missing JSON object');
-      const begin = cursor;
-      let depth = 0, quoted = false, escaped = false;
-      for (; cursor < text.length; cursor++) {
-        const char = text[cursor];
-        if (quoted) {
-          if (escaped) escaped = false;
-          else if (char === '\\') escaped = true;
-          else if (char === '"') quoted = false;
-        } else if (char === '"') quoted = true;
-        else if (char === '{') depth++;
-        else if (char === '}' && --depth === 0) {
-          return JSON.parse(text.slice(begin, ++cursor));
-        }
-      }
-      throw new Error('Incomplete JSON');
-    };
-    try {
-      token(':::settings ');
-      const settings = json();
-      if (!object(settings)) return null;
+        if (rows[i++]?.line !== expected) throw new Error('Missing control line ' + expected);
+      };
+      seek('@@IM:SETTINGS');
+      const settingLines = [];
+      while (i < rows.length && rows[i].line !== '@@IM:END-SETTINGS') settingLines.push(rows[i++].line);
+      if (rows[i++]?.line !== '@@IM:END-SETTINGS') throw new Error('Unclosed settings');
+      const settings = parseFields(settingLines, settingsFields, 'extra-settings');
+      validateSettings(settings);
       const messages = [];
-      const ids = new Set();
-      whitespace();
-      while (text.startsWith(':::bubble ', cursor)) {
-        token(':::bubble ');
-        const metadata = json();
-        if (!object(metadata) || typeof metadata.id !== 'string' || !metadata.id || ids.has(metadata.id) ||
-            'text' in metadata || !Array.isArray(metadata.reactions) ||
-            !metadata.reactions.every(tag => typeof tag === 'string') ||
-            ('separatorAfter' in metadata && typeof metadata.separatorAfter !== 'string')) return null;
-        ids.add(metadata.id);
-        const begin = cursor;
-        // Exported literal delimiter lines are escaped. Inline delimiter text is
-        // ambiguous after flattening; leave those documents in protected mode.
-        let end = text.indexOf(':::end-bubble', cursor);
-        while (end >= 0 && text[end - 1] === '\\') end = text.indexOf(':::end-bubble', end + 1);
-        if (end < 0) throw new Error('Missing bubble end');
-        let body = text.slice(begin, end);
-        body = body.replace(/^(?:\r?\n| )/, '').replace(/(?:\r?\n| )$/, '');
-        if (/(^|[^\\]):::/m.test(body)) throw new Error('Ambiguous delimiter');
-        messages.push({ ...metadata, text: decodeBody(body) });
-        cursor = end + ':::end-bubble'.length;
-        whitespace();
+      while (true) {
+        // Optional decoration outside records has no structural meaning.
+        while (i < rows.length && !controls.has(rows[i].line)) {
+          if (!decoration(rows[i].line)) throw new Error('Unexpected text outside records');
+          i++;
+        }
+        if (rows[i]?.line === '@@IM:END') { i++; break; }
+        if (rows[i++]?.line !== '@@IM:BUBBLE') throw new Error('Missing bubble or document end');
+        const metadata = [];
+        while (i < rows.length && rows[i].line !== '@@IM:TEXT') metadata.push(rows[i++].line);
+        const textMarker = rows[i++];
+        if (textMarker?.line !== '@@IM:TEXT' || textMarker.next === text.length) throw new Error('Missing text control line');
+        const bodyStart = textMarker.next;
+        while (i < rows.length && rows[i].line !== '@@IM:END-BUBBLE') {
+          if (controls.has(rows[i].line)) throw new Error('Unexpected control line inside a message');
+          i++;
+        }
+        const end = rows[i++];
+        if (!end || end.start <= bodyStart || text[end.start - 1] !== '\n') throw new Error('Missing bubble end or framing newline');
+        messages.push({ ...parseFields(metadata, bubbleFields, 'extra-metadata'), text: decodeBody(text.slice(bodyStart, end.start - 1)) });
       }
-      token(documentEnd);
-      // Validate all recovered metadata with the exact same strict parser.
-      const parsed = inspect(portable(messages, settings));
-      if (parsed.kind !== 'portable' || !messages.length) return null;
-      const before = text.slice(0, start), after = text.slice(cursor);
-      if (before.trim()) parsed.messages.unshift(newMessage(before));
-      if (after.trim()) parsed.messages.push(newMessage(after));
-      return { ...parsed, originalText: text, extraText: !!(before.trim() || after.trim()) };
-    } catch {
-      return null;
-    }
+      if (rows.slice(i).some(row => !decoration(row.line))) throw new Error('Unexpected data after document end');
+      validateMessages(messages);
+      return { kind: 'portable', messages, settings };
+    } catch (error) { return { kind: 'damaged', error: error.message, text }; }
   }
-  function restore(note) {
-    const recovered = recover(note.content?.text);
-    if (!recovered) throw new Error('The records cannot be safely recovered');
-    const settings = { ...recovered.settings, recoveryOriginal: {
-      text: recovered.originalText, restoredAt: new Date().toISOString()
-    } };
-    const result = { ...note, content: { ...note.content, text: portable(recovered.messages, settings) } };
-    return write(result, recovered.messages, settings);
-  }
-  const newMessage = text => ({ id: (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`), text, reactions: [] });
-  const serialize = messages => messages.map((message, index) => message.text +
-    (index < messages.length - 1 ? (typeof message.separatorAfter === 'string' ? message.separatorAfter : '\n') : '')).join('');
-  const validMessages = messages => Array.isArray(messages) && messages.every(message =>
-    message && typeof message.id === 'string' && typeof message.text === 'string');
-  const copyMessages = messages => messages.map(message => ({ ...message,
-    reactions: Array.isArray(message.reactions) ? message.reactions.filter(tag => typeof tag === 'string') : [] }));
-  const paragraphSpans = text => {
+  const fromPlainText = text => {
     if (!text) return [];
-    const spans = [];
-    let start = 0;
+    const spans = []; let start = 0;
     for (const match of text.matchAll(/\r?\n[ \t]*\r?\n(?:[ \t]*\r?\n)*/g)) {
       const end = match.index + match[0].length;
-      // Keep leading and trailing blank lines in the first/last message.
       if (match.index === start || end === text.length) continue;
-      spans.push({ start, end: match.index });
-      start = end;
+      spans.push({start,end:match.index}); start = end;
     }
-    spans.push({ start, end: text.length });
-    return spans;
+    spans.push({start,end:text.length});
+    return spans.map((span,index) => ({...newMessage(text.slice(span.start,span.end)),separatorAfter:index<spans.length-1?text.slice(span.end,spans[index+1].start):''}));
   };
-  const fromSpans = (text, spans) => spans.map((span, index) => ({
-    ...(span.message || newMessage('')),
-    text: text.slice(index === 0 ? 0 : span.start, index === spans.length - 1 ? text.length : span.end),
-    separatorAfter: index < spans.length - 1 ? text.slice(span.end, spans[index + 1].start) : ''
-  }));
-  const fromPlainText = text => fromSpans(text, paragraphSpans(text));
-  const spansFor = messages => {
-    let offset = 0;
-    return messages.map((message, index) => {
-      const span = { start: offset, end: offset + message.text.length, message };
-      offset = span.end + (index < messages.length - 1 ?
-        (typeof message.separatorAfter === 'string' ? message.separatorAfter.length : 1) : 0);
-      return span;
-    });
+  const serialize = messages => messages.map((message,index) => message.text + (index<messages.length-1 ? message.separatorAfter ?? '\n' : '')).join('');
+  const readMessages = note => { const parsed=inspect(note.content?.text); return parsed.kind==='portable'?clone(parsed.messages):parsed.kind==='plain'?fromPlainText(note.content?.text||''):[]; };
+  const readSettings = note => {const parsed=inspect(note.content?.text);return parsed.kind==='portable'?clone(parsed.settings):{};};
+  const isCurrent = (note,messages,settings) => {
+    const saved=note.clientData?.imStyleEditor;
+    try { return saved?.schemaVersion===3 && portable(messages,settings)===note.content.text &&
+      portable(saved.messages,saved.settings)===note.content.text; } catch { return false; }
   };
-  function fromLegacyRanges(text, ranges) {
-    if (!Array.isArray(ranges) || !ranges.length) return fromPlainText(text);
-    let end = 0;
-    const spans = [];
-    for (const range of ranges) {
-      if (!Number.isInteger(range.start) || !Number.isInteger(range.end) || range.start < end ||
-          range.end <= range.start || range.end > text.length) return fromPlainText(text);
-      const gap = text.slice(end, range.start);
-      if (gap && /[^\r\n]/.test(gap)) spans.push({ start: end, end: range.start });
-      spans.push({ start: range.start, end: range.end });
-      end = range.end;
-    }
-    if (end < text.length && /[^\r\n]/.test(text.slice(end))) spans.push({ start: end, end: text.length });
-    return fromSpans(text, spans);
-  }
-  function reconcile(text, previous) {
-    const messages = copyMessages(previous);
-    const old = serialize(messages);
-    if (old === text) return messages;
-    if (!text) return [];
-    let prefix = 0;
-    while (prefix < old.length && prefix < text.length && old[prefix] === text[prefix]) prefix++;
-    if (prefix && /[\uD800-\uDBFF]/.test(old[prefix - 1])) prefix--;
-    let suffix = 0;
-    while (suffix < old.length - prefix && suffix < text.length - prefix &&
-           old[old.length - suffix - 1] === text[text.length - suffix - 1]) suffix++;
-    if (suffix && /[\uDC00-\uDFFF]/.test(old[old.length - suffix])) suffix--;
-    const oldEnd = old.length - suffix;
-    const newEnd = text.length - suffix;
-    const spans = spansFor(messages);
-    // A change inside one bubble keeps that bubble's identity, time and categories.
-    const changed = spans.findIndex(span => prefix >= span.start && oldEnd <= span.end);
-    if (changed !== -1) {
-      const span = spans[changed];
-      const localStart = prefix - span.start;
-      const localEnd = oldEnd - span.start;
-      messages[changed].text = span.message.text.slice(0, localStart) + text.slice(prefix, newEnd) + span.message.text.slice(localEnd);
-      if (serialize(messages) === text) return messages;
-    }
-    // Keep complete unaffected bubbles; re-import only the changed area.
-    const delta = text.length - old.length;
-    const anchors = spans.flatMap(span => {
-      if (span.end <= prefix) return [span];
-      if (span.start >= oldEnd) return [{ ...span, start: span.start + delta, end: span.end + delta }];
-      return [];
-    }).filter(span => text.slice(span.start, span.end) === span.message.text);
-    const result = [];
-    let cursor = 0;
-    const fillGap = (start, end) => {
-      const gap = text.slice(start, end);
-      const leading = gap.match(/^(?:\r?\n)+/)?.[0].length || 0;
-      const trailing = gap.match(/(?:\r?\n)+$/)?.[0].length || 0;
-      const lo = start + leading, hi = Math.max(lo, end - trailing);
-      for (const span of paragraphSpans(text.slice(lo, hi))) result.push({ start: lo + span.start, end: lo + span.end });
-    };
-    for (const anchor of anchors) {
-      fillGap(cursor, anchor.start);
-      result.push(anchor);
-      cursor = anchor.end;
-    }
-    fillGap(cursor, text.length);
-    return result.length ? fromSpans(text, result) : fromPlainText(text);
-  }
-  function stateFor(note) {
-    const content = note.content || {};
-    const text = typeof content.text === 'string' ? content.text : '';
-    const saved = note.clientData?.imStyleEditor;
-    const protectedState = [1, schemaVersion].includes(saved?.schemaVersion) && validMessages(saved.messages) ? saved : null;
-    const legacy = validMessages(content.appendEditorMessageData) ? {
-      messages: content.appendEditorMessageData, settings: content.appendEditorSettings
-    } : null;
-    // Older versions may have updated the legacy data without updating clientData.
-    const candidates = [legacy, protectedState].filter(Boolean);
-    const state = candidates.find(candidate => serialize(candidate.messages) === text) || legacy || protectedState;
-    return { text, state, protectedState };
-  }
-  const readMessages = note => {
-    const document = inspect(note.content?.text);
-    if (document.kind === 'portable') return copyMessages(document.messages);
-    if (document.kind === 'damaged') return [];
-    const { text, state } = stateFor(note);
-    return state ? reconcile(text, state.messages) : fromLegacyRanges(text, note.content?.appendEditorMessages);
-  };
-  const readSettings = note => {
-    const document = inspect(note.content?.text);
-    return document.kind === 'portable' ? document.settings :
-      stateFor(note).state?.settings || note.content?.appendEditorSettings || {};
-  };
-  const isCurrent = (note, messages, settings) => {
-    const saved = note.clientData?.imStyleEditor;
-    return saved?.schemaVersion === schemaVersion && validMessages(saved.messages) &&
-      portable(messages, settings) === note.content.text &&
-      portable(saved.messages, saved.settings) === note.content.text;
-  };
-  function write(note, messages, settings) {
-    const document = inspect(note.content?.text);
-    if (document.kind === 'damaged') throw new Error('Damaged note records: original text was not changed');
-    const savedMessages = copyMessages(messages);
-    const savedSettings = JSON.parse(JSON.stringify(settings));
-    const text = portable(savedMessages, savedSettings);
-    // Keep the exact pre-migration text and any recoverable legacy records once.
-    // This is additional recovery data; portable text is the primary format.
-    const previous = note.clientData?.imStyleEditor;
-    const migrationBackup = previous?.migrationBackup ||
-      (document.kind === 'plain' ? {
-        text: note.content?.text || '',
-        messages: readMessages(note), settings: readSettings(note)
-      } : undefined);
-    // clientData is Standard Notes' per-note, per-editor storage. It is saved
-    // in the note's component-data domain, independently of the plain text.
-    note.clientData = { ...(note.clientData || {}), imStyleEditor: {
-      schemaVersion, messages: savedMessages, settings: savedSettings,
-      ...(migrationBackup ? { migrationBackup } : {})
-    } };
-    note.content = { ...note.content, text,
-      appendEditorMessageData: savedMessages,
-      appendEditorSettings: savedSettings,
-      appendEditorMessages: spansFor(savedMessages).map(({ start, end }) => ({ start, end })),
-      preview_plain: serialize(savedMessages).slice(0, 160) || ' ', preview_html: undefined
-    };
+  function write(note,messages,settings) {
+    if (inspect(note.content?.text).kind==='damaged') throw new Error('Malformed records: original text was not changed');
+    const text=portable(messages,settings), savedMessages=clone(messages), savedSettings=clone(settings);
+    note.clientData={...note.clientData,imStyleEditor:{schemaVersion:3,messages:savedMessages,settings:savedSettings}};
+    note.content={...note.content,text,appendEditorMessageData:savedMessages,appendEditorSettings:savedSettings,
+      preview_plain:serialize(messages).slice(0,160)||' ',preview_html:undefined};
     return note;
   }
-  return { serialize, portable, inspect, recover, restore, fromPlainText, readMessages, readSettings, reconcile, isCurrent, write };
+  // Format 2 never guesses at damaged structure or uses decoration to repair it.
+  const recover = () => null;
+  const restore = () => {throw new Error('Damaged format 2 records require manual repair');};
+  return { newId, validId, validateMessages, serialize, portable, inspect, fromPlainText, readMessages, readSettings, isCurrent, write, recover, restore };
 })();

@@ -1,3 +1,4 @@
+from fixture_v2 import fixture_id, fixture_messages, prepare_note
 """Persistent filter state, separated emoji buttons, stable order and vector artwork."""
 import os
 from pathlib import Path
@@ -6,7 +7,9 @@ BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8000').rstrip('
 HOST=Path(__file__).with_name('editor-roundtrip-host.html').read_text()
 ORDER=['📌','💡','❤️','⭐','✅','🛍️']
 MESSAGES=[dict(id=str(i),text=f'Garden thought {i}: a quiet moment to remember.',reactions=['⭐'] if i%2==0 else ['❤️'],createdAt='2026-01-01T12:00:00Z') for i in range(18)]
+MESSAGES=fixture_messages(MESSAGES)
 NOTE={'uuid':'original','content_type':'Note','content':{'text':'\n'.join(m['text'] for m in MESSAGES),'appendEditorMessageData':MESSAGES,'appendEditorSettings':{'reactionOrder':ORDER}}}
+NOTE=prepare_note(NOTE)
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)
  for width in [320,390,1200]:

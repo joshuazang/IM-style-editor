@@ -1,3 +1,4 @@
+from fixture_v2 import fixture_id, fixture_messages, prepare_note
 """Only the top-menu surfaces should blur the content behind them."""
 import os
 from pathlib import Path
@@ -5,7 +6,9 @@ from playwright.sync_api import expect, sync_playwright
 BASE = os.environ.get('IM_STYLE_EDITOR_BASE_URL', 'http://127.0.0.1:8000').rstrip('/')
 HOST = Path(__file__).with_name('editor-roundtrip-host.html').read_text()
 messages = [dict(id=str(i),text=f'Underlying message {i}',reactions=['⭐'],createdAt='2026-01-01T08:00:00Z') for i in range(20)]
+messages=fixture_messages(messages)
 note = {'uuid':'original','content_type':'Note','content':{'text':'\n'.join(m['text'] for m in messages),'appendEditorMessageData':messages}}
+note=prepare_note(note)
 
 def surface(element, frosted, alpha=22):
     actual=element.evaluate('''el=>{

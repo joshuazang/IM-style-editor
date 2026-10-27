@@ -1,0 +1,36 @@
+#!im-style-editor 2
+#!encoding utf-8
+============================================================
+@@IM:SETTINGS
+bubble-theme: lime
+background-theme: sand
+wallpaper: true
+artwork: classic
+scale: 1.12
+reaction-order: ["🛍️","✅","⭐","💡","❤️","📌"]
+deleted-emojis: []
+@@IM:END-SETTINGS
+============================================================
+@@IM:BUBBLE
+id: HpBnTjMNSzGu3pPG3eGQig
+created: 2026-10-27T14:12:19.028Z
+edited: 2026-10-27T14:12:35.628Z
+reactions: ["✅"]
+------------------------------------------------------------
+@@IM:TEXT
+Pick up oat milk on the way home.
+Keep the receipt for the shared groceries.
+@@IM:END-BUBBLE
+============================================================
+@@IM:BUBBLE
+id: g4CuOIuSMGT56m-SO0-HhQ
+created: 2026-10-27T14:15:02.004Z
+reactions: []
+------------------------------------------------------------
+@@IM:TEXT
+晚上七点一起吃饭。🙂
+
+到家以后给我发个消息。
+@@IM:END-BUBBLE
+============================================================
+@@IM:END
