@@ -5,8 +5,9 @@ Serve the repository with python3 -m http.server 8000, then run:
 The test supplies a synthetic Standard Notes host and never uses a real account.
 """
 import os
+from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
-HOST = '<!doctype html><title>Onboarding host</title>\n<iframe id="editor" src="/index.html" style="position:fixed;inset:0;width:100%;height:100%;border:0"></iframe>\n<script>\nconst editor = document.querySelector(\'#editor\');\nwindow.onboarding = {\n  saved: [],\n  note: {uuid: \'onboarding-note\', content_type: \'Note\',\n         content: {title: \'Onboarding fixture\', text: \'Existing smoke message\'}}\n};\nwindow.addEventListener(\'message\', event => {\n  if (event.source !== editor.contentWindow || event.origin !== location.origin) return;\n  const message = event.data;\n  if (!message || typeof message !== \'object\') return;\n  let data;\n  if (message.action === \'stream-context-item\') {\n    data = {item: structuredClone(onboarding.note)};\n  } else if (message.action === \'save-items\') {\n    onboarding.note = structuredClone(message.data.items[0]);\n    onboarding.saved.push(structuredClone(onboarding.note));\n    data = {items: structuredClone(message.data.items)};\n  } else {\n    return;\n  }\n  editor.contentWindow.postMessage({action: \'reply\', original: message, data}, location.origin);\n});\neditor.addEventListener(\'load\', () => {\n  editor.contentWindow.postMessage({\n    action: \'component-registered\', sessionKey: \'synthetic-onboarding-session\',\n    componentData: {},\n    data: {uuid: \'onboarding-component\', environment: \'web\', platform: \'web\', activeThemeUrls: []}\n  }, location.origin);\n});\n</script>'
+HOST = Path(__file__).with_name("standard-notes-host.html").read_text()
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8000').rstrip('/')
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)

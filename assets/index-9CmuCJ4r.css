@@ -46,3 +46,8 @@
 .message-meta{line-height:1.2}
 
 .message-meta{position:relative;right:-3px;bottom:-2px}
+/* The time flows after the text instead of reserving an entire right column. */
+.message-bubble.no-reactions{display:flow-root}
+.message-bubble.no-reactions .message-body{display:inline}
+.message-bubble.no-reactions .message-footer{display:contents}
+.message-bubble.no-reactions .message-meta{float:right;position:static;margin:calc(23.2px * var(--scale) - 11.2px) -3px -2px 8px;padding:0}
