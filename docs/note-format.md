@@ -54,6 +54,8 @@ Active search/tag filters display a persistent `Filtering` capsule with the emoj
 
 When a message is sent, it inherits the currently selected emoji filter as its sole initial category. With no emoji filter, it starts untagged, including during a text-only search. Changing the filter while drafting uses the category selected at send time. Applying the filter from either the menu or an existing bubble badge follows the same rule. The assigned category is saved in the portable record and survives editor switching; sending does not change the chosen emoji order.
 
+In Arrange tags, the trash button deletes a category from the filter and context menus for the current note. Existing message records and attached tags are preserved. If the deleted category was the active filter, that filter clears. A `deletedEmojis` settings list prevents built-in categories from reappearing through default fallbacks, including after an update or text-only editor conversion. Adding the same emoji restores it. The menu can also be emptied completely.
+
 The context-menu emoji order and Arrange tags use the same order. Applying/removing a category does not reorder it. Only manual Arrange controls change priority. Background artwork retains the original Classic vector pattern, and adds Engraved garden: detailed original SVG botanical/celestial linework. Select either in Appearance; the choice is saved in the portable settings. Artwork can still be disabled. No raster assets, animation or new filters are required for either artwork.
 
 # Existing appearance and touch behavior
@@ -64,7 +66,7 @@ Touch holds become ready after 520ms, with the menu opening only on release. Mov
 
 # Validation
 
-Run `node tests/message-transfer.test.cjs`, `node tests/portable-format.test.cjs`, `node tests/note-format.test.cjs`, `node tests/message-spacing.test.cjs` and `node tests/menu-layout.test.cjs`. Serve the repository and run the browser smoke tests with `IM_STYLE_EDITOR_BASE_URL` pointing to that server: recovery-forwarding, editor-roundtrip, filter-send, filter-artwork, touch-menu-placement, appearance-spacing, top-menu-frost, touch-menu, timestamp-layout. Run `python3 tests/update-cache-smoke.py` to check actual browser caching, hashes and release ZIP consistency.
+Run `node tests/message-transfer.test.cjs`, `node tests/portable-format.test.cjs`, `node tests/note-format.test.cjs`, `node tests/message-spacing.test.cjs` and `node tests/menu-layout.test.cjs`. Serve the repository and run the browser smoke tests with `IM_STYLE_EDITOR_BASE_URL` pointing to that server: emoji-delete, recovery-forwarding, editor-roundtrip, filter-send, filter-artwork, touch-menu-placement, appearance-spacing, top-menu-frost, touch-menu, timestamp-layout. Run `python3 tests/update-cache-smoke.py` to check actual browser caching, hashes and release ZIP consistency.
 
 These checks use synthetic host notes, not a real Standard Notes account. The round-trip fixture deliberately deletes all clientData and custom fields on every switch. Unit tests cover 1,200 randomized encoded bodies, 25 text-only transfers, CRLF, Unicode, reserved delimiters, malformed documents, legacy migration and stale-text protection.
 

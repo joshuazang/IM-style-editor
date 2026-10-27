@@ -6,7 +6,7 @@ BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8000').rstrip('
 HOST=Path(__file__).with_name('editor-roundtrip-host.html').read_text()
 MESSAGES=[{'id':'first','text':'First message\nwith a line\n\nand an intentional blank line','createdAt':'2026-01-01T12:00:00Z','reactions':['⭐']},
  {'id':'second','text':'Second message','createdAt':'2026-01-02T12:00:00Z','editedAt':'2026-01-03T12:00:00Z','reactions':['❤️']}]
-SETTINGS={'bubbleTheme':'sky','backgroundTheme':'mist','wallpaper':False,'artwork':'classic','scale':1.4,'reactionOrder':['⭐','❤️']}
+SETTINGS={'bubbleTheme':'sky','backgroundTheme':'mist','wallpaper':False,'artwork':'classic','scale':1.4,'reactionOrder':['⭐','❤️'],'deletedEmojis':[]}
 TEXT='\n'.join(m['text'] for m in MESSAGES)
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)
