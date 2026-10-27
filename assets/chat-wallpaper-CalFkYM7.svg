@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720" fill="none">
+<defs>
+<g id="plane"><path d="m0 9 54-9-19 18-12 27-8-25L0 9Z"/><path d="m15 20 20-2M23 29l12-11"/></g>
+<g id="camera"><rect x="0" y="9" width="58" height="40" rx="8"/><path d="M14 9 20 0h18l6 9"/><circle cx="29" cy="29" r="12"/><circle cx="29" cy="29" r="5"/></g>
+<g id="cassette"><rect width="67" height="43" rx="6"/><path d="M12 11h43l5 21H7l5-21Z"/><circle cx="23" cy="22" r="6"/><circle cx="44" cy="22" r="6"/><path d="M20 37h27"/></g>
+<g id="cat"><path d="M6 32V9l15 8c7-4 16-4 23 0l15-8v23c0 18-12 29-27 29S6 50 6 32Z"/><path d="M23 35h18M28 43l4 3 4-3M17 29h1M46 29h1M23 35 14 39M41 35l9 4"/></g>
+<g id="cup"><path d="M5 11h41v27c0 15-9 23-20 23S5 53 5 38V11Z"/><path d="M46 19h9c10 0 10 18 0 18h-9M18 3c-5 5 5 8 0 13M32 3c-5 5 5 8 0 13M17 35h18"/></g>
+<g id="rocket"><path d="M29 0c18 15 21 37 13 57L29 70 16 57C8 37 11 15 29 0Z"/><circle cx="29" cy="28" r="8"/><path d="m16 57-13 9 13-25M42 57l13 9-13-25M23 70l6 13 6-13"/></g>
+<g id="flower"><path d="M24 50V23M24 23C4 20 4 3 18 4c4-12 19-3 12 8 16-8 25 10 10 17 9 15-9 24-16 11-11 13-28-1-14-11-15-7-6-25 8-17"/><circle cx="24" cy="23" r="6"/><path d="M24 50c-9-13-18-10-20-5 9 8 15 8 20 5ZM24 50c9-13 18-10 20-5-9 8-15 8-20 5Z"/></g>
+<g id="record"><circle cx="29" cy="29" r="28"/><circle cx="29" cy="29" r="18"/><circle cx="29" cy="29" r="5"/><path d="M44 0v38c0 8 11 8 11 0s-11-8-11 0M44 0l18 5"/></g>
+<g id="burger"><path d="M4 31c4-25 50-25 54 0H4ZM7 36h48v9H7zM5 50h52c-5 15-47 15-52 0Z"/><path d="M14 24h1M25 18h1M39 22h1M47 16h1M16 40h30"/></g>
+<g id="game"><path d="M7 38c5-29 17-33 29-18h7c12-15 24-11 29 18 3 18-17 19-25 6H32C24 57 4 56 7 38Z"/><path d="M20 35v14M13 42h14M54 38h1M61 45h1"/></g>
+<g id="balloon"><path d="M27 0c19 0 28 15 22 31-4 11-15 19-22 29-7-10-18-18-22-29C-1 15 8 0 27 0Z"/><path d="M27 0v60M5 31h44M15 8c8 9 16 9 24 0M15 54l8 8h8l8-8M27 62v15"/></g>
+<g id="message"><path d="M3 9c0-5 4-9 9-9h44c5 0 9 4 9 9v25c0 5-4 9-9 9H30L16 55V43h-4c-5 0-9-4-9-9V9Z"/><path d="M16 20h36M16 30h24"/></g>
+<g id="ice"><path d="M17 28h29L32 61 17 28Z"/><path d="M13 22c0-29 37-29 37 0 0 8-7 12-18 12S13 30 13 22Z"/><path d="M24 18h1M39 18h1M27 25c3 3 7 3 10 0M21 38h22M18 45h18M23 52h10"/></g>
+</defs>
+<g stroke="#4f746a" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round" opacity=".145">
+<g transform="translate(35 35) rotate(-14)"><use href="#plane"/></g><g transform="translate(179 21) rotate(9)"><use href="#cat"/></g><g transform="translate(327 32) rotate(-8)"><use href="#cup"/></g><g transform="translate(500 20) rotate(14)"><use href="#camera"/></g><g transform="translate(625 46) rotate(9)"><use href="#flower"/></g>
+<g transform="translate(54 172) rotate(7)"><use href="#cassette"/></g><g transform="translate(183 142) rotate(-12)"><use href="#balloon"/></g><g transform="translate(329 165) rotate(5)"><use href="#message"/></g><g transform="translate(494 143) rotate(-15)"><use href="#rocket"/></g><g transform="translate(615 169) rotate(12)"><use href="#record"/></g>
+<g transform="translate(25 310) rotate(-8)"><use href="#burger"/></g><g transform="translate(151 305) rotate(10)"><use href="#game"/></g><g transform="translate(295 292) rotate(-10)"><use href="#cat"/></g><g transform="translate(448 314) rotate(12)"><use href="#ice"/></g><g transform="translate(590 297) rotate(-7)"><use href="#plane"/></g>
+<g transform="translate(86 449) rotate(12)"><use href="#flower"/></g><g transform="translate(223 432) rotate(-8)"><use href="#camera"/></g><g transform="translate(373 450) rotate(8)"><use href="#cup"/></g><g transform="translate(521 435) rotate(-13)"><use href="#cassette"/></g><g transform="translate(640 460) rotate(10)"><use href="#balloon"/></g>
+<g transform="translate(25 586) rotate(-10)"><use href="#message"/></g><g transform="translate(153 576) rotate(9)"><use href="#rocket"/></g><g transform="translate(292 583) rotate(-9)"><use href="#record"/></g><g transform="translate(435 575) rotate(13)"><use href="#burger"/></g><g transform="translate(573 590) rotate(-11)"><use href="#ice"/></g>
+<path d="M126 92c0-8 6-14 14-14-8 0-14-6-14-14 0 8-6 14-14 14 8 0 14 6 14 14ZM275 116c0-8 6-14 14-14-8 0-14-6-14-14 0 8-6 14-14 14 8 0 14 6 14 14ZM451 101c0-8 6-14 14-14-8 0-14-6-14-14 0 8-6 14-14 14 8 0 14 6 14 14ZM706 268c0-8 6-14 14-14-8 0-14-6-14-14 0 8-6 14-14 14 8 0 14 6 14 14ZM123 391c0-8 6-14 14-14-8 0-14-6-14-14 0 8-6 14-14 14 8 0 14 6 14 14ZM352 397c0-8 6-14 14-14-8 0-14-6-14-14 0 8-6 14-14 14 8 0 14 6 14 14Z"/>
+<circle cx="92" cy="119" r="4"/><circle cx="429" cy="264" r="4"/><circle cx="675" cy="380" r="4"/><circle cx="78" cy="540" r="4"/><circle cx="369" cy="689" r="4"/><circle cx="574" cy="110" r="4"/>
+</g></svg>
