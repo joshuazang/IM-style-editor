@@ -28,7 +28,7 @@ const imFormat = (() => {
   function inspect(text) {
     if (typeof text !== 'string') text = '';
     const lines = text.replace(/\r\n/g, '\n').split('\n');
-    const recognizable = lines.some(line => /^#!im-style-editor(?:\s|$)/.test(line)) ||
+    const recognizable = /#!im-style-editor(?:\s|$)/.test(text) ||
       lines.some(line => line === documentEnd) || /^:::(?:settings |bubble )/.test(lines[0]);
     if (!recognizable) return { kind: 'plain' };
     try {
@@ -62,6 +62,87 @@ const imFormat = (() => {
     } catch (error) {
       return { kind: 'damaged', error: error.message, text };
     }
+  }
+  // Recovery is opt-in: tolerate missing boundary newlines, but never silently
+  // rewrite a damaged document or discard text outside its envelope.
+  function recover(text) {
+    if (typeof text !== 'string' || inspect(text).kind === 'portable') return null;
+    const start = text.indexOf(documentStart);
+    if (start < 0) return null;
+    let cursor = start + documentStart.length;
+    const whitespace = () => { while (/\s/.test(text[cursor] || '') && cursor < text.length) cursor++; };
+    const token = value => {
+      whitespace();
+      if (!text.startsWith(value, cursor)) throw new Error('Incomplete record');
+      cursor += value.length;
+    };
+    const json = () => {
+      whitespace();
+      if (text[cursor] !== '{') throw new Error('Missing JSON object');
+      const begin = cursor;
+      let depth = 0, quoted = false, escaped = false;
+      for (; cursor < text.length; cursor++) {
+        const char = text[cursor];
+        if (quoted) {
+          if (escaped) escaped = false;
+          else if (char === '\\') escaped = true;
+          else if (char === '"') quoted = false;
+        } else if (char === '"') quoted = true;
+        else if (char === '{') depth++;
+        else if (char === '}' && --depth === 0) {
+          return JSON.parse(text.slice(begin, ++cursor));
+        }
+      }
+      throw new Error('Incomplete JSON');
+    };
+    try {
+      token(':::settings ');
+      const settings = json();
+      if (!object(settings)) return null;
+      const messages = [];
+      const ids = new Set();
+      whitespace();
+      while (text.startsWith(':::bubble ', cursor)) {
+        token(':::bubble ');
+        const metadata = json();
+        if (!object(metadata) || typeof metadata.id !== 'string' || !metadata.id || ids.has(metadata.id) ||
+            'text' in metadata || !Array.isArray(metadata.reactions) ||
+            !metadata.reactions.every(tag => typeof tag === 'string') ||
+            ('separatorAfter' in metadata && typeof metadata.separatorAfter !== 'string')) return null;
+        ids.add(metadata.id);
+        const begin = cursor;
+        // Exported literal delimiter lines are escaped. Inline delimiter text is
+        // ambiguous after flattening; leave those documents in protected mode.
+        let end = text.indexOf(':::end-bubble', cursor);
+        while (end >= 0 && text[end - 1] === '\\') end = text.indexOf(':::end-bubble', end + 1);
+        if (end < 0) throw new Error('Missing bubble end');
+        let body = text.slice(begin, end);
+        body = body.replace(/^(?:\r?\n| )/, '').replace(/(?:\r?\n| )$/, '');
+        if (/(^|[^\\]):::/m.test(body)) throw new Error('Ambiguous delimiter');
+        messages.push({ ...metadata, text: decodeBody(body) });
+        cursor = end + ':::end-bubble'.length;
+        whitespace();
+      }
+      token(documentEnd);
+      // Validate all recovered metadata with the exact same strict parser.
+      const parsed = inspect(portable(messages, settings));
+      if (parsed.kind !== 'portable' || !messages.length) return null;
+      const before = text.slice(0, start), after = text.slice(cursor);
+      if (before.trim()) parsed.messages.unshift(newMessage(before));
+      if (after.trim()) parsed.messages.push(newMessage(after));
+      return { ...parsed, originalText: text, extraText: !!(before.trim() || after.trim()) };
+    } catch {
+      return null;
+    }
+  }
+  function restore(note) {
+    const recovered = recover(note.content?.text);
+    if (!recovered) throw new Error('The records cannot be safely recovered');
+    const settings = { ...recovered.settings, recoveryOriginal: {
+      text: recovered.originalText, restoredAt: new Date().toISOString()
+    } };
+    const result = { ...note, content: { ...note.content, text: portable(recovered.messages, settings) } };
+    return write(result, recovered.messages, settings);
   }
   const newMessage = text => ({ id: (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`), text, reactions: [] });
   const serialize = messages => messages.map((message, index) => message.text +
@@ -221,5 +302,5 @@ const imFormat = (() => {
     };
     return note;
   }
-  return { serialize, portable, inspect, fromPlainText, readMessages, readSettings, reconcile, isCurrent, write };
+  return { serialize, portable, inspect, recover, restore, fromPlainText, readMessages, readSettings, reconcile, isCurrent, write };
 })();

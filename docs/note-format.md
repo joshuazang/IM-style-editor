@@ -30,6 +30,22 @@ Schema 2 stores a mirror in `item.clientData.imStyleEditor`, the per-note, per-e
 
 Valid portable text is authoritative over all mirrors. Plain-text edits inside a record retain its metadata. Invalid JSON, duplicate IDs, missing boundaries, unsupported format versions, malformed escapes and text outside the document trigger a read-only recovery view. That view shows the entire original text and pauses saving. It never silently reinterprets damaged records as ordinary paragraphs or replaces them with stale hidden metadata. The records can then be repaired in the plain editor. A save failure is visible and offers Retry; acknowledged host echoes do not cause save loops.
 
+# Recovery of complete records with changed separators (2.8.0)
+
+The strict reader continues to pause saving for damaged records. If all settings/message metadata and end markers are present but their line breaks were flattened, a separate recovery scanner builds a preview. It scans balanced JSON objects, respecting quoted strings and escapes; it does not split JSON at arbitrary braces. Duplicate IDs, malformed metadata/escapes, missing boundaries, unsupported versions, or ambiguous delimiter content remain protected.
+
+The user must choose **Restore recovered bubbles** before any write occurs. Restoration preserves recoverable message IDs, send/edit times, tags and custom metadata. Any non-whitespace text outside the document is included as additional untimed bubbles. The complete exact original text is stored in the portable settings under `recoveryOriginal`, so the backup also survives text-only editor switching. The original host note remains unchanged if a restoration save is rejected; the visible save banner offers Retry. Flattening may already have erased meaningful line breaks or spacing; recovery cannot infer them. The preview and raw backup make that limit visible instead of silently guessing.
+
+# Copying and importing forwarded messages (2.8.0)
+
+Select messages, then choose **Copy for forwarding**. Ordinary **Copy** retains its plain-text behavior. A forwarding export begins `#!im-style-forward 1` followed by a JSON envelope containing only the selected message records, their source note ID, export time and supported appearance/order settings. Every message property is preserved, including text, IDs, timestamps, emoji tags, separators, custom metadata and earlier forwarding history. Unselected messages, note title and note-wide recovery backups are not included. JSON escapes keep body newlines and literal delimiter-looking text safe even if structural formatting whitespace is flattened.
+
+In a destination note, open the three-dot menu and choose **Import from clipboard**. Clipboard reading occurs only after that explicit click. The dialog previews records before **Import messages** appends them; canceling or invalid input makes no changes. It also accepts a complete strict portable IM document. Existing destination messages and appearance remain, and unfamiliar imported tags are appended to its manual category order. Active filters clear after a successful import so the added bubbles are visible.
+
+Imported records display **Forwarded**. They retain their original send/edit times rather than substituting the import time. Original IDs are kept when available. If an ID already belongs to different content, a new local ID is assigned and the original stays in `forwarding.sourceMessageId`, with its source note ID and import time. Earlier forwarding metadata is retained as `forwarding.previous`. Importing an identical export again skips the duplicates; it never overwrites an existing bubble. Forwarding provenance and labels survive portable-text conversions.
+
+If the browser blocks clipboard access, the import dialog provides a paste field and the export dialog provides the complete selectable text. No special website permission is required for the manual path. Delayed clipboard results are ignored after cancellation, manual editing or switching notes; applying an import uses the latest destination messages rather than the state captured when the clipboard read began. Dialog keyboard events do not send composer drafts.
+
 This protects conversion that retains the document's text. No format can recover information already deleted before migration, or guarantee recovery after another application deletes both the note and its backups. Keep Standard Notes backups for that broader protection. A plain editor must preserve these records: deliberately deleting the headers/timestamps/tags removes the information they contain.
 
 # Filtering, order and artwork
@@ -48,6 +64,8 @@ Touch holds become ready after 520ms, with the menu opening only on release. Mov
 
 # Validation
 
-Run `node tests/portable-format.test.cjs`, `node tests/note-format.test.cjs`, `node tests/message-spacing.test.cjs` and `node tests/menu-layout.test.cjs`. Serve the repository and run the browser smoke tests with `IM_STYLE_EDITOR_BASE_URL` pointing to that server: editor-roundtrip, filter-send, filter-artwork, touch-menu-placement, appearance-spacing, top-menu-frost, touch-menu, timestamp-layout. Run `python3 tests/update-cache-smoke.py` to check actual browser caching, hashes and release ZIP consistency.
+Run `node tests/message-transfer.test.cjs`, `node tests/portable-format.test.cjs`, `node tests/note-format.test.cjs`, `node tests/message-spacing.test.cjs` and `node tests/menu-layout.test.cjs`. Serve the repository and run the browser smoke tests with `IM_STYLE_EDITOR_BASE_URL` pointing to that server: recovery-forwarding, editor-roundtrip, filter-send, filter-artwork, touch-menu-placement, appearance-spacing, top-menu-frost, touch-menu, timestamp-layout. Run `python3 tests/update-cache-smoke.py` to check actual browser caching, hashes and release ZIP consistency.
 
 These checks use synthetic host notes, not a real Standard Notes account. The round-trip fixture deliberately deletes all clientData and custom fields on every switch. Unit tests cover 1,200 randomized encoded bodies, 25 text-only transfers, CRLF, Unicode, reserved delimiters, malformed documents, legacy migration and stale-text protection.
+
+The recovery regression fixture uses synthetic content in the same twenty-record flattened layout as the reported case. Browser tests exercise actual clipboard transfer on phone/desktop, selective export, ID collisions, duplicate imports, text-only restoration, denied clipboard access, manual fallbacks and cancellation/note-switch races.
