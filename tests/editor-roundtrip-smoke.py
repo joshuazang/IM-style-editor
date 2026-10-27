@@ -29,7 +29,7 @@ with sync_playwright() as p:
     page.evaluate('(note) => {notes.original=note; openIM("original")}', note)
     editor = page.frame_locator('#editor')
     expect(editor.locator('.message-bubble')).to_have_count(2)
-    page.wait_for_function('notes.original.clientData.imStyleEditor?.schemaVersion===1')
+    page.wait_for_function('notes.original.clientData?.imStyleEditor?.schemaVersion===1')
     initial = page.evaluate('notes.original')
     assert initial['content']['text'] == TEXT
     assert initial['clientData']['imStyleEditor']['messages'] == MESSAGES
@@ -68,7 +68,7 @@ with sync_playwright() as p:
     plain = '\n\nParagraph one\nwith a line\r\n\r\nParagraph two\n\nParagraph three\n\n'
     page.evaluate('(text) => {notes.imported={uuid:"imported",content_type:"Note",content:{title:"Plain",text}};openIM("imported")}', plain)
     expect(editor.locator('.message-bubble')).to_have_count(3)
-    page.wait_for_function('notes.imported.clientData.imStyleEditor?.messages.length===3')
+    page.wait_for_function('notes.imported.clientData?.imStyleEditor?.messages.length===3')
     assert page.evaluate('notes.imported.content.text') == plain
     assert page.evaluate('notes.imported.clientData.imStyleEditor.settings.bubbleTheme') == 'lime'
     assert page.evaluate('notes.imported.clientData.imStyleEditor.settings.backgroundTheme') == 'sand'
@@ -92,7 +92,7 @@ with sync_playwright() as p:
     assert page.evaluate('notes.failed.clientData') is None
     page.evaluate('rejectSaves=false')
     editor.get_by_role('button', name='Retry save', exact=True).click()
-    page.wait_for_function('notes.failed.clientData.imStyleEditor?.schemaVersion===1')
+    page.wait_for_function('notes.failed.clientData?.imStyleEditor?.schemaVersion===1')
     expect(editor.get_by_role('alert')).to_have_count(0)
     assert page.evaluate('notes.failed.content.text') == 'Keep this text'
     print('PASS: save rejection is visible, leaves host text unchanged, and supports retry')

@@ -22,7 +22,7 @@ for path in re.findall(r'(?:src|href)="\./(assets/[^"?#]+\.(?:js|css))"', index)
     if Path(path).suffix == '.js' and (ROOT / 'src/note-format.js').exists():
         text = data.decode()
         text = re.sub(r'/\* IM_NOTE_HELPERS_START \*/.*?/\* IM_NOTE_HELPERS_END \*/\n?', '', text, flags=re.S)
-        helpers = '\n'.join((ROOT / ('src/' + name)).read_text() for name in ['note-format.js', 'note-storage.js', 'message-spacing.js'])
+        helpers = '\n'.join((ROOT / ('src/' + name)).read_text() for name in ['note-format.js', 'note-storage.js', 'message-spacing.js', 'menu-layout.js'])
         data = ('/* IM_NOTE_HELPERS_START */\n' + helpers + '\n/* IM_NOTE_HELPERS_END */\n' + text).encode()
     suffix = Path(path).suffix
     name = 'assets/index-' + hashlib.sha256(data).hexdigest()[:12] + suffix

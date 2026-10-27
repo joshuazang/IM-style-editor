@@ -12,10 +12,18 @@ Ordinary editor switching and installed updates keep the same note and plugin id
 
 # Time-based spacing and default appearance
 
-Visible bubbles are 2px apart when send times are at most five minutes apart, 7px after five minutes, and 12px after an hour. Missing or reversed times use 2px. Existing day dividers remain, and no timestamps or ordering are changed. Filtered lists calculate spacing between visible messages. Emoji labels use matching borders, corners and padding on both sides, without the old right-pointing tip.
+Visible bubbles are 2px apart when send times are at most five minutes apart, 7px after five minutes, and 12px after an hour. Missing or reversed times use 2px. Existing day dividers remain, and no timestamps or ordering are changed. Filtered lists calculate spacing between visible messages. Emoji labels use SVG geometry matching the requested paper-tag reference: a rounded left body, a vertically centered right-pointing tip, and a transparent circular hole. The existing emoji is centered in the body; no raster image is used.
 
 New notes and notes without saved appearance use Fresh Lime bubbles and a Warm Sand background. Explicit saved appearance remains unchanged.
 
 # Validation
 
-Run `node tests/note-format.test.cjs`, `node tests/message-spacing.test.cjs`, and `python3 tests/update-cache-smoke.py`. Serve the repository and run `tests/editor-roundtrip-smoke.py`, `tests/appearance-spacing-smoke.py`, `tests/touch-menu-smoke.py` and `tests/timestamp-layout-smoke.py` with `IM_STYLE_EDITOR_BASE_URL` pointing to that local server. These checks use synthetic host data; no real account or note is accessed.
+Run `node tests/note-format.test.cjs`, `node tests/message-spacing.test.cjs`, `node tests/menu-layout.test.cjs`, and `python3 tests/update-cache-smoke.py`. Serve the repository and run `tests/editor-roundtrip-smoke.py`, `tests/touch-menu-placement-smoke.py`, `tests/appearance-spacing-smoke.py`, `tests/top-menu-frost-smoke.py`, `tests/touch-menu-smoke.py` and `tests/timestamp-layout-smoke.py` with `IM_STYLE_EDITOR_BASE_URL` pointing to that local server. These checks use synthetic host data; no real account or note is accessed.
+
+# Touch context menu
+
+A hold becomes ready after 520ms, but its menu opens only on pointer release. Moving more than 10px or canceling the pointer cancels the hold. Native touch context menus are suppressed. A menu prefers space above the selected bubble, then below it, then scrolls within the larger space outside a 24px zone around the hold point. Positioning uses the visual viewport so the keyboard and zoom do not push actions off-screen. The note and scroll position are not changed. Touch clicks that did not start with a fresh menu pointer-down are ignored (zero-detail assistive/keyboard activation remains supported).
+
+# Compact vector badges and top-menu frost
+
+Single-emoji badges are approximately 31–34×22px, including their pointed SVG tail and transparent hole. The glyph is 14px; longer custom labels can grow horizontally. Only the search/tag panel and the three-dot panel group (including Appearance) use an 82% surface fill with a 10px backdrop blur. Browsers without backdrop-filter retain the opaque fallback. Toolbar triggers use a compact dark frosted capsule (78% opacity) with SVG icons; the Search/Tags label is icon-only. Context menus and the composer are not frosted.

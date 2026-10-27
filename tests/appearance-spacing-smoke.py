@@ -36,13 +36,16 @@ with sync_playwright() as p:
         for index, expected in [(1, 2), (2, 2), (3, 7), (4, 12), (5, 12), (7, 2)]:
             assert abs(values[index] - expected) < .1, (width, index, values)
         button = editor.get_by_role('button', name='Filter messages by ⭐', exact=True).first
-        symmetry = button.evaluate('''el => {const c=getComputedStyle(el),p=getComputedStyle(el,'::after');return {
-          padding:c.paddingLeft===c.paddingRight,
-          borders:c.borderLeftWidth===c.borderRightWidth,
-          corners:c.borderTopLeftRadius===c.borderTopRightRadius && c.borderBottomLeftRadius===c.borderBottomRightRadius,
-          centered:c.justifyContent==='center' && c.alignItems==='center', tip:p.display==='none'
-        }}''')
-        assert all(symmetry.values()), symmetry
+        expect(button.locator('svg')).to_have_count(2)
+        expect(button.locator('.emoji-tag-body rect').first).to_have_attribute('rx', '6')
+        expect(button.locator('.emoji-tag-tip path')).to_have_attribute('fill-rule', 'evenodd')
+        expect(button.locator('.emoji-tag-tip')).to_have_attribute('viewBox', '0 0 20 40')
+        expect(button.locator('img')).to_have_count(0)
+        geometry = button.evaluate("""el=>{const b=el.getBoundingClientRect(),s=el.querySelector('.emoji-tag-tip').getBoundingClientRect();return {height:b.height,tipHeight:s.height,tipTop:s.top-b.top,tipRight:b.right-s.right}}""")
+        assert geometry['height'] <= 22.1, geometry
+        assert button.bounding_box()['width'] <= 34, button.bounding_box()
+        assert abs(geometry['height']-geometry['tipHeight']) < .1
+        assert abs(geometry['tipTop']) < .1 and abs(geometry['tipRight']) < .1
         assert page.evaluate('notes.original.content.text') == NOTE['content']['text']
         assert not page.evaluate('notes.original.content.appendEditorMessageData[6].createdAt')
         button.click()
@@ -53,8 +56,8 @@ with sync_playwright() as p:
         expect(editor.locator('.message-bubble')).to_have_count(len(MESSAGES))
         if width == 390:
             page.keyboard.press('Escape')
-            page.screenshot(path='/tmp/im-editor-2.6.10.png')
+            page.screenshot(path='/tmp/im-editor-vector-tag.png')
         assert not errors, errors
-        print(f'PASS: width={width}: 2/7/12px grouping, symmetric emoji badges, Fresh Lime/Warm Sand defaults')
+        print(f'PASS: width={width}: 2/7/12px grouping, vector tags with centered tip and transparent hole, Fresh Lime/Warm Sand defaults')
         context.close()
     browser.close()
