@@ -75,7 +75,7 @@ with sync_playwright() as p:
 
         # Reset the selected set explicitly; ordinary taps/clicks still toggle records.
         if editor.locator('.selection-tools').count():
-            editor.get_by_role('button', name='Clear', exact=True).click()
+            editor.get_by_role('button', name='Cancel', exact=True).click()
         body.nth(4).click(button='right')
         editor.get_by_role('menuitem', name='Select', exact=True).click()
         rows.nth(5).click()
@@ -84,7 +84,7 @@ with sync_playwright() as p:
         expect(editor.locator('.selection-tools')).to_contain_text('1 selected')
         editor.locator('.selection-check').nth(6).click()
         expect(editor.locator('.selection-tools')).to_contain_text('2 selected')
-        editor.get_by_role('button', name='Clear', exact=True).click()
+        editor.get_by_role('button', name='Cancel', exact=True).click()
         if phone:
             hold(body.nth(4))
         else:

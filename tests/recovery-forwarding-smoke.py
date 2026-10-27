@@ -87,6 +87,7 @@ with sync_playwright() as p:
   frame.locator('body').evaluate('''()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:()=>new Promise(resolve=>window.resolveClipboard=resolve)}})''')
   open_import();expect(dialog).to_contain_text('Reading clipboard')
   page.evaluate('''()=>{notes.other={uuid:'other',content_type:'Note',content:{text:'Keep other note'}};activeUuid='other';editor.contentWindow.postMessage({action:'reply',original:subscription,data:{item:structuredClone(notes.other)}},location.origin)}''')
+  expect(editor.locator('.message-body')).to_have_count(1)
   expect(editor.locator('.message-body')).to_have_text('Keep other note')
   expect(dialog).to_have_count(0)
   frame.locator('body').evaluate('(el,text)=>window.resolveClipboard(text)',clipboard)

@@ -45,7 +45,7 @@ with sync_playwright() as p:
         rows.first.click(button='right')
         editor.get_by_role('menuitem', name='Select', exact=True).click()
         expect(editor.get_by_role('button', name='Export', exact=True)).to_be_visible()
-        expect(editor.get_by_role('button', name='Copy text', exact=True)).to_be_visible()
+        expect(editor.get_by_role('button', name='Copy', exact=True)).to_be_visible()
         expect(editor.get_by_role('button', name='Copy for forwarding', exact=True)).to_have_count(0)
         after = bubbles.evaluate_all('nodes=>nodes.map(el=>{const b=el.getBoundingClientRect();return [b.width,b.height,b.right]})')
         assert before == after, (width, before[:3], after[:3])
@@ -60,7 +60,7 @@ with sync_playwright() as p:
             assert abs(bounds['checkY'] - bounds['bubbleY']) <= 6.1, (width, bounds)
         rows.nth(1).click()
         expect(editor.locator('.selection-tools')).to_contain_text('2 selected')
-        editor.get_by_role('button', name='Clear', exact=True).click()
+        editor.get_by_role('button', name='Cancel', exact=True).click()
         assert bubbles.evaluate_all('nodes=>nodes.map(el=>{const b=el.getBoundingClientRect();return [b.width,b.height,b.right]})') == before
         print(f'PASS width={width}: selection checks stay in the left gutter; bubble geometry is unchanged')
 
