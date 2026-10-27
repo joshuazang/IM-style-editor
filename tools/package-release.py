@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import sys
+import subprocess
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
@@ -18,9 +19,20 @@ BASE = 'https://joshuazang.github.io/IM-style-editor/'
 index = (ROOT / 'index.html').read_text()
 for path in re.findall(r'(?:src|href)="\./(assets/[^"?#]+\.(?:js|css))"', index):
     data = (ROOT / path).read_bytes()
+    if Path(path).suffix == '.js' and (ROOT / 'src/note-format.js').exists():
+        text = data.decode()
+        text = re.sub(r'/\* IM_NOTE_HELPERS_START \*/.*?/\* IM_NOTE_HELPERS_END \*/\n?', '', text, flags=re.S)
+        helpers = '\n'.join((ROOT / ('src/' + name)).read_text() for name in ['note-format.js', 'note-storage.js', 'message-spacing.js'])
+        data = ('/* IM_NOTE_HELPERS_START */\n' + helpers + '\n/* IM_NOTE_HELPERS_END */\n' + text).encode()
     suffix = Path(path).suffix
     name = 'assets/index-' + hashlib.sha256(data).hexdigest()[:12] + suffix
     (ROOT / name).write_bytes(data)
+    # Edits are now retained in the new hashed asset. Restore any already-published
+    # asset so existing installation URLs remain immutable and usable.
+    if name != path:
+        original = subprocess.run(['git', 'show', 'HEAD:' + path], cwd=ROOT, capture_output=True)
+        if original.returncode == 0:
+            (ROOT / path).write_bytes(original.stdout)
     index = index.replace('./' + path, './' + name)
 version_meta = f'<meta name="im-style-editor-version" content="{VERSION}" />'
 if 'name="im-style-editor-version"' in index:

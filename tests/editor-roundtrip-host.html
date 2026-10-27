@@ -1,0 +1,69 @@
+<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor switching fixture</title>
+<script>
+window.notes = {};
+window.saves = [];
+window.rejectedSaves = 0;
+window.rejectSaves = false;
+window.activeUuid = 'original';
+window.subscription = null;
+window.openPlain = () => {
+  editor?.remove();
+  window.editor = null;
+  window.subscription = null;
+  const input = document.createElement('textarea');
+  input.id = 'plain-editor';
+  input.value = notes[activeUuid].content.text;
+  input.addEventListener('input', () => {
+    notes[activeUuid].content.text = input.value;
+    delete notes[activeUuid].content.appendEditorMessageData;
+    delete notes[activeUuid].content.appendEditorMessages;
+    delete notes[activeUuid].content.appendEditorSettings;
+  });
+  // Native clientData remains with the note, outside another editor's custom fields.
+  delete notes[activeUuid].content.appendEditorMessageData;
+  delete notes[activeUuid].content.appendEditorMessages;
+  delete notes[activeUuid].content.appendEditorSettings;
+  document.body.append(input);
+};
+window.openIM = uuid => {
+  if (uuid) activeUuid = uuid;
+  document.querySelector('#plain-editor')?.remove();
+  window.editor?.remove();
+  window.subscription = null;
+  window.editor = document.createElement('iframe');
+  editor.id = 'editor';
+  editor.style = 'position:fixed;inset:0;width:100%;height:100%;border:0';
+  editor.src = '/index.html';
+  editor.addEventListener('load', () => editor.contentWindow.postMessage({
+    action: 'component-registered', sessionKey: 'synthetic-roundtrip-session', componentData: {},
+    data: {uuid: 'same-editor-identity', environment: 'web', platform: 'web', activeThemeUrls: []}
+  }, location.origin));
+  document.body.append(editor);
+};
+window.addEventListener('message', event => {
+  if (!window.editor || event.source !== editor.contentWindow || event.origin !== location.origin) return;
+  const message = event.data;
+  if (!message || typeof message !== 'object') return;
+  const reply = data => editor.contentWindow.postMessage({action: 'reply', original: message, data}, location.origin);
+  if (message.action === 'stream-context-item') {
+    subscription = message;
+    reply({item: structuredClone(notes[activeUuid])});
+  } else if (message.action === 'save-items') {
+    if (rejectSaves) {
+      rejectedSaves++;
+      reply({error: 'save-error'});
+      return;
+    }
+    const item = structuredClone(message.data.items[0]);
+    notes[item.uuid] = item;
+    saves.push(structuredClone(item));
+    reply({});
+    if (subscription && item.uuid === activeUuid) {
+      editor.contentWindow.postMessage({action: 'reply', original: subscription,
+        data: {item: structuredClone(item)}}, location.origin);
+    }
+  }
+});
+window.editor = null;
+</script>

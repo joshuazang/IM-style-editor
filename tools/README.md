@@ -6,3 +6,5 @@ To publish a new static extension release after editing the bundle or styles:
 4. After pushing, verify the **GitHub Pages** manifest, runtime HTML, assets, and downloadable ZIP. A successful Git push alone does not establish that Pages deployed the release.
 
 The canonical install manifest is `im-style-editor.ext.json`. Each release also has a fresh `im-style-editor-X.Y.Z.ext.json` link for updating when the canonical manifest is cached. `latest_url` points back to the canonical manifest, while the runtime URL and hashed asset names prevent reuse of an old interface.
+
+Readable note-storage helpers live in `src/`. The packager inlines them before hashing the runtime bundle; do not add a separate mutable script URL. Already-published hashed assets are restored from Git after their changes are copied into a new asset. See `docs/note-format.md` for the storage schema and round-trip checks.
