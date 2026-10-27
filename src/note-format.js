@@ -189,9 +189,9 @@ const imFormat = (() => {
   };
   const isCurrent = (note, messages, settings) => {
     const saved = note.clientData?.imStyleEditor;
-    return saved?.schemaVersion === schemaVersion && portable(messages, settings) === note.content.text &&
-      JSON.stringify(copyMessages(saved.messages)) === JSON.stringify(copyMessages(messages)) &&
-      JSON.stringify(saved.settings) === JSON.stringify(settings);
+    return saved?.schemaVersion === schemaVersion && validMessages(saved.messages) &&
+      portable(messages, settings) === note.content.text &&
+      portable(saved.messages, saved.settings) === note.content.text;
   };
   function write(note, messages, settings) {
     const document = inspect(note.content?.text);

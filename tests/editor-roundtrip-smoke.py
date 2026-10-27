@@ -58,6 +58,11 @@ with sync_playwright() as p:
  page.wait_for_function('notes.copy.clientData?.imStyleEditor?.messages.length===3')
  assert page.evaluate('notes.copy.clientData.imStyleEditor.messages[0].createdAt')==MESSAGES[0]['createdAt']
  print('PASS: plain-text-only export into another note restores messages and tags')
+ page.evaluate('(text)=>{notes.badmirror={uuid:"badmirror",content_type:"Note",content:{text},clientData:{imStyleEditor:{schemaVersion:2,messages:null}}};openIM("badmirror")}',text_only)
+ expect(editor.locator('.message-bubble')).to_have_count(3)
+ page.wait_for_function('notes.badmirror.clientData?.imStyleEditor?.messages?.length===3')
+ assert page.evaluate('notes.badmirror.content.text')==text_only
+ print('PASS: incomplete hidden metadata is repaired from intact portable text without losing a bubble')
  plain='\n\nParagraph one\nwith a line\r\n\r\nParagraph two\n\nParagraph three\n\n'
  page.evaluate('(text)=>{notes.imported={uuid:"imported",content_type:"Note",content:{text}};openIM("imported")}',plain)
  expect(editor.locator('.message-bubble')).to_have_count(3)

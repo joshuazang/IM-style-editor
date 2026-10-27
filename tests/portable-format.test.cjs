@@ -32,6 +32,16 @@ for(let i=0;i<25;i++){
  assert.ok(f.isCurrent(note,f.readMessages(note),settings));
 }
 assert.deepEqual(copy(f.readMessages({content:{text:text.replace(/\n/g,'\r\n')}})),messages);
+// Broken hidden mirrors cannot prevent restoration from a complete document.
+for (const mirror of [{schemaVersion:2}, {schemaVersion:2,messages:null},
+  {schemaVersion:2,messages:[null]}, {schemaVersion:2,messages:[{id:'stale',text:'wrong'}]}]) {
+  const target={content:{text},clientData:{imStyleEditor:mirror}};
+  assert.deepEqual(copy(f.readMessages(target)),messages);
+  assert.equal(f.isCurrent(target,messages,settings),false);
+  f.write(target,f.readMessages(target),f.readSettings(target));
+  assert.equal(target.content.text,text);
+  assert.ok(f.isCurrent(target,messages,settings));
+}
 const edited=text.replace('First line','Edited in the plain editor').replace('Blank lines stay','More\n\nblank lines stay');
 const restored=f.readMessages({content:{text:edited},clientData:original.clientData});
 assert.equal(restored.length,3);assert.equal(restored[0].id,'first');
