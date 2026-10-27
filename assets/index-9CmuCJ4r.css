@@ -35,3 +35,7 @@
 .composer:before{inset:-24px 0 0;background:linear-gradient(to top,rgba(0,0,0,.05),transparent)}
 
 .toolbar-button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+
+/* A touch hold belongs to the message menu, not the browser text selector.
+   Editable fields and desktop text selection keep their normal behavior. */
+@media(pointer:coarse){.message-bubble,.message-bubble *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
