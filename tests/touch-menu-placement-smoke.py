@@ -48,7 +48,7 @@ with sync_playwright() as p:
     assert page.evaluate('notes.original.clientData.imStyleEditor.messages')==NOTE['content']['appendEditorMessageData']
     editor.get_by_role('menuitem',name='Edit',exact=True).tap()
     expect(editor.get_by_role('textbox',name='Edit message',exact=True)).to_have_value('Message 24')
-    editor.get_by_role('button',name='Cancel',exact=True).tap()
+    editor.get_by_role('button',name='Cancel editing',exact=True).tap()
     print('PASS: bottom hold opens above the bubble only after release; phantom Delete is blocked and note does not jump')
     log.evaluate('el=>el.scrollTop=0')
     first=editor.locator('.message-body').first;b=first.bounding_box();x=b['x']+20;y=b['y']+10

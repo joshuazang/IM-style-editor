@@ -43,7 +43,7 @@ const imTransfer = (() => {
       }
       return { ok: true, messages: clone(payload.messages), settings: clone(payload.settings), sourceNoteId: payload.sourceNoteId };
     } catch {
-      return { ok: false, error: 'This is not a complete IM message export. Use Copy for forwarding in the source note, then paste it here. Nothing has been changed.' };
+      return { ok: false, error: 'This is not a complete IM message export. Use Export in the source note, then paste it here. Nothing has been changed.' };
     }
   }
   function merge(existing, payload, now = new Date().toISOString()) {

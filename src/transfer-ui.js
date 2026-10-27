@@ -9,7 +9,7 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
   dt.useEffect(() => {
     request.current++; setDialog(null); setNotice('');
   }, [noteId]);
-  const copyForward = async () => {
+  const exportSelected = async () => {
     const note = noteRef.current;
     if (!note) return;
     const records = latest.current.messages.filter(message => latest.current.selected.has(message.id));
@@ -18,7 +18,7 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
     const uuid = note.uuid;
     try {
       await navigator.clipboard.writeText(text);
-      if (noteRef.current?.uuid === uuid) setNotice(`${records.length} message${records.length === 1 ? '' : 's'} copied for forwarding, with timestamps and tags.`);
+      if (noteRef.current?.uuid === uuid) setNotice(`${records.length} message${records.length === 1 ? '' : 's'} exported to clipboard, with timestamps and tags.`);
     } catch {
       if (noteRef.current?.uuid === uuid) setDialog({ kind: 'export', text, uuid });
     }
@@ -57,14 +57,14 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
       await saved;
       if (noteRef.current?.uuid !== dialog.uuid) return;
       destination.clearFilters();
-      setNotice(`Imported ${result.added.length} forwarded message${result.added.length === 1 ? '' : 's'}${result.skipped ? `; ${result.skipped} duplicate${result.skipped === 1 ? '' : 's'} skipped` : ''}.`);
+      setNotice(`Imported ${result.added.length} message${result.added.length === 1 ? '' : 's'}${result.skipped ? `; ${result.skipped} duplicate${result.skipped === 1 ? '' : 's'} skipped` : ''}.`);
       close();
     } catch {
       if (noteRef.current?.uuid === dialog.uuid) setDialog(current => ({ ...current, busy: false,
         error: 'The host has not confirmed saving. Keep this note open, close this window, and use Retry save above. Your clipboard and the existing messages have not been replaced.' }));
     }
   };
-  return { dialog, notice, copyForward, openImport, close, apply, dismissNotice: () => setNotice(''),
+  return { dialog, notice, exportSelected, openImport, close, apply, dismissNotice: () => setNotice(''),
     edit: text => { request.current++; setDialog(current => ({ ...current, text, reading: false, error: '' })); } };
 }
 function ImTransferDialog({ transfer }) {
@@ -92,11 +92,11 @@ function ImTransferDialog({ transfer }) {
         if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     }, children: [
-      x.jsx('h2', { id: 'transfer-title', children: exported ? 'Copy for forwarding' : 'Import from clipboard' }),
+      x.jsx('h2', { id: 'transfer-title', children: exported ? 'Export messages' : 'Import from clipboard' }),
       x.jsx('p', { children: exported ? 'Clipboard access was blocked. Copy all the text below; it contains the complete selected message records.' :
-        'Import a Copy for forwarding export or a complete IM note. Your current messages and appearance stay in place. Imported bubbles keep their timestamps and tags and show a Forwarded label.' }),
+        'Import an exported message selection or a complete IM note. Your current messages and appearance stay in place. Imported bubbles keep their timestamps and tags and show an Imported label.' }),
       dialog.hint && x.jsx('p', { children: dialog.hint }),
-      x.jsx('textarea', { 'aria-label': exported ? 'Forwarding export' : 'Paste forwarded messages', value: dialog.text,
+      x.jsx('textarea', { 'aria-label': exported ? 'Message export' : 'Paste exported messages', value: dialog.text,
         readOnly: exported, disabled: dialog.busy, onChange: event => transfer.edit(event.target.value),
         onFocus: exported ? event => event.currentTarget.select() : undefined, spellCheck: false }),
       dialog.reading && x.jsx('p', { role: 'status', children: 'Reading clipboard… You can also paste below.' }),

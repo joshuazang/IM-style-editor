@@ -42,7 +42,7 @@ A body line exactly equal to a reserved control line is prefixed with one backsl
 
 `content.text` contains the entire document. Native per-note `clientData.imStyleEditor` schema 3 and the existing custom content fields remain mirrors; plaintext is authoritative. No old-format metadata is read. Normal plain-text notes split at blank lines and retain exact message whitespace and separators. Note titles, references and unrelated client data remain untouched.
 
-Clipboard forwarding uses envelope version 2 and accepts only valid new-format IDs/records. It preserves complete selected messages and forwarding provenance, keeps destination appearance, and skips exact duplicates. ID collisions get a new random local ID with the original retained as provenance. The UI, toolbar, emoji ordering/deletion confirmation, colors, frosted menus, time grouping and storage transport are unchanged.
+Clipboard transfer uses envelope version 2 and accepts only valid new-format IDs/records. It preserves complete selected messages and import provenance, keeps destination appearance, and skips exact duplicates. ID collisions get a new random local ID with the original retained as provenance. The UI calls these actions Export and Import from clipboard; the existing envelope and provenance field names remain unchanged.
 
 ## Validation
 

@@ -66,7 +66,7 @@ with sync_playwright() as p:
         bubble.click(button='right')
         editor.get_by_role('menuitem', name='Edit', exact=True).click()
         editor.get_by_role('textbox', name='Edit message', exact=True).fill(MESSAGES[1])
-        editor.get_by_role('button', name='Save', exact=True).click()
+        editor.get_by_role('button', name='Save changes', exact=True).click()
         expect(bubble.locator('.message-meta')).to_contain_text('edited')
         check_layout(bubble, full_width=True)
         # Tagged messages retain their category footer without a reserved text column.

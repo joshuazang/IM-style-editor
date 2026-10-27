@@ -26,8 +26,8 @@ with sync_playwright() as p:
   editor.locator('.message-body').first.click(button='right');editor.get_by_role('menuitem',name='Select',exact=True).click()
   editor.locator('.message-wrap').nth(1).click()
   expect(editor.locator('.selection-tools')).to_contain_text('2 selected')
-  editor.get_by_role('button',name='Copy for forwarding',exact=True).click()
-  expect(editor.locator('.transfer-notice')).to_contain_text('2 messages copied')
+  editor.get_by_role('button',name='Export',exact=True).click()
+  expect(editor.locator('.transfer-notice')).to_contain_text('2 messages exported')
   clipboard=page.evaluate('navigator.clipboard.readText()')
   assert clipboard.startswith('#!im-style-forward 2\n')
   payload=json.loads(clipboard.split('\n',1)[1]);assert payload['messages']==RECORDS[:2]
@@ -41,7 +41,7 @@ with sync_playwright() as p:
     action.focus();action.press('Enter')
    else:action.click()
   open_import();dialog=editor.get_by_role('dialog')
-  expect(dialog.get_by_role('textbox',name='Paste forwarded messages')).to_have_value(clipboard)
+  expect(dialog.get_by_role('textbox',name='Paste exported messages')).to_have_value(clipboard)
   expect(dialog.locator('.transfer-preview article')).to_have_count(2)
   assert page.evaluate('notes.dest.clientData.imStyleEditor.messages.length')==1,'Preview changed the note'
   if width==390:page.screenshot(path='/tmp/im-forward-preview-280.png')
@@ -69,7 +69,7 @@ with sync_playwright() as p:
   frame=page.locator('#editor').content_frame
   frame.locator('body').evaluate('''()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:()=>Promise.reject(new Error('denied')),writeText:()=>Promise.reject(new Error('denied'))}})''')
   open_import();expect(dialog).to_contain_text('Paste the copied messages below')
-  field=dialog.get_by_role('textbox',name='Paste forwarded messages')
+  field=dialog.get_by_role('textbox',name='Paste exported messages')
   field.fill('Not a complete IM export');expect(dialog.get_by_role('alert')).to_contain_text('Nothing has been changed')
   expect(dialog.get_by_role('button',name='Import messages',exact=True)).to_be_disabled()
   field.fill(clipboard);expect(dialog.locator('.transfer-preview article')).to_have_count(2)
@@ -77,11 +77,11 @@ with sync_playwright() as p:
   assert page.evaluate('saves.length')==before
   # Copy fallback remains lossless and explicitly selected for manual copying.
   editor.locator('.message-body').nth(1).click(button='right');editor.get_by_role('menuitem',name='Select',exact=True).click()
-  editor.get_by_role('button',name='Copy for forwarding',exact=True).click()
+  editor.get_by_role('button',name='Export',exact=True).click()
   export_dialog=editor.get_by_role('dialog')
-  exported=export_dialog.get_by_role('textbox',name='Forwarding export').input_value()
+  exported=export_dialog.get_by_role('textbox',name='Message export').input_value()
   assert json.loads(exported.split('\n',1)[1])['messages'][0]==first
-  expect(export_dialog.get_by_role('textbox',name='Forwarding export')).to_have_attribute('readonly','')
+  expect(export_dialog.get_by_role('textbox',name='Message export')).to_have_attribute('readonly','')
   export_dialog.get_by_role('button',name='Close',exact=True).click()
   # A delayed clipboard reply must not follow the user into another note.
   frame.locator('body').evaluate('''()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:()=>new Promise(resolve=>window.resolveClipboard=resolve)}})''')

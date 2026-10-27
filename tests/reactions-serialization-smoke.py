@@ -36,7 +36,7 @@ with sync_playwright() as p:
   page.wait_for_function('!notes.original.content.text.includes("reactions:")')
   context_menu();editor.get_by_role('menuitem',name='Edit',exact=True).click()
   editor.get_by_role('textbox',name='Edit message',exact=True).fill('wanna hangout later?')
-  editor.get_by_role('button',name='Save',exact=True).click()
+  editor.get_by_role('button',name='Save changes',exact=True).click()
   page.wait_for_function('notes.original.clientData.imStyleEditor.messages[0].editedAt')
   edited=page.evaluate('notes.original.clientData.imStyleEditor.messages[0]')
   assert edited['id']==initial['id'] and edited['createdAt']==initial['createdAt'] and edited['reactions']==[]
@@ -45,8 +45,8 @@ with sync_playwright() as p:
   page.wait_for_function('notes.original.clientData?.imStyleEditor?.messages.length===1')
   assert page.evaluate('notes.original.clientData.imStyleEditor.messages[0]')==edited
   context_menu();editor.get_by_role('menuitem',name='Select',exact=True).click()
-  editor.get_by_role('button',name='Copy for forwarding',exact=True).click()
-  expect(editor.locator('.transfer-notice')).to_contain_text('copied for forwarding')
+  editor.get_by_role('button',name='Export',exact=True).click()
+  expect(editor.locator('.transfer-notice')).to_contain_text('exported to clipboard')
   clipboard=page.evaluate('navigator.clipboard.readText()');record=json.loads(clipboard.split('\n',1)[1])['messages'][0]
   assert 'reactions' not in record and record['editedAt']==edited['editedAt'] and record['createdAt']==initial['createdAt']
   page.evaluate('notes.target={uuid:"target",content_type:"Note",content:{text:""}};openIM("target")');expect(editor.get_by_role('textbox',name='Message',exact=True)).to_be_enabled()
