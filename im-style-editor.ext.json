@@ -3,10 +3,10 @@
   "name": "IM-style-editor",
   "content_type": "SN|Component",
   "area": "editor-editor",
-  "version": "2.6.11",
+  "version": "2.6.12",
   "description": "A private, touch-friendly chat-style note editor with mix-and-match colors, timestamps, search, editing, and local message categories.",
-  "url": "https://joshuazang.github.io/IM-style-editor/index.html?v=2.6.11",
-  "download_url": "https://joshuazang.github.io/IM-style-editor/IM-style-editor-2.6.11.zip",
+  "url": "https://joshuazang.github.io/IM-style-editor/index.html?v=2.6.12",
+  "download_url": "https://joshuazang.github.io/IM-style-editor/IM-style-editor-2.6.12.zip",
   "latest_url": "https://joshuazang.github.io/IM-style-editor/im-style-editor.ext.json",
   "marketing_url": "https://joshuazang.github.io/IM-style-editor/",
   "thumbnail_url": ""

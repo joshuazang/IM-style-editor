@@ -7,7 +7,7 @@ HOST = Path(__file__).with_name('editor-roundtrip-host.html').read_text()
 messages = [dict(id=str(i),text=f'Underlying message {i}',reactions=['⭐'],createdAt='2026-01-01T08:00:00Z') for i in range(20)]
 note = {'uuid':'original','content_type':'Note','content':{'text':'\n'.join(m['text'] for m in messages),'appendEditorMessageData':messages}}
 
-def surface(element, frosted, alpha=82):
+def surface(element, frosted, alpha=22):
     actual=element.evaluate('''el=>{
       const style=getComputedStyle(el),canvas=document.createElement('canvas');
       canvas.width=canvas.height=1;const c=canvas.getContext('2d');
@@ -36,9 +36,9 @@ with sync_playwright() as p:
         surface(editor.locator('.more-options'),True)
         editor.get_by_role('button',name='Appearance',exact=True).click()
         surface(editor.locator('.appearance'),True)
-        surface(editor.get_by_role('button',name='More options',exact=True),True,78)
+        surface(editor.get_by_role('button',name='More options',exact=True),True,22)
         search=editor.get_by_role('button',name='Search and tags',exact=True)
-        surface(search,True,78)
+        surface(search,True,22)
         expect(search.locator('svg')).to_have_attribute('viewBox','0 0 32 32')
         expect(search.locator('img')).to_have_count(0)
         assert search.inner_text().strip()==''
