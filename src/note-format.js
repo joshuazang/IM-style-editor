@@ -45,6 +45,7 @@ const imFormat = (() => {
     for (const [key, label] of Object.entries(mapping)) if (Object.hasOwn(record, key)) {
       // IDs and timestamps are readable bare tokens; string parsing is field-aware.
       const value = record[key];
+      if (extrasName === 'extra-metadata' && key === 'reactions' && value.length === 0) continue;
       lines.push(label + ': ' + (typeof value === 'string' && ['id','createdAt','editedAt'].includes(key) && /^[A-Za-z0-9_.:+-]+$/.test(value) ? value : valueText(value)));
     }
     for (const [key, value] of Object.entries(record)) if (!Object.hasOwn(mapping, key) && !(extrasName === 'extra-metadata' && key === 'text')) extras[key] = value;
@@ -141,7 +142,9 @@ const imFormat = (() => {
         // Two empty lines precede the payload. After it, one line terminator
         // plus two empty lines precede the end marker. Never trim the payload.
         if (framed.length < 5 || !framed.startsWith('\n\n') || !framed.endsWith('\n\n\n')) throw new Error('Missing content framing blank lines');
-        messages.push({ ...parseFields(metadata, bubbleFields, 'extra-metadata'), text: decodeBody(framed.slice(2, -3)) });
+        const message = parseFields(metadata, bubbleFields, 'extra-metadata');
+        if (!Object.hasOwn(message, 'reactions')) message.reactions = [];
+        messages.push({ ...message, text: decodeBody(framed.slice(2, -3)) });
       }
       if (rows.slice(i).some(row => !decoration(row.line))) throw new Error('Unexpected data after document end');
       validateMessages(messages);

@@ -10,8 +10,10 @@ const imTransfer = (() => {
   function create(messages, settings, sourceNoteId) {
     const appearance = Object.fromEntries(['bubbleTheme','backgroundTheme','wallpaper','artwork','scale','reactionOrder']
       .filter(key => key in settings).map(key => [key, settings[key]]));
+    const records = clone(messages);
+    for (const message of records) if (Array.isArray(message.reactions) && message.reactions.length === 0) delete message.reactions;
     return header + '\n' + JSON.stringify({ format: 'im-style-forward', version: 2,
-      sourceNoteId, exportedAt: new Date().toISOString(), messages: clone(messages), settings: appearance
+      sourceNoteId, exportedAt: new Date().toISOString(), messages: records, settings: appearance
     }, null, 2) + '\n';
   }
   function read(text) {
@@ -29,6 +31,7 @@ const imTransfer = (() => {
         payload = { messages: parsed.messages, settings: parsed.settings, sourceNoteId: '' };
       }
       if (!Array.isArray(payload.messages) || !payload.messages.length) throw new Error('No messages to import');
+      for (const message of payload.messages) if (object(message) && !Object.hasOwn(message, 'reactions')) message.reactions = [];
       imFormat.validateMessages(payload.messages);
       const ids = new Set();
       for (const message of payload.messages) {

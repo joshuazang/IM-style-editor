@@ -3,6 +3,13 @@ const {f,t}=vm.runInNewContext(fs.readFileSync('src/note-format.js','utf8')+'\n'
 const records=[{id:f.newId(),text:'Keep\n\nblank lines\r\n中文🙂\n@@IM:END-BUBBLE',reactions:['⭐'],createdAt:'2026-01-01T12:00:00Z',editedAt:'2026-01-02T12:00:00Z',custom:{keep:true}},{id:f.newId(),text:'Second',reactions:[]}];
 const settings={bubbleTheme:'lime',reactionOrder:['⭐'],recoveryOriginal:{text:'PRIVATE UNSELECTED NOTE DATA'}};
 const text=t.create(records,settings,'source');assert.ok(text.startsWith('#!im-style-forward 2'));assert.ok(!text.includes('PRIVATE UNSELECTED'));
+const wire=JSON.parse(text.split('\n').slice(1).join('\n'));
+assert.deepEqual(wire.messages[0].reactions,['⭐']);
+assert.ok(!Object.hasOwn(wire.messages[1],'reactions'));
+const explicitEmptyWire=JSON.parse(JSON.stringify(wire));explicitEmptyWire.messages[1].reactions=[];
+assert.equal(t.read('#!im-style-forward 2\n'+JSON.stringify(explicitEmptyWire)).ok,true);
+const invalidWire=JSON.parse(JSON.stringify(wire));invalidWire.messages[1].reactions=null;
+assert.equal(t.read('#!im-style-forward 2\n'+JSON.stringify(invalidWire)).ok,false);
 const payload=t.read(text);assert.equal(payload.ok,true);assert.deepEqual(copy(payload.messages),records);
 const merged=t.merge([],payload);assert.equal(merged.added[0].id,records[0].id);assert.equal(merged.added[0].forwarding.sourceMessageId,records[0].id);assert.equal(t.merge(merged.messages,payload).added.length,0);
 const collision=t.merge([{...records[0],text:'Different original'}],payload);assert.notEqual(collision.added[0].id,records[0].id);assert.ok(f.validId(collision.added[0].id));assert.equal(collision.added[0].forwarding.sourceMessageId,records[0].id);

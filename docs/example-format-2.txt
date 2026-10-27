@@ -28,7 +28,6 @@ Keep the receipt for the shared groceries.
 @@IM:BUBBLE
 id: g4CuOIuSMGT56m-SO0-HhQ
 created: 2026-10-27T14:15:02.004Z
-reactions: []
 @@IM:CONTENT
 
 

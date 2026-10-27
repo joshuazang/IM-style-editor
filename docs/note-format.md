@@ -22,7 +22,7 @@ Only exact reserved lines are controls. `I saw @@IM:END-BUBBLE today.` and `@@IM
 
 ## Fields
 
-Metadata uses `name: value` lines. Bubble fields are `id`, optional `created`, optional `edited`, required `reactions`, optional `separator-after`, optional `forwarding`, and optional `extra-metadata`. Settings fields are `bubble-theme`, `background-theme`, `wallpaper`, `artwork`, `scale`, `reaction-order`, `deleted-emojis`, and optional `extra-settings`.
+Metadata uses `name: value` lines. Bubble fields are `id`, optional `created`, optional `edited`, optional `reactions` (written only when nonempty; absence loads as `[]`), optional `separator-after`, optional `forwarding`, and optional `extra-metadata`. Settings fields are `bubble-theme`, `background-theme`, `wallpaper`, `artwork`, `scale`, `reaction-order`, `deleted-emojis`, and optional `extra-settings`.
 
 IDs and timestamps can be bare tokens. Simple textual settings can be bare words, such as `lime` or `classic`. Other strings use JSON quotes; booleans, numbers, arrays and objects use JSON values. Unknown message/settings properties are preserved inside `extra-metadata` / `extra-settings` objects. These cannot override reserved fields. Duplicate/unknown fields, invalid types, duplicate IDs and incomplete structures pause saving. Neither timestamps nor missing content are invented.
 

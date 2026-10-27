@@ -16,7 +16,7 @@ def document(messages,settings):
  bubble={'id':'id','createdAt':'created','editedAt':'edited','reactions':'reactions','separatorAfter':'separator-after','forwarding':'forwarding'}
  dump=lambda value:json.dumps(value,ensure_ascii=False,separators=(',',':'))
  def fields(values,mapping,extra):
-  result=[f'{label}: {dump(values[key])}' for key,label in mapping.items() if key in values]
+  result=[f'{label}: {dump(values[key])}' for key,label in mapping.items() if key in values and not (extra=='extra-metadata' and key=='reactions' and values[key]==[])]
   unknown={k:v for k,v in values.items() if k not in mapping and (extra!='extra-metadata' or k!='text')}
   if unknown:result.append(f'{extra}: {dump(unknown)}')
   return result
