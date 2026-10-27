@@ -27,9 +27,9 @@
 .compose-row textarea,.compose-row button{pointer-events:auto}
 .compose-row textarea{height:auto;min-height:46px;max-height:140px;background:var(--surface)}
 .selection-tools,.copy-fallback{background:var(--surface);border-radius:10px;padding:8px}
-.bubble-category{color:var(--muted);background:transparent;padding:2px 4px;font-size:16px;vertical-align:middle;min-width:28px;min-height:28px}
-.message-meta{display:flex;align-items:center;gap:4px}
-@media(max-width:600px){.messages{padding:62px 9px 90px}.toolbar-button{min-height:42px}.message-tools{padding:6px 10px}.appearance,.more-options,.search-tags-panel{right:10px}.bubble-category{min-width:32px;min-height:32px}}
+
+.message-meta{display:block;align-self:flex-end;margin-left:auto;text-align:right}
+@media(max-width:600px){.messages{padding:62px 9px 90px}.toolbar-button{min-height:42px}.message-tools{padding:6px 10px}.appearance,.more-options,.search-tags-panel{right:10px}}
 /* A faint edge fade keeps controls legible while the note remains visible. */
 .message-tools:before,.composer:before{content:"";position:absolute;inset:0 0 -20px;z-index:-1;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.045),transparent)}
 .composer:before{inset:-24px 0 0;background:linear-gradient(to top,rgba(0,0,0,.05),transparent)}
@@ -39,3 +39,10 @@
 /* A touch hold belongs to the message menu, not the browser text selector.
    Editable fields and desktop text selection keep their normal behavior. */
 @media(pointer:coarse){.message-bubble,.message-bubble *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+
+/* Keep metadata at the lower-right edge for both plain and tagged bubbles. */
+.message-footer{align-items:flex-end}
+.message-bubble.no-reactions .message-meta{padding-top:4px}
+.message-meta{line-height:1.2}
+
+.message-meta{position:relative;right:-3px;bottom:-2px}

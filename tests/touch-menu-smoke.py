@@ -38,9 +38,27 @@ with sync_playwright() as p:
  print('PASS: moving to scroll cancels the long-press menu')
  touch('touchStart',x,y);page.wait_for_timeout(80);touch('touchEnd');page.wait_for_timeout(600)
  expect(editor.get_by_role('menu')).to_have_count(0)
- editor.get_by_role('button',name='Add a category to message').first.tap()
- expect(editor.get_by_label('Add a category',exact=True)).to_be_visible()
- print('PASS: short taps do not open the menu; emoji button still opens it')
+ expect(editor.locator('.bubble-category')).to_have_count(0)
+ print('PASS: short taps do not open the menu; no extra emoji button is rendered')
+ composer=editor.get_by_role('textbox',name='Message',exact=True)
+ messages=editor.get_by_role('log')
+ # An empty part of the scroll area, outside bubbles and controls.
+ background={'x':20,'y':350}
+ composer.tap();expect(composer).to_be_focused()
+ messages.tap(position=background);expect(composer).not_to_be_focused()
+ messages.tap(position=background);expect(composer).not_to_be_focused()
+ page.keyboard.type('do not capture')
+ expect(composer).to_have_value('')
+ print('PASS: phone background tap blurs the input and never reopens or captures typing')
+ composer.tap();composer.fill('A multiline message\nwith a timestamp in the bottom right')
+ editor.get_by_role('button',name='Send message',exact=True).tap()
+ bubble=editor.locator('.message-bubble').last
+ meta=bubble.locator('.message-meta')
+ bb=bubble.bounding_box();mb=meta.bounding_box()
+ assert 0 <= bb['x']+bb['width']-mb['x']-mb['width'] <= 10
+ assert 0 <= bb['y']+bb['height']-mb['y']-mb['height'] <= 8
+ expect(editor.locator('.bubble-category')).to_have_count(0)
+ print('PASS: timestamp sits at the lower-right corner without an added smiley')
  assert not errors,errors
  desktop=browser.new_context(viewport={'width':1200,'height':900})
  dp=desktop.new_page();dp.route(BASE+'/__host',lambda r:r.fulfill(content_type='text/html',body=HOST))
@@ -49,4 +67,13 @@ with sync_playwright() as p:
  db.dblclick();assert db.evaluate('()=>window.getSelection().toString()')
  db.click(button='right');expect(dp.frame_locator('#editor').get_by_role('menu')).to_be_visible()
  print('PASS: desktop text selection and right-click menu remain available')
+ dp.keyboard.press('Escape')
+ de=dp.frame_locator('#editor');dc=de.get_by_role('textbox',name='Message',exact=True)
+ de.get_by_role('log').click(position={'x':20,'y':350})
+ expect(dc).to_be_focused();dp.keyboard.type('Desktop background typing')
+ expect(dc).to_have_value('Desktop background typing')
+ # Typing with focus elsewhere still goes into the desktop composer.
+ dc.evaluate('el=>el.blur()');dp.keyboard.type('!')
+ expect(dc).to_have_value('Desktop background typing!')
+ print('PASS: desktop background click and direct typing still populate the composer')
  browser.close()
