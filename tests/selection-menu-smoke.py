@@ -50,7 +50,7 @@ with sync_playwright() as p:
             body.nth(4).click(button='right')
         expect(menu).to_be_visible()
         editor.get_by_role('menuitem', name='Select', exact=True).click()
-        expect(editor.locator('.selection-tools')).to_contain_text('1 selected')
+        expect(editor.locator('.selection-status')).to_contain_text('1 message selected')
         expect(menu).to_have_count(0)
 
         # Both already-selected and unselected messages ignore mouse context menus.
@@ -61,7 +61,7 @@ with sync_playwright() as p:
             prevented = target.evaluate('''el=>!el.dispatchEvent(new MouseEvent('contextmenu', {
                 bubbles:true,cancelable:true,button:2}))''')
             assert prevented, 'The native browser menu was not suppressed'
-        expect(editor.locator('.selection-tools')).to_contain_text('1 selected')
+        expect(editor.locator('.selection-status')).to_contain_text('1 message selected')
 
         if phone:
             # A hold cannot start press feedback or open a menu, before or after release.
@@ -79,11 +79,11 @@ with sync_playwright() as p:
         body.nth(4).click(button='right')
         editor.get_by_role('menuitem', name='Select', exact=True).click()
         rows.nth(5).click()
-        expect(editor.locator('.selection-tools')).to_contain_text('2 selected')
+        expect(editor.locator('.selection-status')).to_contain_text('2 messages selected')
         rows.nth(5).click()
-        expect(editor.locator('.selection-tools')).to_contain_text('1 selected')
+        expect(editor.locator('.selection-status')).to_contain_text('1 message selected')
         editor.locator('.selection-check').nth(6).click()
-        expect(editor.locator('.selection-tools')).to_contain_text('2 selected')
+        expect(editor.locator('.selection-status')).to_contain_text('2 messages selected')
         editor.get_by_role('button', name='Cancel', exact=True).click()
         if phone:
             hold(body.nth(4))

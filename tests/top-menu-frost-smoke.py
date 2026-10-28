@@ -1,5 +1,5 @@
 from fixture_v2 import fixture_id, fixture_messages, prepare_note
-"""Only the top-menu surfaces should blur the content behind them."""
+"""Menus and controls share the same frosted material."""
 import os
 from pathlib import Path
 from playwright.sync_api import expect, sync_playwright
@@ -50,6 +50,6 @@ with sync_playwright() as p:
         editor.locator('.message-body').first.click(button='right')
         surface(editor.get_by_role('menu'),False)
         assert not errors,errors
-        print(f'PASS: width={width}: top panels and icon-only controls frosted; context menu opaque')
+        print(f'PASS: width={width}: top panels and icon-only controls frosted; message context menu stays solid')
         context.close()
     browser.close()

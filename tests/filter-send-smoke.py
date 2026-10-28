@@ -42,13 +42,13 @@ with sync_playwright() as p:
   editor.get_by_role('button',name='Filter messages by ✅',exact=True).click()
   selected=editor.locator('.chip[aria-pressed=true]');expect(selected).to_have_text('✅ 1')
   look=material(selected);assert look['border']>=3,look
-  assert abs(look['alpha']-round(255*.44))<=3,look
+  assert abs(look['alpha']-round(255*.22))<=3,look
   assert look['before'] in ['none','normal'],look
   assert selected.locator('svg,img').count()==0
   # The selected chip stays neutral; the outline carries the emphasis.
   assert look['borderColor']=='rgb(82, 106, 145)',look
   inactive=material(editor.locator('.tag-control .chip').filter(has_text='⭐'))
-  assert inactive['alpha']<look['alpha']<150,(inactive,look)
+  assert inactive['alpha']==look['alpha'] and look['alpha']<150,(inactive,look)
   page.keyboard.press('Escape')
   status=editor.locator('.filter-status');surface=material(status)
   assert abs(surface['alpha']-round(255*.22))<=3 and surface['blur']=='blur(10px)',surface

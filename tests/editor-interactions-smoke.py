@@ -59,7 +59,7 @@ with sync_playwright() as p:
             assert bounds['x'] == 0 and bounds['gap'] >= 9, (width, bounds)
             assert abs(bounds['checkY'] - bounds['bubbleY']) <= 6.1, (width, bounds)
         rows.nth(1).click()
-        expect(editor.locator('.selection-tools')).to_contain_text('2 selected')
+        expect(editor.locator('.selection-status')).to_contain_text('2 messages selected')
         editor.get_by_role('button', name='Cancel', exact=True).click()
         assert bubbles.evaluate_all('nodes=>nodes.map(el=>{const b=el.getBoundingClientRect();return [b.width,b.height,b.right]})') == before
         print(f'PASS width={width}: selection checks stay in the left gutter; bubble geometry is unchanged')
@@ -82,7 +82,7 @@ with sync_playwright() as p:
         cb = editor.locator('.composer').bounding_box()
         assert jb['y'] + jb['height'] <= cb['y'] - 10, (jb, cb)
 
-        # Actual touch scrolling dismisses only the phone keyboard.
+        # Touch scrolling dismisses the phone keyboard.
         if phone:
             cdp = context.new_cdp_session(page)
 

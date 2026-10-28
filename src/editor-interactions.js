@@ -6,13 +6,19 @@ function imUseMessageViewport({ scroller, composer, noteId, messages }) {
     const list = scroller.current, input = composer.current;
     if (!list || !input) return;
     let frame = 0, gesture = null;
+    let lastHeight = list.clientHeight, lastComposerHeight = Math.ceil(input.getBoundingClientRect().height);
+    let lastTop = list.scrollTop;
+    let pinned = list.scrollHeight - list.clientHeight - list.scrollTop <= 48;
     const update = () => {
       const height = Math.ceil(input.getBoundingClientRect().height);
       const shell = input.closest('.editor-shell');
       if (shell && shell.style.getPropertyValue('--composer-height') !== `${height}px`) {
         shell.style.setProperty('--composer-height', `${height}px`);
       }
-      setAwayFromBottom(list.scrollHeight - list.clientHeight - list.scrollTop > 48);
+      if (pinned && (Math.abs(list.scrollTop-lastTop)<=2 || list.scrollHeight-list.clientHeight-list.scrollTop<=48) && (list.clientHeight !== lastHeight || height !== lastComposerHeight)) list.scrollTop = list.scrollHeight;
+      lastHeight = list.clientHeight; lastComposerHeight = height; lastTop = list.scrollTop;
+      pinned = list.scrollHeight - list.clientHeight - list.scrollTop <= 48;
+      setAwayFromBottom(!pinned);
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
@@ -93,4 +99,69 @@ function ImEditPreview({ message, cancel }) {
         fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round',
         'aria-hidden': true, children: x.jsx('path', { d: 'm6 6 12 12M18 6 6 18' }) }) })
   ] });
+}
+
+/* SVG controls use local paths only. Batch tagging adds without removing existing tags. */
+function ImSelectionIcon({kind}) {
+  const paths = {
+    tag: 'M4 12V6a3 3 0 0 1 3-3h9l6 7a2 2 0 0 1 0 3l-6 6H10M5 16v8M1 20h8',
+    copy: 'M9 6V4a2 2 0 0 1 2-2h6l6 6v12a2 2 0 0 1-2 2h-2M17 2v6h6M5 9h9a2 2 0 0 1 2 2v13H3V11a2 2 0 0 1 2-2Z',
+    export: 'M3 22c0-10 4-15 12-15V2l10 10-10 9v-6c-5 0-9 2-12 7Z',
+    cancel: 'm6 6 14 14M20 6 6 20',
+    delete: 'M4 7h18M10 7V4h6v3M6 7l1.5 17h11L20 7M11 11v9M15 11v9'
+  };
+  return x.jsx('svg',{width:26,height:26,viewBox:'0 0 28 28',fill:'none',stroke:'currentColor',strokeWidth:1.8,
+    strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[
+      x.jsx('path',{d:paths[kind]}),kind==='tag'&&x.jsx('circle',{cx:17,cy:10,r:1.4,fill:'currentColor',stroke:'none'})]});
+}
+function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessages,remove,notice}) {
+  const [open,setOpen]=dt.useState(false);
+  const panel=dt.useRef(null);
+  dt.useEffect(()=>{
+    if(!open)return;
+    const outside=e=>{if(!panel.current?.contains(e.target))setOpen(false)};
+    const key=e=>{if(e.key==='Escape')setOpen(false)};
+    window.addEventListener('pointerdown',outside);window.addEventListener('keydown',key);
+    return()=>{window.removeEventListener('pointerdown',outside);window.removeEventListener('keydown',key)};
+  },[open]);
+  const add=tag=>{
+    const next=messages.map(message=>selected.has(message.id)&&!message.reactions.includes(tag)
+      ? {...message,reactions:[...message.reactions,tag]}:message);
+    if(next.some((message,i)=>message!==messages[i]))save(next);
+    setOpen(false);
+  };
+  return x.jsxs('div',{className:'selection-toolbar',ref:panel,children:[
+    x.jsxs('div',{className:'selection-tools selection-actions','aria-label':'Selected messages',children:[
+      ...[['tag','Add tags to selected messages',()=>setOpen(!open)],['copy','Copy',copy],
+        ['export','Export',exportMessages],['delete','Delete selected messages',remove]].map(([kind,label,action])=>
+        x.jsx('button',{type:'button',className:`selection-action${kind==='delete'?' selection-delete':''}`,'aria-label':label,title:label,
+          'aria-expanded':kind==='tag'?open:undefined,onClick:action,children:x.jsx(ImSelectionIcon,{kind})},kind))
+    ]}),
+    open&&x.jsxs('section',{className:'selection-tag-panel','aria-label':'Batch add emoji tag',children:[
+      x.jsx('p',{children:`Add a tag to ${count} selected message${count===1?'':'s'}`}),
+      x.jsx('div',{className:'reaction-filter',children:order.map(tag=>x.jsx('button',{type:'button',className:'chip',
+        'aria-label':`Add ${tag} to selected messages`,onClick:()=>add(tag),children:tag},tag))}),
+      !order.length&&x.jsx('p',{children:'No tags available. Add a category in Arrange tags after canceling selection.'})
+    ]}),
+    notice&&x.jsx('div',{className:'selection-copy-notice',role:'status',children:notice})
+  ]});
+}
+function ImSelectionStatus({count,cancel}) {
+  return x.jsxs('div',{className:'selection-status',children:[
+    x.jsx('button',{type:'button',className:'selection-cancel','aria-label':'Cancel',title:'Cancel selection',
+      onClick:cancel,children:x.jsx(ImSelectionIcon,{kind:'cancel'})}),
+    x.jsx('span',{role:'status',children:`${count} message${count===1?'':'s'} selected`})
+  ]});
+}
+
+/* Keep iOS control holds out of native text selection; editable text stays native. */
+function imUseControlTouchProtection() {
+  dt.useEffect(()=>{
+    const preventControlCallout=event=>{
+      if (!(event.pointerType==='touch'||window.matchMedia('(pointer:coarse)').matches)) return;
+      if(event.target.closest?.('button,[role="button"],.selection-status'))event.preventDefault();
+    };
+    document.addEventListener('contextmenu',preventControlCallout,true);
+    return()=>document.removeEventListener('contextmenu',preventControlCallout,true);
+  },[]);
 }

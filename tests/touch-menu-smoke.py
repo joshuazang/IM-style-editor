@@ -42,6 +42,24 @@ with sync_playwright() as p:
  expect(editor.locator('.bubble-category')).to_have_count(0)
  print('PASS: short taps do not open the menu; no extra emoji button is rendered')
  composer=editor.get_by_role('textbox',name='Message',exact=True)
+ send=editor.get_by_role('button',name='Send message',exact=True)
+ expect(send.locator('svg')).to_have_count(1)
+ assert send.inner_text()==''
+ assert send.evaluate('el=>getComputedStyle(el).userSelect')=='none'
+ if send.evaluate('()=>CSS.supports("-webkit-touch-callout","none")'):
+  assert send.evaluate('el=>getComputedStyle(el).webkitTouchCallout')=='none'
+ assert composer.evaluate('el=>getComputedStyle(el).userSelect')!='none'
+ composer.fill('Keep this draft during a control hold')
+ count=editor.locator('.message-bubble').count();box=send.bounding_box()
+ touch('touchStart',box['x']+box['width']/2,box['y']+box['height']/2)
+ page.wait_for_timeout(650)
+ assert send.evaluate("el=>!el.dispatchEvent(new PointerEvent('contextmenu',{bubbles:true,cancelable:true,pointerType:'touch'}))")
+ assert send.evaluate('()=>window.getSelection().toString()')==''
+ cdp.send('Input.dispatchTouchEvent',{'type':'touchCancel','touchPoints':[]})
+ expect(editor.locator('.message-bubble')).to_have_count(count)
+ expect(composer).to_have_value('Keep this draft during a control hold')
+ composer.fill('')
+ print('PASS: send is a non-selectable SVG; control holds suppress native text menus; textarea remains editable')
  messages=editor.get_by_role('log')
  # An empty part of the scroll area, outside bubbles and controls.
  background={'x':20,'y':350}

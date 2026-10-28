@@ -25,7 +25,7 @@ with sync_playwright() as p:
   expect(editor.locator('.message-bubble')).to_have_count(3)
   editor.locator('.message-body').first.click(button='right');editor.get_by_role('menuitem',name='Select',exact=True).click()
   editor.locator('.message-wrap').nth(1).click()
-  expect(editor.locator('.selection-tools')).to_contain_text('2 selected')
+  expect(editor.locator('.selection-status')).to_contain_text('2 messages selected')
   editor.get_by_role('button',name='Export',exact=True).click()
   expect(editor.locator('.transfer-notice')).to_contain_text('2 messages exported')
   clipboard=page.evaluate('navigator.clipboard.readText()')
@@ -35,6 +35,7 @@ with sync_playwright() as p:
   page.evaluate('(note)=>{notes.dest=note;openIM("dest")}',DEST)
   expect(editor.locator('.message-bubble')).to_have_count(1)
   def open_import():
+   if editor.locator('.selection-tools').count():editor.get_by_role('button',name='Cancel',exact=True).click()
    editor.get_by_role('button',name='More options',exact=True).click()
    action=editor.get_by_role('button',name='Import from clipboard',exact=True)
    if width>=600:
