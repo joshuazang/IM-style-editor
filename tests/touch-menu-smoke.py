@@ -72,6 +72,7 @@ with sync_playwright() as p:
  composer.tap();composer.fill('A multiline message\nwith a timestamp in the bottom right')
  editor.get_by_role('button',name='Send message',exact=True).tap()
  bubble=editor.locator('.message-bubble').last
+ expect(bubble.locator('.message-body')).to_have_text('A multiline message\nwith a timestamp in the bottom right')
  meta=bubble.locator('.message-meta')
  bb=bubble.bounding_box();mb=meta.bounding_box()
  assert 0 <= bb['x']+bb['width']-mb['x']-mb['width'] <= 10

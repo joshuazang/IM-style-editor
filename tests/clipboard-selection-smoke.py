@@ -17,6 +17,7 @@ with sync_playwright() as p:
   e=page.frame_locator('#editor');rows=e.locator('.message-wrap');expect(rows).to_have_count(14)
   page.wait_for_function('notes.original.clientData?.imStyleEditor?.messages.length===14')
   original=page.evaluate('notes.original.content.text');field=e.get_by_role('textbox',name='Message',exact=True)
+  e.get_by_role('log').evaluate('el=>el.scrollTop=0');page.wait_for_timeout(100)
   for draft in ['', 'A multiline unsent draft\nSecond line\nThird line']:
    field.fill(draft);page.wait_for_timeout(100)
    bounds=e.locator('.composer').bounding_box();scroll=e.get_by_role('log').evaluate('el=>el.scrollTop')
@@ -45,7 +46,7 @@ with sync_playwright() as p:
   e.locator('body').evaluate('()=>document.execCommand=()=>false')
   e.get_by_role('button',name='Export',exact=True).click();dialog=e.get_by_role('dialog');expect(dialog).to_be_visible()
   manual=dialog.get_by_role('textbox',name='Message export').input_value()
-  manual_payload=json.loads(manual.split('\n',1)[1]);manual_payload.pop('exportedAt');previous_payload=dict(payload);previous_payload.pop('exportedAt');assert manual_payload==previous_payload
+  manual_payload=json.loads(manual.split('\n',1)[1]);manual_payload.pop('exportedAt',None);previous_payload=dict(payload);previous_payload.pop('exportedAt',None);assert manual_payload==previous_payload
   copied=manual
   for target in [dialog,dialog.get_by_role('textbox',name='Message export'),dialog.get_by_role('button',name='Select and copy')]:
    style=target.evaluate('''el=>{const s=getComputedStyle(el),c=document.createElement('canvas').getContext('2d');c.fillStyle=s.backgroundColor;c.fillRect(0,0,1,1);return {alpha:c.getImageData(0,0,1,1).data[3],blur:s.backdropFilter}}''')
@@ -55,7 +56,12 @@ with sync_playwright() as p:
   dialog.get_by_role('button',name='Select and copy').click();assert page.evaluate('navigator.clipboard.readText()')==copied
   dialog.get_by_role('button',name='Close',exact=True).click()
   if width==390:page.screenshot(path='/workspace/selection-preview/strong-selection-preview.png')
-  assert page.evaluate('notes.original.content.text')==original
+  saved=page.evaluate('notes.original.clientData.imStyleEditor.messages')
+  for i,message in enumerate(saved):
+   expected=dict(messages[i])
+   if i==3:expected['copied']=True
+   if i in [3,4]:expected['exported']=True
+   assert message==expected,(i,message,expected)
   assert not errors,errors
   print('PASS',width,'no selection height/scroll shift; unchanged 20px circles with strong contrast; context Copy and Export use compatibility clipboard; solid manual export copies full records')
   c.close()

@@ -8,6 +8,7 @@ function imUseMessageViewport({ scroller, composer, noteId, messages }) {
     let frame = 0, gesture = null;
     let lastHeight = list.clientHeight, lastComposerHeight = Math.ceil(input.getBoundingClientRect().height);
     let lastTop = list.scrollTop;
+    let opened=false;
     let pinned = list.scrollHeight - list.clientHeight - list.scrollTop <= 48;
     const update = () => {
       const height = Math.ceil(input.getBoundingClientRect().height);
@@ -15,6 +16,7 @@ function imUseMessageViewport({ scroller, composer, noteId, messages }) {
       if (shell && shell.style.getPropertyValue('--composer-height') !== `${height}px`) {
         shell.style.setProperty('--composer-height', `${height}px`);
       }
+      if(!opened&&list.querySelector('.message-bubble')){list.scrollTop=list.scrollHeight;opened=true;pinned=true;}
       if (pinned && (Math.abs(list.scrollTop-lastTop)<=2 || list.scrollHeight-list.clientHeight-list.scrollTop<=48) && (list.clientHeight !== lastHeight || height !== lastComposerHeight)) list.scrollTop = list.scrollHeight;
       lastHeight = list.clientHeight; lastComposerHeight = height; lastTop = list.scrollTop;
       pinned = list.scrollHeight - list.clientHeight - list.scrollTop <= 48;

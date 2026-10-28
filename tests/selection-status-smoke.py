@@ -67,7 +67,7 @@ with sync_playwright() as p:
    page.screenshot(path='/workspace/selection-preview/batch-tag-menu.png')
    e.get_by_role('button',name='Add tags to selected messages').click()
   e.get_by_role('button',name='Copy',exact=True).click()
-  expect(e.locator('.selection-copy-notice')).to_have_text('Copied')
+  expect(e.locator('.transfer-notice')).to_contain_text('Copied')
   assert page.evaluate('navigator.clipboard.readText()')=='\n\n'.join(records[i]['text'] for i in [3,4])
   e.get_by_role('button',name='Cancel',exact=True).click();expect(draft).to_have_value('Keep my unsent draft')
   rows.nth(3).click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click();rows.nth(4).click()

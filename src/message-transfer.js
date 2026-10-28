@@ -5,15 +5,16 @@ const imTransfer = (() => {
   const object = value => value && typeof value === 'object' && !Array.isArray(value);
   const stable = value => JSON.stringify(value, function(key, item) {
     if (!object(item)) return item;
+    if(typeof item.id==='string'&&typeof item.text==='string'){item={...item};delete item.copied;delete item.exported;}
     return Object.fromEntries(Object.keys(item).sort().map(name => [name, item[name]]));
   });
   function create(messages, settings, sourceNoteId) {
     const appearance = Object.fromEntries(['bubbleTheme','backgroundTheme','wallpaper','artwork','scale','reactionOrder']
       .filter(key => key in settings).map(key => [key, settings[key]]));
-    const records = clone(messages);
+    const records = clone(messages).map(imFormat.normalizeMessage);
     for (const message of records) if (Array.isArray(message.reactions) && message.reactions.length === 0) delete message.reactions;
     return header + '\n' + JSON.stringify({ format: 'im-style-forward', version: 2,
-      sourceNoteId, exportedAt: new Date().toISOString(), messages: records, settings: appearance
+      sourceNoteId, messages: records, settings: appearance
     }, null, 2) + '\n';
   }
   function read(text) {
@@ -32,6 +33,7 @@ const imTransfer = (() => {
       }
       if (!Array.isArray(payload.messages) || !payload.messages.length) throw new Error('No messages to import');
       for (const message of payload.messages) if (object(message) && !Object.hasOwn(message, 'reactions')) message.reactions = [];
+      payload.messages=payload.messages.map(imFormat.normalizeMessage);
       imFormat.validateMessages(payload.messages);
       const ids = new Set();
       for (const message of payload.messages) {

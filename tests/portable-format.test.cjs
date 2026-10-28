@@ -8,7 +8,7 @@ const ids=new Set();for(let i=0;i<10000;i++){const id=f.newId();assert.match(id,
 // Verify all sixteen bytes, including high bits, reach the output without UUID masks.
 for(let n=0;n<256;n++){const bytes=Uint8Array.from({length:16},(_,i)=>(n+i)%256);const custom=vm.runInNewContext(fs.readFileSync('src/note-format.js','utf8')+';imFormat',{btoa,crypto:{getRandomValues:target=>{target.set(bytes);return target}}});assert.equal(custom.newId(),Buffer.from(bytes).toString('base64url'));}
 const bodies=['',' ','\t\t','\n','\n\n','\r','\r\n','\n \t\r\n  ','Chinese 中文：你好！ English punctuation—… “quotes”. 🙂🧑🏽‍💻','A\n\nB\nC\n','='.repeat(80)+'\n'+'-'.repeat(70),'#!im-style-editor 2\n#!encoding utf-8','I saw @@IM:END-BUBBLE today.\n@@ in prose\n@@IM:UNRESERVED','@@IM:END-BUBBLE','@@IM:CONTENT\r\n@@IM:BUBBLE\n@@IM:END\n@@IM:SETTINGS\n@@IM:END-SETTINGS','\\abc\n\\@@IM:END-BUBBLE\n\\\\literal\nC:\\notes\\new.txt','Long line '+ 'mixed 文🙂!'.repeat(100000)];
-for(const body of bodies)round([make(body,{createdAt:'2026-10-27T14:12:19.028Z',editedAt:'2026-10-27T14:12:35.628Z',reactions:['⭐'],separatorAfter:'\r\n',custom:{value:'kept'},forwarding:{sourceMessageId:f.newId(),sourceNoteId:'source'}})]);
+for(const body of bodies)round([make(body,{createdAt:'2026-10-27T14:12:19.028Z',edited:true,reactions:['⭐'],separatorAfter:'\r\n',custom:{value:'kept'},forwarding:{sourceMessageId:f.newId(),sourceNoteId:'source'}})]);
 const messages=[make('First message'),make('Second\n\nintentional paragraph',{createdAt:'2026-01-01T00:00:00Z',reactions:['✅']}),make('第三条消息 🙂')];
 const clean=round(messages);
 const untagged=make('wanna hangout?',{createdAt:'2026-10-27T14:12:19.028Z'});
@@ -19,12 +19,12 @@ assert.ok(!noReactions.includes('edited:'),'Never-edited behavior unchanged');
 const explicitEmpty=noReactions.replace('@@IM:CONTENT','reactions: []\n@@IM:CONTENT');
 assert.deepEqual(clone(f.inspect(explicitEmpty).messages),[untagged],'Explicit empty arrays are still valid input');
 assert.ok(!f.portable(f.inspect(explicitEmpty).messages,{}).includes('reactions'));
-const tagged=make('tagged',{createdAt:untagged.createdAt,editedAt:'2026-10-27T14:12:35.628Z',reactions:['⭐','❤️']});
+const tagged=make('tagged',{createdAt:untagged.createdAt,edited:true,reactions:['⭐','❤️']});
 const taggedText=round([tagged],{});
-assert.ok(taggedText.includes('reactions: ["⭐","❤️"]') && taggedText.includes('edited: '+tagged.editedAt));
+assert.ok(taggedText.includes('reactions: ["⭐","❤️"]') && taggedText.includes('\nedited\n'));
 round([make('Literal text: reactions: []\n"reactions":[]\n[]')],{});
 const cleared=round([{...tagged,reactions:[]}],{});
-assert.ok(!cleared.includes('reactions') && cleared.includes('edited: '+tagged.editedAt));
+assert.ok(!cleared.includes('reactions') && cleared.includes('\nedited\n'));
 assert.equal(f.inspect(cleared).messages[0].id,tagged.id);
 
 assert.ok(!/^[=-]+$/m.test(clean),'No generated decorative separator lines');

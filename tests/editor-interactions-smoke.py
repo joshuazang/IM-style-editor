@@ -143,11 +143,11 @@ with sync_playwright() as p:
         for key, value in original.items():
             if key != 'text':
                 assert saved[key] == value, (key, saved)
-        assert saved['editedAt'] and len(page.evaluate('notes.original.clientData.imStyleEditor.messages')) == 48
+        assert saved['edited'] and len(page.evaluate('notes.original.clientData.imStyleEditor.messages')) == 48
         page.evaluate('openPlain();openIM()')
         expect(bubbles).to_have_count(48)
         expect(bubbles.first.locator('.message-body')).to_have_text(revised)
-        page.wait_for_function('notes.original.clientData?.imStyleEditor?.messages[0].editedAt')
+        page.wait_for_function('notes.original.clientData?.imStyleEditor?.messages[0].edited')
         assert page.evaluate('notes.original.clientData.imStyleEditor.messages[0]') == saved
         print(f'PASS width={width}: composer edit/cancel preserves drafts, bubble content, whitespace, ID, timestamps, tags and custom fields')
 

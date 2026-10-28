@@ -29,17 +29,25 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
   dt.useEffect(() => {
     request.current++; setDialog(null); setNotice('');
   }, [noteId]);
+  const mark=(records,flag,uuid)=>{
+    const note=noteRef.current;if(!note||note.uuid!==uuid)return;
+    const originals=new Map(records.map(message=>[message.id,message.text]));
+    const current=imFormat.readMessages(note);
+    const next=current.map(message=>originals.get(message.id)===message.text&&!Object.hasOwn(message,flag)
+      ? {...message,[flag]:true}:message);
+    if(next.some((message,i)=>message!==current[i]))latest.current.save(next)?.catch(()=>{});
+  };
   const exportSelected = async () => {
     const note = noteRef.current;
     if (!note) return;
     const records = latest.current.messages.filter(message => latest.current.selected.has(message.id));
     if (!records.length) return;
-    const text = imTransfer.create(records, latest.current.settings, note.uuid);
+    const text = imTransfer.create(records.map(message=>({...message,exported:true})), latest.current.settings, note.uuid);
     const uuid = note.uuid;
     const copied=await imWriteClipboard(text);
     if(noteRef.current?.uuid!==uuid)return;
-    if(copied)setNotice(`${records.length} message${records.length === 1 ? '' : 's'} exported to clipboard, with timestamps and tags.`);
-    else setDialog({ kind: 'export', text, uuid });
+    if(copied){mark(records,'exported',uuid);setNotice(`${records.length} message${records.length === 1 ? '' : 's'} exported to clipboard, with timestamps and tags.`);}
+    else setDialog({ kind: 'export', text, uuid, records });
   };
   const openImport = async () => {
     const note = noteRef.current;
@@ -82,13 +90,18 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
         error: 'The host has not confirmed saving. Keep this note open, close this window, and use Retry save above. Your clipboard and the existing messages have not been replaced.' }));
     }
   };
-  const copyMessage=async text=>{
-    const uuid=noteRef.current?.uuid;if(!uuid)return;
+  const copyRecords=async records=>{
+    const uuid=noteRef.current?.uuid;if(!uuid||!records.length)return;
+    const text=records.map(message=>message.text).join('\n\n');
     const copied=await imWriteClipboard(text);
     if(noteRef.current?.uuid!==uuid)return;
-    if(copied)setNotice('Copied');else setDialog({kind:'copy',text,uuid});
+    if(copied){mark(records,'copied',uuid);setNotice('Copied')}
+    else setDialog({kind:'copy',text,uuid,records});
   };
-  return { dialog, notice, exportSelected, copyMessage, openImport, close, apply, dismissNotice: () => setNotice(''),
+  const copyMessage=message=>copyRecords([message]);
+  const copySelected=()=>copyRecords(latest.current.messages.filter(message=>latest.current.selected.has(message.id)));
+  const manualCopied=()=>{if(dialog){mark(dialog.records||[],dialog.kind==='export'?'exported':'copied',dialog.uuid);setNotice(dialog.kind==='export'?'Exported to clipboard':'Copied')}};
+  return { dialog, notice, exportSelected, copyMessage, copySelected, manualCopied, openImport, close, apply, dismissNotice: () => setNotice(''),
     edit: text => { request.current++; setDialog(current => ({ ...current, text, reading: false, error: '' })); } };
 }
 function ImTransferDialog({ transfer }) {
@@ -136,7 +149,8 @@ function ImTransferDialog({ transfer }) {
         x.jsx('button', { type: 'button', className: 'plain', disabled: dialog.busy, onClick: transfer.close, children: exported ? 'Close' : 'Cancel' }),
         exported ? x.jsx('button', { type: 'button', onClick: () => {
           const field = box.current.querySelector('textarea'); field.focus(); field.select();
-          if (!document.execCommand('copy')) field.select();
+          let copied=false;try{copied=document.execCommand('copy')}catch{}
+          if(copied)transfer.manualCopied();else field.select();
         }, children: 'Select and copy' }) :
         x.jsx('button', { type: 'button', disabled: !parsed?.ok || dialog.busy || dialog.reading, onClick: transfer.apply,
           children: dialog.busy ? 'Saving…' : 'Import messages' })

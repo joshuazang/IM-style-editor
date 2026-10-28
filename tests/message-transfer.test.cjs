@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const {f,t}=vm.runInNewContext(fs.readFileSync('src/note-format.js','utf8')+'\n'+fs.readFileSync('src/message-transfer.js','utf8')+';({f:imFormat,t:imTransfer})',{crypto,btoa});const copy=v=>JSON.parse(JSON.stringify(v));
-const records=[{id:f.newId(),text:'Keep\n\nblank lines\r\n中文🙂\n@@IM:END-BUBBLE',reactions:['⭐'],createdAt:'2026-01-01T12:00:00Z',editedAt:'2026-01-02T12:00:00Z',custom:{keep:true}},{id:f.newId(),text:'Second',reactions:[]}];
+const records=[{id:f.newId(),text:'Keep\n\nblank lines\r\n中文🙂\n@@IM:END-BUBBLE',reactions:['⭐'],createdAt:'2026-01-01T12:00:00Z',edited:true,custom:{keep:true}},{id:f.newId(),text:'Second',reactions:[]}];
 const settings={bubbleTheme:'lime',reactionOrder:['⭐'],recoveryOriginal:{text:'PRIVATE UNSELECTED NOTE DATA'}};
 const text=t.create(records,settings,'source');assert.ok(text.startsWith('#!im-style-forward 2'));assert.ok(!text.includes('PRIVATE UNSELECTED'));
 const wire=JSON.parse(text.split('\n').slice(1).join('\n'));

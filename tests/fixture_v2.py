@@ -13,10 +13,10 @@ def fixture_messages(messages):
 CONTROLS={'@@IM:SETTINGS','@@IM:END-SETTINGS','@@IM:BUBBLE','@@IM:CONTENT','@@IM:END-BUBBLE','@@IM:END'}
 def document(messages,settings):
  mapping={'bubbleTheme':'bubble-theme','backgroundTheme':'background-theme','wallpaper':'wallpaper','artwork':'artwork','scale':'scale','reactionOrder':'reaction-order','deletedEmojis':'deleted-emojis'}
- bubble={'id':'id','createdAt':'created','editedAt':'edited','reactions':'reactions','separatorAfter':'separator-after','forwarding':'forwarding'}
+ bubble={'id':'id','createdAt':'created','editedAt':'edited','edited':'edited','copied':'copied','exported':'exported','reactions':'reactions','separatorAfter':'separator-after','forwarding':'forwarding'}
  dump=lambda value:json.dumps(value,ensure_ascii=False,separators=(',',':'))
  def fields(values,mapping,extra):
-  result=[f'{label}: {dump(values[key])}' for key,label in mapping.items() if key in values and not (extra=='extra-metadata' and key=='reactions' and values[key]==[])]
+  result=[(label if key in ['edited','copied','exported'] else f'{label}: {dump(values[key])}') for key,label in mapping.items() if key in values and not (extra=='extra-metadata' and key=='reactions' and values[key]==[])]
   unknown={k:v for k,v in values.items() if k not in mapping and (extra!='extra-metadata' or k!='text')}
   if unknown:result.append(f'{extra}: {dump(unknown)}')
   return result

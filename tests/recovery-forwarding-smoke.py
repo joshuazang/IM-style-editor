@@ -5,7 +5,7 @@ from pathlib import Path
 from playwright.sync_api import expect,sync_playwright
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8000').rstrip('/')
 HOST=Path(__file__).with_name('editor-roundtrip-host.html').read_text()
-RECORDS=[{'id':'first','text':'Forward this\n\nwith blank lines\n:::end-bubble and C:\\notes 🙂','createdAt':'2026-10-27T12:00:00.123Z','editedAt':'2026-10-27T12:01:00Z','reactions':['⭐'],'custom':{'keep':'yes'}},
+RECORDS=[{'id':'first','text':'Forward this\n\nwith blank lines\n:::end-bubble and C:\\notes 🙂','createdAt':'2026-10-27T12:00:00.123Z','edited':True,'reactions':['⭐'],'custom':{'keep':'yes'}},
  {'id':'second','text':'Second selected message','createdAt':'2026-10-27T12:03:00Z','reactions':['✅'],'separatorAfter':'\n\n'},
  {'id':'not-selected','text':'PRIVATE UNSELECTED MESSAGE','reactions':[]}]
 RECORDS=fixture_messages(RECORDS)
@@ -30,7 +30,7 @@ with sync_playwright() as p:
   expect(editor.locator('.transfer-notice')).to_contain_text('2 messages exported')
   clipboard=page.evaluate('navigator.clipboard.readText()')
   assert clipboard.startswith('#!im-style-forward 2\n')
-  payload=json.loads(clipboard.split('\n',1)[1]);assert payload['messages']==RECORDS[:2]
+  payload=json.loads(clipboard.split('\n',1)[1]);assert payload['messages']==[{**record,'exported':True} for record in RECORDS[:2]]
   assert 'PRIVATE UNSELECTED MESSAGE' not in clipboard
   page.evaluate('(note)=>{notes.dest=note;openIM("dest")}',DEST)
   expect(editor.locator('.message-bubble')).to_have_count(1)
@@ -54,7 +54,7 @@ with sync_playwright() as p:
   assert saved['messages'][0]['text']=='Destination keep me'
   first=saved['messages'][1];assert first['id']!=fixture_id('first') and first['forwarding']['sourceMessageId']==fixture_id('first')
   assert first['forwarding']['sourceNoteId']=='source'
-  for key in ['text','createdAt','editedAt','reactions','custom']:assert first[key]==RECORDS[0][key]
+  for key in ['text','createdAt','edited','reactions','custom']:assert first[key]==RECORDS[0][key]
   assert saved['messages'][2]['id']==fixture_id('second')
   for key in ['bubbleTheme','backgroundTheme','wallpaper','scale']:assert saved['settings'][key]==DEST['content']['appendEditorSettings'][key]
   assert saved['settings']['reactionOrder']==['❤️','✅','⭐']

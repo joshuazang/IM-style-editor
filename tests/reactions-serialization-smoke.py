@@ -37,10 +37,10 @@ with sync_playwright() as p:
   context_menu();editor.get_by_role('menuitem',name='Edit',exact=True).click()
   editor.get_by_role('textbox',name='Edit message',exact=True).fill('wanna hangout later?')
   editor.get_by_role('button',name='Save changes',exact=True).click()
-  page.wait_for_function('notes.original.clientData.imStyleEditor.messages[0].editedAt')
+  page.wait_for_function('notes.original.clientData.imStyleEditor.messages[0].edited')
   edited=page.evaluate('notes.original.clientData.imStyleEditor.messages[0]')
   assert edited['id']==initial['id'] and edited['createdAt']==initial['createdAt'] and edited['reactions']==[]
-  text=page.evaluate('notes.original.content.text');assert 'reactions:' not in text and f'edited: {edited["editedAt"]}' in text
+  text=page.evaluate('notes.original.content.text');assert 'reactions:' not in text and '\nedited\n' in text
   page.evaluate('openPlain();openIM()');expect(editor.locator('.message-meta')).to_contain_text('edited')
   page.wait_for_function('notes.original.clientData?.imStyleEditor?.messages.length===1')
   assert page.evaluate('notes.original.clientData.imStyleEditor.messages[0]')==edited
@@ -48,13 +48,13 @@ with sync_playwright() as p:
   editor.get_by_role('button',name='Export',exact=True).click()
   expect(editor.locator('.transfer-notice')).to_contain_text('exported to clipboard')
   clipboard=page.evaluate('navigator.clipboard.readText()');record=json.loads(clipboard.split('\n',1)[1])['messages'][0]
-  assert 'reactions' not in record and record['editedAt']==edited['editedAt'] and record['createdAt']==initial['createdAt']
+  assert 'reactions' not in record and record['edited']==edited['edited'] and record['createdAt']==initial['createdAt']
   page.evaluate('notes.target={uuid:"target",content_type:"Note",content:{text:""}};openIM("target")');expect(editor.get_by_role('textbox',name='Message',exact=True)).to_be_enabled()
   editor.get_by_role('button',name='More options',exact=True).click();editor.get_by_role('button',name='Import from clipboard',exact=True).click()
   editor.get_by_role('dialog').get_by_role('button',name='Import messages',exact=True).click()
   expect(editor.get_by_role('dialog')).to_have_count(0)
   imported=page.evaluate('notes.target.clientData.imStyleEditor.messages[0]')
-  assert imported['reactions']==[] and imported['editedAt']==edited['editedAt'] and imported['createdAt']==initial['createdAt']
+  assert imported['reactions']==[] and imported['edited']==edited['edited'] and imported['createdAt']==initial['createdAt']
   assert 'reactions:' not in page.evaluate('notes.target.content.text')
   assert not errors,errors
   print(f'PASS width={width}: send/tag/untag/edit round trip and clipboard import omit empty reaction fields, default to [], preserve dates and edit behavior')
