@@ -10,7 +10,7 @@ MESSAGES = [
     'This longer message should wrap across multiple lines using the full bubble width, '
     'including the area above the timestamp instead of leaving an empty column. ' * 2,
     'One line\nAnother line\nLast line',
-    '中文长消息应该占满整个气泡的宽度，而不是在右边给时间戳空出一整列。这里再多放一些文字，检查多行换行效果。',
+    '中文长消息应该占满整个气泡的宽度，而不是在右边给时间戳空出一整列。这里再多放一些文字，检查多行换行效果。' * 3,
     'https://example.com/' + 'x' * 120,
 ]
 
@@ -59,6 +59,7 @@ with sync_playwright() as p:
             composer.fill(text)
             editor.get_by_role('button', name='Send message', exact=True).click()
             bubble = editor.locator('.message-bubble').last
+            expect(bubble.locator('.message-body')).to_have_text(text)
             geometry = check_layout(bubble, full_width=text in [MESSAGES[1], MESSAGES[3], MESSAGES[4]])
             if text == 'Hi':
                 assert geometry['height'] <= geometry['lineHeight'] + 17, geometry

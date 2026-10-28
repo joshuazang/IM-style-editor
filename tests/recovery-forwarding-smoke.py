@@ -68,7 +68,7 @@ with sync_playwright() as p:
   print(f'PASS width={width}: actual clipboard selection transfer preserves complete metadata, collision IDs, destination settings; duplicate import changes nothing')
   # Explicit fallback when the browser denies reading the clipboard.
   frame=page.locator('#editor').content_frame
-  frame.locator('body').evaluate('''()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:()=>Promise.reject(new Error('denied')),writeText:()=>Promise.reject(new Error('denied'))}})''')
+  frame.locator('body').evaluate('''()=>{document.execCommand=()=>false;Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:()=>Promise.reject(new Error('denied')),writeText:()=>Promise.reject(new Error('denied'))}})}''')
   open_import();expect(dialog).to_contain_text('Paste the copied messages below')
   field=dialog.get_by_role('textbox',name='Paste exported messages')
   field.fill('Not a complete IM export');expect(dialog.get_by_role('alert')).to_contain_text('Nothing has been changed')
