@@ -92,7 +92,7 @@ function ImJumpToBottom({ viewport }) {
 /* Editing and replying share one composer preview and cancel control. */
 function ImComposerPreview({message,label,cancel,cancelLabel,action,expanded,menu,previewRef}) {
   const contents=[x.jsx('strong',{children:label}),x.jsx('div',{className:`composer-edit-original${action?' reply-quote-text':''}`,children:message.text||'Empty message'})];
-  return x.jsxs('div',{ref:previewRef,className:`composer-edit-preview${action?' composer-reply-preview':''}`,onClick:action?event=>{if(event.target===event.currentTarget)action()}:undefined,children:[
+  return x.jsxs('div',{ref:previewRef,className:`composer-edit-preview${action?' composer-reply-preview':''}`,onClick:action?event=>{if(event.target===event.currentTarget)action(event)}:undefined,children:[
     action?x.jsxs('button',{type:'button',className:'composer-edit-context reply-preview-trigger','aria-label':'Reply options','aria-haspopup':'menu','aria-expanded':expanded,onClick:action,children:contents})
       :x.jsxs('div',{className:'composer-edit-context',children:contents}),
     x.jsx('button',{type:'button',className:'cancel-edit','aria-label':cancelLabel,onClick:cancel,

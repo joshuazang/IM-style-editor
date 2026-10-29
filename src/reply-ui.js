@@ -21,17 +21,29 @@ function ImReplyIcon({kind}){
   return x.jsx('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,focusable:'false',children:x.jsx('path',{d:paths[kind]})});
 }
 function ImReplyPreview({reply,cancel,show,exportReply}){
-  const [open,setOpen]=dt.useState(false),root=dt.useRef(null);
+  const [open,setOpen]=dt.useState(false),[anchorX,setAnchorX]=dt.useState(0),[left,setLeft]=dt.useState(8),root=dt.useRef(null),menuRef=dt.useRef(null);
+  dt.useLayoutEffect(()=>{
+    if(!open)return;
+    const place=()=>{
+      const panel=menuRef.current,container=root.current;if(!panel||!container)return;
+      const viewport=window.visualViewport,width=panel.getBoundingClientRect().width;
+      const minimum=(viewport?.offsetLeft||0)+8,maximum=minimum+(viewport?.width||window.innerWidth)-16-width;
+      const next=Math.max(minimum,Math.min(anchorX-width/2,maximum))-container.getBoundingClientRect().left;
+      setLeft(current=>Math.abs(current-next)>.5?next:current);
+    };
+    place();window.addEventListener('resize',place);window.visualViewport?.addEventListener('resize',place);
+    return()=>{window.removeEventListener('resize',place);window.visualViewport?.removeEventListener('resize',place)};
+  },[open,anchorX]);
   dt.useEffect(()=>{
     const outside=event=>{if(!root.current?.contains(event.target))setOpen(false)};
     const key=event=>{if(event.key==='Escape'&&open){event.preventDefault();event.stopPropagation();setOpen(false)}};
     window.addEventListener('pointerdown',outside);window.addEventListener('keydown',key,true);
     return()=>{window.removeEventListener('pointerdown',outside);window.removeEventListener('keydown',key,true)};
   },[open]);
-  const menu=open&&x.jsx('div',{className:'reply-options',role:'menu','aria-label':'Reply options',children:[
+  const menu=open&&x.jsx('div',{ref:menuRef,style:{left},className:'reply-options',role:'menu','aria-label':'Reply options',children:[
     ['show','Show in Chat',show],['another','Reply in Another Chat',()=>exportReply(reply)],['delete','Do Not Reply',cancel]
   ].map(([kind,label,action])=>x.jsxs('button',{type:'button',role:'menuitem',onClick:()=>{setOpen(false);action()},children:[x.jsx(ImReplyIcon,{kind}),x.jsx('span',{children:label})]},kind))});
-  return x.jsx(ImComposerPreview,{message:reply,label:'Reply to message',cancel,cancelLabel:'Cancel reply',action:()=>setOpen(!open),expanded:open,menu,previewRef:root});
+  return x.jsx(ImComposerPreview,{message:reply,label:'Reply to message',cancel,cancelLabel:'Cancel reply',action:event=>{const rect=event.currentTarget.getBoundingClientRect();setAnchorX(event.detail?event.clientX:(rect.left+rect.right)/2);setOpen(!open)},expanded:open,menu,previewRef:root});
 }
 function ImBubbleQuote({reply,show,selecting}){
   return x.jsxs('button',{type:'button',className:'bubble-reply-quote','aria-label':'Show quoted message in chat',tabIndex:selecting?-1:0,
