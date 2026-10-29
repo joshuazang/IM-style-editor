@@ -176,3 +176,19 @@ function imCaptureSelectionHeight(composer){
   const height=composer.getBoundingClientRect().height-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
   composer.style.setProperty('--selection-row-height',`${Math.max(46,height)}px`);
 }
+
+/* Outlined menu icons share a fixed column; labels remain the accessible names. */
+function ImContextLabel({kind,label}) {
+  const paths={
+    reply:'M10 4 2 11l8 7v-5c6 0 10 3 12 7-1-9-5-13-12-13V4Z',
+    edit:'m15 4 5 5M4 16 16 4a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L8 20l-5 1 1-5Z',
+    copy:'M7 3H5a2 2 0 0 0-2 2v13M9 6h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z',
+    select:'m7 12 4 4 6-9',
+    delete:'M4 6h16M9 3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7'
+  };
+  return x.jsxs(x.Fragment,{children:[
+    x.jsxs('svg',{className:'context-action-icon',width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,focusable:'false',children:[
+      kind==='select'&&x.jsx('circle',{cx:12,cy:12,r:10}),x.jsx('path',{d:paths[kind]})]}),
+    x.jsx('span',{children:label})
+  ]});
+}
