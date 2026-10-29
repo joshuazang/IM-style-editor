@@ -2,7 +2,7 @@
 const imFormat = (() => {
   const header = '#!im-style-editor 2';
   const encoding = '#!encoding utf-8';
-  const controls = new Set(['@@IM:SETTINGS', '@@IM:END-SETTINGS', '@@IM:DRAFT', '@@IM:END-DRAFT', '@@IM:BUBBLE', '@@IM:CONTENT', '@@IM:END-BUBBLE', '@@IM:END']);
+  const controls = new Set(['@@IM:SETTINGS', '@@IM:END-SETTINGS', '@@IM:REPLY', '@@IM:END-REPLY', '@@IM:DRAFT', '@@IM:END-DRAFT', '@@IM:BUBBLE', '@@IM:CONTENT', '@@IM:END-BUBBLE', '@@IM:END']);
   const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
   const clone = value => JSON.parse(JSON.stringify(value));
   const validId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{21}[AQgw]$/.test(value);
@@ -12,6 +12,10 @@ const imFormat = (() => {
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
   const newMessage = text => ({ id: newId(), text, reactions: [] });
+  function validateReply(reply) {
+    if (!object(reply) || !validId(reply.id) || typeof reply.text !== 'string' || typeof reply.noteId !== 'string' || ('createdAt' in reply && typeof reply.createdAt!=='string') || ('metadata' in reply && (!object(reply.metadata)||['id','text','createdAt'].some(key=>Object.hasOwn(reply.metadata,key))))) throw new Error('Invalid reply reference');
+    if(reply.metadata)validateMessages([{...reply.metadata,id:reply.id,text:reply.text,reactions:reply.metadata.reactions??[],...(reply.createdAt?{createdAt:reply.createdAt}:{})}]);
+  }
   function validateMessages(messages) {
     if (!Array.isArray(messages)) throw new Error('Messages must be an array');
     const ids = new Set();
@@ -20,6 +24,7 @@ const imFormat = (() => {
           !Array.isArray(message.reactions) || !message.reactions.every(tag => typeof tag === 'string') ||
           ('createdAt' in message && typeof message.createdAt !== 'string') ||
           ('separatorAfter' in message && typeof message.separatorAfter !== 'string')) throw new Error('Invalid or duplicate bubble metadata');
+      if (Object.hasOwn(message,'replyTo')) validateReply(message.replyTo);
       ids.add(message.id);
     }
   }
@@ -49,7 +54,7 @@ const imFormat = (() => {
     const result={...normalizeMessage(message),text,edited:true};
     delete result.copied;delete result.exported;return result;
   };
-  const bubbleFields = { id: 'id', createdAt: 'created', edited: 'edited', copied:'copied', exported:'exported', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding' };
+  const bubbleFields = { id: 'id', createdAt: 'created', edited: 'edited', copied:'copied', exported:'exported', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding', replyTo: 'reply-to' };
   const settingsFields = { bubbleTheme: 'bubble-theme', backgroundTheme: 'background-theme', wallpaper: 'wallpaper', artwork: 'artwork', scale: 'scale', reactionOrder: 'reaction-order', deletedEmojis: 'deleted-emojis' };
   const valueText = value => typeof value === 'string' && /^[A-Za-z0-9_.:+-]+$/.test(value) && !/^(?:true|false|null|[-+]?\d)/.test(value) ? value : JSON.stringify(value);
   function fields(record, mapping, extrasName) {
@@ -65,12 +70,13 @@ const imFormat = (() => {
     if (Object.keys(extras).length) lines.push(extrasName + ': ' + JSON.stringify(extras));
     return lines;
   }
-  function portable(messages, settings, draft = '') {
+  function portable(messages, settings, draft = '', reply = null) {
     if(typeof draft!=='string')throw new Error('Draft must be text');
     messages=messages.map(normalizeMessage);
     validateMessages(messages);
     validateSettings(settings);
     const lines = [header, encoding, '', '@@IM:SETTINGS', ...fields(settings, settingsFields, 'extra-settings'), '@@IM:END-SETTINGS', ''];
+    if(reply!==null){validateReply(reply);lines.push('@@IM:REPLY',JSON.stringify(reply),'@@IM:END-REPLY','');}
     if(draft.length)lines.push('@@IM:DRAFT','','',encodeBody(draft),'','','@@IM:END-DRAFT','');
     for (const message of messages) lines.push('@@IM:BUBBLE', ...fields(message, bubbleFields, 'extra-metadata'),
       '@@IM:CONTENT', '', '', encodeBody(message.text), '', '', '@@IM:END-BUBBLE', '');
@@ -138,12 +144,17 @@ const imFormat = (() => {
       const settings = parseFields(settingLines, settingsFields, 'extra-settings');
       validateSettings(settings);
       const messages = [];
-      let draft='',draftSeen=false;
+      let draft='',draftSeen=false,reply=null;
       while (true) {
         // Optional decoration outside records has no structural meaning.
         while (i < rows.length && !controls.has(rows[i].line)) {
           if (!decoration(rows[i].line)) throw new Error('Unexpected text outside records');
           i++;
+        }
+        if(rows[i]?.line==='@@IM:REPLY'){
+          if(reply!==null||draftSeen||messages.length)throw new Error('Reply must appear once, before draft and bubbles');
+          i++;reply=JSON.parse(rows[i++]?.line);validateReply(reply);
+          if(rows[i++]?.line!=='@@IM:END-REPLY')throw new Error('Missing reply end');continue;
         }
         if(rows[i]?.line==='@@IM:DRAFT'){
           if(draftSeen||messages.length)throw new Error('Draft must appear once, before bubbles');
@@ -164,7 +175,7 @@ const imFormat = (() => {
         if (textMarker?.line !== '@@IM:CONTENT' || textMarker.next === text.length) throw new Error('Missing text control line');
         const bodyStart = textMarker.next;
         while (i < rows.length && rows[i].line !== '@@IM:END-BUBBLE') {
-          if (controls.has(rows[i].line) && !['@@IM:DRAFT','@@IM:END-DRAFT'].includes(rows[i].line)) throw new Error('Unexpected control line inside a message');
+          if (controls.has(rows[i].line) && !['@@IM:REPLY','@@IM:END-REPLY','@@IM:DRAFT','@@IM:END-DRAFT'].includes(rows[i].line)) throw new Error('Unexpected control line inside a message');
           i++;
         }
         const end = rows[i++];
@@ -179,7 +190,7 @@ const imFormat = (() => {
       }
       if (rows.slice(i).some(row => !decoration(row.line))) throw new Error('Unexpected data after document end');
       validateMessages(messages);
-      return { kind: 'portable', messages, settings, draft };
+      return { kind: 'portable', messages, settings, draft, reply };
     } catch (error) { return { kind: 'damaged', error: error.message, text }; }
   }
   const fromPlainText = text => {
@@ -197,16 +208,17 @@ const imFormat = (() => {
   const readMessages = note => { const parsed=inspect(note.content?.text); return parsed.kind==='portable'?clone(parsed.messages):parsed.kind==='plain'?fromPlainText(note.content?.text||''):[]; };
   const readSettings = note => {const parsed=inspect(note.content?.text);return parsed.kind==='portable'?clone(parsed.settings):{};};
   const readDraft = note => {const parsed=inspect(note?.content?.text);return parsed.kind==='portable'?parsed.draft:'';};
+  const readReply = note => {const parsed=inspect(note?.content?.text);return parsed.kind==='portable'?parsed.reply:null;};
   const isCurrent = (note,messages,settings) => {
     const saved=note.clientData?.imStyleEditor;
-    try { return saved?.schemaVersion===3 && portable(messages,settings,readDraft(note))===note.content.text &&
-      portable(saved.messages,saved.settings,saved.draft??'')===note.content.text; } catch { return false; }
+    try { return saved?.schemaVersion===3 && portable(messages,settings,readDraft(note),readReply(note))===note.content.text &&
+      portable(saved.messages,saved.settings,saved.draft??'',saved.reply??null)===note.content.text; } catch { return false; }
   };
-  function write(note,messages,settings,draft=readDraft(note)) {
+  function write(note,messages,settings,draft=readDraft(note),reply=readReply(note)) {
     messages=messages.map(normalizeMessage);
     if (inspect(note.content?.text).kind==='damaged') throw new Error('Malformed records: original text was not changed');
-    const text=portable(messages,settings,draft), savedMessages=clone(messages), savedSettings=clone(settings);
-    note.clientData={...note.clientData,imStyleEditor:{schemaVersion:3,messages:savedMessages,settings:savedSettings,...(draft.length?{draft}:{})}};
+    const text=portable(messages,settings,draft,reply), savedMessages=clone(messages), savedSettings=clone(settings);
+    note.clientData={...note.clientData,imStyleEditor:{schemaVersion:3,messages:savedMessages,settings:savedSettings,...(draft.length?{draft}:{}),...(reply?{reply:clone(reply)}:{})}};
     note.content={...note.content,text,appendEditorMessageData:savedMessages,appendEditorSettings:savedSettings,
       preview_plain:serialize(messages).slice(0,160)||' ',preview_html:undefined};
     return note;
@@ -214,5 +226,5 @@ const imFormat = (() => {
   // Format 2 never guesses at damaged structure or uses decoration to repair it.
   const recover = () => null;
   const restore = () => {throw new Error('Damaged format 2 records require manual repair');};
-  return { normalizeMessage, editMessage, readDraft, newId, validId, validateMessages, serialize, portable, inspect, fromPlainText, readMessages, readSettings, isCurrent, write, recover, restore };
+  return { validateReply, readReply, normalizeMessage, editMessage, readDraft, newId, validId, validateMessages, serialize, portable, inspect, fromPlainText, readMessages, readSettings, isCurrent, write, recover, restore };
 })();

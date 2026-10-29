@@ -37,18 +37,19 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
       ? {...message,[flag]:true}:message);
     if(next.some((message,i)=>message!==current[i]))latest.current.save(next)?.catch(()=>{});
   };
-  const exportSelected = async () => {
+  const exportRecords = async (records, replyExport=false, sourceNoteId=null) => {
     const note = noteRef.current;
     if (!note) return;
-    const records = latest.current.messages.filter(message => latest.current.selected.has(message.id));
     if (!records.length) return;
-    const text = imTransfer.create(records.map(message=>({...message,exported:true})), latest.current.settings, note.uuid);
+    const text = imTransfer.create(records.map(message=>({...message,exported:true})), latest.current.settings, sourceNoteId??note.uuid);
     const uuid = note.uuid;
     const copied=await imWriteClipboard(text);
     if(noteRef.current?.uuid!==uuid)return;
-    if(copied){mark(records,'exported',uuid);setNotice(`${records.length} message${records.length === 1 ? '' : 's'} exported to clipboard, with timestamps and tags.`);}
-    else setDialog({ kind: 'export', text, uuid, records });
+    if(copied){mark(records,'exported',uuid);setNotice(replyExport?'Copied. Open another note and choose Import from clipboard.':`${records.length} message${records.length === 1 ? '' : 's'} exported to clipboard, with timestamps and tags.`);}
+    else setDialog({ kind: 'export', text, uuid, records, replyExport });
   };
+  const exportSelected=()=>exportRecords(latest.current.messages.filter(message=>latest.current.selected.has(message.id)));
+  const exportReply=reply=>{const original=imReplyTarget(latest.current.messages,reply,noteRef.current?.uuid);return exportRecords([original||imReplyRecord(reply)],true,original?null:reply.noteId);};
   const openImport = async () => {
     const note = noteRef.current;
     if (!note || imFormat.inspect(note.content?.text).kind === 'damaged') return;
@@ -100,8 +101,8 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
   };
   const copyMessage=message=>copyRecords([message]);
   const copySelected=()=>copyRecords(latest.current.messages.filter(message=>latest.current.selected.has(message.id)));
-  const manualCopied=()=>{if(dialog){mark(dialog.records||[],dialog.kind==='export'?'exported':'copied',dialog.uuid);setNotice(dialog.kind==='export'?'Exported to clipboard':'Copied')}};
-  return { dialog, notice, exportSelected, copyMessage, copySelected, manualCopied, openImport, close, apply, dismissNotice: () => setNotice(''),
+  const manualCopied=()=>{if(dialog){mark(dialog.records||[],dialog.kind==='export'?'exported':'copied',dialog.uuid);setNotice(dialog.replyExport?'Copied. Open another note and choose Import from clipboard.':dialog.kind==='export'?'Exported to clipboard':'Copied')}};
+  return { dialog, notice, exportSelected, exportReply, copyMessage, copySelected, manualCopied, openImport, close, apply, dismissNotice: () => setNotice(''), notify:setNotice,
     edit: text => { request.current++; setDialog(current => ({ ...current, text, reading: false, error: '' })); } };
 }
 function ImTransferDialog({ transfer }) {

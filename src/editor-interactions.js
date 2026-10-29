@@ -89,18 +89,19 @@ function ImJumpToBottom({ viewport }) {
       'aria-hidden': true, children: x.jsx('path', { d: 'm6 9 6 6 6-6' }) }) });
 }
 
-function ImEditPreview({ message, cancel }) {
-  if (!message) return null;
-  return x.jsxs('div', { className: 'composer-edit-preview', children: [
-    x.jsxs('div', { className: 'composer-edit-context', children: [
-      x.jsx('strong', { children: 'Edit message' }),
-      x.jsx('div', { className: 'composer-edit-original', children: message.text })
-    ] }),
-    x.jsx('button', { type: 'button', className: 'cancel-edit', 'aria-label': 'Cancel editing',
-      onClick: cancel, children: x.jsx('svg', { width: 20, height: 20, viewBox: '0 0 24 24',
-        fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round',
-        'aria-hidden': true, children: x.jsx('path', { d: 'm6 6 12 12M18 6 6 18' }) }) })
-  ] });
+/* Editing and replying share one composer preview and cancel control. */
+function ImComposerPreview({message,label,cancel,cancelLabel,action,expanded,menu,previewRef}) {
+  const contents=[x.jsx('strong',{children:label}),x.jsx('div',{className:`composer-edit-original${action?' reply-quote-text':''}`,children:message.text||'Empty message'})];
+  return x.jsxs('div',{ref:previewRef,className:`composer-edit-preview${action?' composer-reply-preview':''}`,onClick:action?event=>{if(event.target===event.currentTarget)action()}:undefined,children:[
+    action?x.jsxs('button',{type:'button',className:'composer-edit-context reply-preview-trigger','aria-label':'Reply options','aria-haspopup':'menu','aria-expanded':expanded,onClick:action,children:contents})
+      :x.jsxs('div',{className:'composer-edit-context',children:contents}),
+    x.jsx('button',{type:'button',className:'cancel-edit','aria-label':cancelLabel,onClick:cancel,
+      children:x.jsx('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round','aria-hidden':true,
+        children:x.jsx('path',{d:'m6 6 12 12M18 6 6 18'})})}),menu
+  ]});
+}
+function ImEditPreview({message,cancel}) {
+  return message?x.jsx(ImComposerPreview,{message,label:'Edit message',cancel,cancelLabel:'Cancel editing'}):null;
 }
 
 /* SVG controls use local paths only. Batch tagging adds without removing existing tags. */
@@ -166,4 +167,12 @@ function imUseControlTouchProtection() {
     document.addEventListener('contextmenu',preventControlCallout,true);
     return()=>document.removeEventListener('contextmenu',preventControlCallout,true);
   },[]);
+}
+
+/* Reserve the whole composer when selection temporarily hides an edit/reply preview. */
+function imCaptureSelectionHeight(composer){
+  if(!composer)return;
+  const style=getComputedStyle(composer);
+  const height=composer.getBoundingClientRect().height-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
+  composer.style.setProperty('--selection-row-height',`${Math.max(46,height)}px`);
 }

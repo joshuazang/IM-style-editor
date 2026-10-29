@@ -60,3 +60,22 @@ Clipboard transfer uses envelope version 2 and accepts only valid new-format IDs
 `tests/note-format.test.cjs` covers plain imports, text-only round trips, permanent edit IDs, unrelated note-data preservation and rejection of the old version. `tests/message-transfer.test.cjs` covers forwarding identity/provenance and duplicates. Existing browser smoke checks use an independent format-2 fixture writer and validate actual editor switching, saving failures, forwarding, mobile/desktop interactions and unchanged layout. No real account or note is accessed.
 
 Draft/status coverage includes `tests/draft-status-format.test.cjs`, `tests/note-storage.test.cjs`, and `tests/draft-status-smoke.py`: old presence fields, draft escaping/whitespace, immutable save snapshots, queued ordering/timeouts, note switches, text-only conversion, failed sends, and acknowledgment-gated clearing. Browser textareas normalize entered newlines to LF; raw draft text is otherwise not normalized by storage.
+
+
+## Replies (editor 3.4.0)
+
+A sent bubble may have `reply-to: {"id":"…","noteId":"…","text":"…",…}` metadata. The reference stores the original message identity, source note, and a literal text snapshot. Optional `createdAt` and `metadata` retain the original creation time, reactions and other metadata for exporting a quoted original even if it is no longer present. Empty reactions are not stored in this snapshot. Snapshot text is never rendered as HTML. The quote remains readable when its original is removed; navigation searches the current note and imported source identities, including remapped IDs from import collisions.
+
+An unfinished reply is stored immediately below settings and before the optional draft text and sent bubbles:
+
+```
+@@IM:REPLY
+{"id":"…","noteId":"…","text":"Original message"}
+@@IM:END-REPLY
+```
+
+This optional section exists even when the typed draft is empty. Canceling a reply removes only this section and preserves the typed draft. Sending saves the new bubble's `reply-to` and clears the pending reply together with the sent draft; the visible composer is cleared only after the host acknowledges saving. An unrelated edit, tag change, Copy, Export or settings save preserves the pending reply. Switching notes keeps each note's reply separate. As with all drafts, persistence across closing/reloading depends on host acknowledgment; save failures retain the current input and show Retry save.
+
+Bubble content framing remains exactly two blank lines on each side. Literal new reply-marker lines in message/draft text are escaped, with historical unescaped occurrences in bubble bodies still treated as content. Invalid or misplaced reply sections pause saving rather than replacing the original document.
+
+Reply uses the existing Edit composer preview component, labeled Reply to message, with no left arrow. Both Edit and Reply use a light theme-matched quote tint and a red cancel X, with the cancel control and icon ten percent larger. Clicking the preview opens the reply menu. Reply options use local SVG icons: Show in Chat, Reply in Another Chat, and Do Not Reply. Navigation closes the options, reveals a filtered-out original when necessary, and highlights it. Fully visible originals between the toolbar and composer are not scrolled; other originals are centered within that area where scroll bounds allow. A bubble taller than that area is aligned to its top. Reply in Another Chat exports the quoted original using the regular clipboard format and success rules; importing into another note is a separate user action. Complete-note imports do not import private pending replies or unsent drafts.
