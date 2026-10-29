@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright,expect
 from fixture_v2 import prepare_note
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8006')
 HOST=Path(__file__).with_name('editor-roundtrip-host.html').read_text()
-note=prepare_note({'uuid':'original','content_type':'Note','content':{'text':'','appendEditorMessageData':[dict(id=str(i),text=f'Message {i}: an idea to return to.',createdAt='2026-10-28T12:00:00Z',reactions=[]) for i in range(30)]}})
+note=prepare_note({'uuid':'original','content_type':'Note','content':{'text':'','appendEditorMessageData':[dict(id=str(i),text=f'Message {i}: an idea to return to.',createdAt='2026-10-28T13:30:00Z' if i==12 else '2026-10-28T12:00:00Z',reactions=[]) for i in range(30)]}})
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)
  for width in [390,1200]:
@@ -34,6 +34,8 @@ with sync_playwright() as p:
   rows.nth(12).click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
   expect(row).to_have_class('message-row message-emphasized');before=rows.nth(12).bounding_box()
   assert row.evaluate("n=>getComputedStyle(n,'::before').backgroundColor")==style['color']
+  edges=row.evaluate("""n=>{const r=n.getBoundingClientRect(),b=n.querySelector('.message-bubble').getBoundingClientRect(),s=getComputedStyle(n,'::before');return {above:b.top-r.top-parseFloat(s.top),below:r.bottom-parseFloat(s.bottom)-b.bottom}}""")
+  assert abs(edges['above']-edges['below'])<.5 and abs(edges['below']-2)<.5,edges
   page.screenshot(path=f'/tmp/message-selected-{width}.png')
   e.get_by_role('button',name='Cancel',exact=True).click();expect(row).not_to_have_class('message-row message-emphasized')
   after=rows.nth(12).bounding_box();assert abs(before['width']-after['width'])<1 and abs(before['height']-after['height'])<1,(before,after)
