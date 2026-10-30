@@ -91,7 +91,7 @@ function ImPinIcon({list=false,unpin=false,filled=false}){
 }
 function imFilterOrder(tags,position){const order=tags.filter(tag=>tag!==imUntagged);const index=Number.isInteger(position)?Math.max(0,Math.min(position,order.length)):order.length;return [...order.slice(0,index),imUntagged,...order.slice(index)]}
 
-function ImPinnedPreview({messages,show,openList}){
+function ImPinnedPreview({messages,show,openList,unpin}){
  const [index,setIndex]=dt.useState(0);const current=Math.min(index,messages.length-1),message=messages[current];
  dt.useEffect(()=>{setIndex(i=>Math.max(0,Math.min(i,messages.length-1)))},[messages.length]);
  if(!message)return null;
@@ -99,8 +99,8 @@ function ImPinnedPreview({messages,show,openList}){
  return x.jsxs('div',{className:'pinned-preview pinned-carousel',onClick:event=>{if(event.target===event.currentTarget)cycle()},children:[
   x.jsxs('button',{type:'button','aria-label':'Show pinned message',onClick:cycle,children:[
    x.jsx('span',{className:'pin-segments','aria-hidden':true,children:messages.map((item,i)=>x.jsx('i',{className:i===current?'active':'',style:{opacity:i===current?1:.25}},item.id))}),
-   x.jsxs('span',{className:'pin-summary',children:[x.jsx('strong',{children:`Pinned message #${current+1}`}),x.jsx('span',{children:message.text})]})]}),
-  x.jsx('button',{type:'button',className:'pin-list-button','aria-label':`Show all ${messages.length} pinned messages`,onClick:openList,children:x.jsx(ImPinIcon,{list:true})})]})
+   x.jsxs('span',{className:'pin-summary',children:[x.jsx('strong',{children:messages.length===1?'Pinned message':`Pinned message #${current+1}`}),x.jsx('span',{children:message.text})]})]}),
+  x.jsx('button',{type:'button',className:'pin-list-button','aria-label':messages.length===1?'Unpin message':`Show all ${messages.length} pinned messages`,onClick:messages.length===1?()=>unpin(message):openList,children:messages.length===1?x.jsx(ImSelectionIcon,{kind:'cancel'}):x.jsx(ImPinIcon,{list:true})})]})
 }
 function ImPinnedHeader({count,back,unpinAll}){
  const [open,setOpen]=dt.useState(false),root=dt.useRef(null);

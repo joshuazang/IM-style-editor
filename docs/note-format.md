@@ -98,3 +98,5 @@ The multi-pin carousel shows the current pin number, a segmented position indica
 
 
 Editor 3.6.1 gives Untagged a movable position in Arrange tags, last by default. Its optional `untaggedPosition` setting is an insertion index among the visible emoji choices; the filter identifier is never stored in reaction order or bubble reactions. Moving emoji choices across Untagged updates the same position. The Pin, Unpin and pinned-list controls share one upright SVG pushpin shape; Unpin adds a slash and the bubble marker uses a small tilted filled variant. Pinned controls share the toolbar frost tint/blur. The pinned-only header has separate X, count pill and horizontal three-dot controls; Unpin All is a centered text-width pill. There is no search button in this view.
+
+Editor 3.6.2 places the compact pinned carousel in the normal toolbar row at the same height as Search and More. Its heading is slightly raised. A single pin uses the label Pinned message without a number and a black shared-vector X that unpins only that message; multiple pins retain the numbered carousel and circular list control.

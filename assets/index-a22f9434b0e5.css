@@ -1,0 +1,390 @@
+:root{color:#172033;background:#f4f7fb;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}*{box-sizing:border-box}html,body,#root{height:100%}body{margin:0}button,input,textarea,select{font:inherit}button{border:0;border-radius:10px;padding:9px 13px;color:#fff;background:var(--accent);font-weight:650;cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button:disabled,textarea:disabled{cursor:not-allowed;opacity:.55}.editor-shell{--accent: #155eef;--bubble: #dceaff;--canvas: #f4f7fb;--surface: #ffffff;--ink: #000000;--muted: #374151;--tag-bg: #eef4ff;--tag-border: #155eef;--scale: 1;height:100%;display:flex;flex-direction:column;max-width:960px;margin:0 auto;color:#172033;background:var(--canvas);font-size:calc(16px * var(--scale))}.bubble-spring{--accent: #5b9b36;--bubble: rgb(225, 247, 202);--ink: #000000;--muted: #385127;--tag-bg: #f1ffe7;--tag-border: #5b9b36}.bubble-mint{--accent: #087443;--bubble: #d7f7df;--ink: #000000;--muted: #33483b;--tag-bg: #e9fff0;--tag-border: #087443}.bubble-lime{--accent: #4e9c22;--bubble: rgb(169, 234, 122);--ink: #000000;--muted: #234613;--tag-bg: #eaffdc;--tag-border: #4e9c22}.bubble-lavender{--accent: #6d28d9;--bubble: #eee7ff;--ink: #000000;--muted: #453a55;--tag-bg: #f5f0ff;--tag-border: #6d28d9}.bubble-forest{--accent: #087443;--bubble: #0c543d;--ink: #ffffff;--muted: #e0f8e9;--tag-bg: #116847;--tag-border: #7ef0ae}.bubble-midnight{--accent: #155eef;--bubble: #183d78;--ink: #ffffff;--muted: #e0eaff;--tag-bg: #24539d;--tag-border: #a9c3ff}.bubble-cobalt{--accent: #165dff;--bubble: #1146a4;--ink: #ffffff;--muted: #e0eaff;--tag-bg: #1c56b5;--tag-border: #a9c8ff}.bubble-royal{--accent: #2b5ae6;--bubble: rgb(43, 90, 230);--ink: #ffffff;--muted: #e2eaff;--tag-bg: #3d6ceb;--tag-border: #b9cbff}.bubble-rose{--accent: #c62a62;--bubble: #ffdce8;--ink: #000000;--muted: #5b293b;--tag-bg: #fff0f5;--tag-border: #c62a62}.bubble-amber{--accent: #a35b00;--bubble: #ffe4ad;--ink: #000000;--muted: #513500;--tag-bg: #fff5df;--tag-border: #a35b00}.background-pearl{--canvas: #f4f4f5;--surface: #fefefe}.background-mist{--canvas: #edf3fb;--surface: #fafdff}.background-seafoam{--canvas: #effaf5;--surface: #fbfffd}.background-sand{--canvas: #fff8ed;--surface: #fffdf9}.background-blush{--canvas: #fff4f7;--surface: #fffdfd}.background-lilac{--canvas: #f6f2ff;--surface: #fffefe}.message-tools{flex-shrink:0;padding:12px 20px 10px;border-bottom:1px solid #dce2eb;background:var(--surface)}.top-row{display:flex;gap:8px}.message-tools input{flex:1;min-width:0;border:1px solid #b7c2d2;border-radius:10px;padding:9px 11px;color:inherit;background:color-mix(in srgb,var(--surface) 88%,var(--canvas))}.settings-button,.plain{color:#334155;background:#e8edf5}.appearance{display:flex;flex-wrap:wrap;gap:9px 15px;margin-top:10px;padding:10px;border:1px solid #dce2eb;border-radius:12px;background:#f8fafc}.appearance label{display:flex;align-items:center;gap:7px;margin:0;font-size:12px;font-weight:700}.appearance .wallpaper-toggle{padding:4px 7px;border:1px solid #b7c2d2;border-radius:7px;background:#fff}.appearance .wallpaper-toggle input{accent-color:var(--accent)}.appearance select{border:1px solid #b7c2d2;border-radius:7px;padding:4px;background:#fff;color:inherit}.reaction-filter{display:flex;align-items:center;gap:7px;overflow-x:auto;padding-top:9px}.tag-control{display:flex;align-items:center;gap:2px}.tag-control span{display:flex}.tag-control span button{width:20px;padding:4px;color:#334155;background:#e8edf5}.chip{padding:6px 10px;color:#334155;background:#e8edf5;white-space:nowrap}.chip.active{color:#fff;background:var(--accent)}.arrange{margin-left:auto;flex-shrink:0}.selection-tools{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px;font-size:13px}.selection-tools .danger,.context-menu .danger{background:#c2410c;color:#fff}.copy-notice{color:#475569}.copy-fallback{display:block;width:100%;min-height:64px;margin-top:8px;border:1px solid #f59e0b;border-radius:9px;padding:8px;color:inherit;background:#fffbeb}.messages{flex:1;min-height:0;overflow-y:auto;padding:18px 20px 24px;display:flex;flex-direction:column;gap:10px}.chat-wallpaper .messages{background-image:url(./chat-wallpaper-CalFkYM7.svg);background-repeat:repeat;background-size:420px 420px}.pattern-chat .messages{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='190' viewBox='0 0 190 190'%3E%3Cg fill='none' stroke='%234c676a' stroke-opacity='.12' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 28h31a8 8 0 0 1 8 8v15a8 8 0 0 1-8 8H36l-9 8v-8h-7a8 8 0 0 1-8-8V36a8 8 0 0 1 8-8Z'/%3E%3Cpath d='m122 23 29 11-16 9-5 18-8-16-17-5 17-7zM79 111c10-12 28-12 38 0-10 12-28 12-38 0Z'/%3E%3Ccircle cx='98' cy='111' r='4'/%3E%3Cpath d='M26 142c8-13 25-13 33 0M31 142c2 9 19 9 22 0M132 135l8 8 17-20M145 84c0 8 7 14 15 14-8 0-15 6-15 14 0-8-7-14-15-14 8 0 15-6 15-14Z'/%3E%3C/g%3E%3C/svg%3E");background-size:190px 190px}.pattern-paper .messages{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%234c676a' stroke-opacity='.12' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m25 35 43 16-20 9-10 20-13-45ZM118 23l34 13-16 7-7 16-11-36ZM87 114l43 16-20 9-10 20-13-45Z'/%3E%3Cpath d='M20 118c9-13 27-13 36 0M124 135c9-13 27-13 36 0M43 93l5 5 9-12M145 93l5 5 9-12'/%3E%3Ccircle cx='89' cy='75' r='3'/%3E%3C/g%3E%3C/svg%3E");background-size:180px 180px}.pattern-botanical .messages{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%234c676a' stroke-opacity='.11' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M28 155c8-43 23-67 51-91M49 125c-17-2-22-13-20-23 13 1 21 9 20 23ZM64 101c-2-17 8-24 18-26 2 13-4 22-18 26ZM83 77c10-12 22-12 31-6-8 11-20 13-31 6ZM129 154c-3-40-15-66-40-93M113 125c16 1 23-8 23-19-12 0-21 7-23 19ZM101 98c1-16-9-23-19-24-1 12 6 21 19 24ZM78 147c4-5 10-5 14 0-4 5-10 5-14 0Z'/%3E%3C/g%3E%3C/svg%3E");background-size:180px 180px}.message-group{display:contents}.day-divider{display:flex;align-items:center;gap:10px;width:100%;margin:7px 0 2px;color:#64748b;font-size:12px;font-weight:700;text-align:center}.day-divider:before,.day-divider:after{content:"";flex:1;border-top:1px solid #dce2eb}.day-divider span{padding:0 4px}.message-wrap{position:relative;align-self:flex-end;width:fit-content;max-width:85%;padding:2px;border:2px solid transparent;border-radius:21px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.message-wrap.selection-mode{cursor:pointer;padding-left:34px}.message-wrap.selection-mode:hover{transform:translate(-2px)}.message-wrap.selected{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:0 5px 16px color-mix(in srgb,var(--accent) 24%,transparent)}.message-wrap.pressed:not(.selected){transform:scale(.985);border-color:color-mix(in srgb,var(--accent) 65%,transparent);background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:0 3px 13px color-mix(in srgb,var(--accent) 28%,transparent)}.selection-check{position:absolute;left:4px;top:50%;width:24px;height:24px;transform:translateY(-50%);padding:0;border:2px solid #9aa9bd;border-radius:999px;color:transparent;background:#fff;font-size:15px;line-height:1}.selection-check.checked{border-color:var(--accent);color:#fff;background:var(--accent);box-shadow:0 2px 7px color-mix(in srgb,var(--accent) 45%,transparent)}.message-bubble{display:inline-block;max-width:100%;padding:8px 11px;border-radius:16px 16px 4px;background:var(--bubble);color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45;-webkit-user-select:text;user-select:text}.message-body{min-width:0}.message-bubble.no-reactions{display:flex;align-items:flex-end;gap:8px}.message-bubble.no-reactions .message-body{flex:1 1 auto;min-width:0}.message-bubble.no-reactions .message-footer{display:block;flex:0 0 auto;margin:0;min-height:0}.message-bubble.no-reactions .message-reactions{display:none}.message-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-height:25px;margin-top:4px;white-space:normal}.message-meta{align-self:flex-end;margin-left:auto;color:var(--muted);opacity:.96;font-size:11px;font-weight:650;line-height:1.25;text-align:right;white-space:nowrap}.message-reactions{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-width:0}.message-reactions button{position:relative;z-index:0;min-width:32px;margin-right:8px;padding:3px 9px 3px 8px;border:2px solid var(--tag-border);border-right:0;border-radius:5px 0 0 5px;color:var(--ink);background:var(--tag-bg);box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 26%,transparent);font-size:16px;line-height:1.2;transition:transform .14s ease,box-shadow .14s ease}.message-reactions button:after{content:"";position:absolute;z-index:-1;top:2px;right:-10px;width:16px;height:16px;transform:rotate(45deg);border-top:2px solid var(--tag-border);border-right:2px solid var(--tag-border);border-radius:2px;background:var(--tag-bg)}.message-reactions button:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 4px 9px color-mix(in srgb,var(--accent) 34%,transparent)}.edit-box{min-width:min(520px,78vw);padding:10px;background:#fff;border:1px solid #b7c2d2;border-radius:14px}.edit-box textarea{width:100%;resize:vertical;border:1px solid #b7c2d2;border-radius:9px;padding:8px;color:inherit}.edit-box div{display:flex;justify-content:flex-end;gap:6px;margin-top:7px}.empty{align-self:center;margin:auto;padding:24px 0;color:#6b7280}.empty .retry{margin-left:7px;padding:6px 10px}.context-menu{position:fixed;z-index:10;min-width:180px;max-width:min(220px,calc(100vw - 16px));padding:5px;border:1px solid #cbd5e1;border-radius:13px;background:#fff;box-shadow:0 12px 28px #0f172a33}.context-menu>button{display:block;width:100%;padding:8px 10px;color:#334155;background:transparent;text-align:left}.context-menu>button:hover{background:#f1f5f9}.reaction-picker{display:flex;flex-wrap:wrap;gap:5px;padding:8px 4px 3px;border-top:1px solid #e2e8f0}.reaction-picker button{position:relative;padding:6px;border:2px solid transparent;border-radius:9px;background:#f7f9fc;font-size:18px}.reaction-picker button.applied{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,white);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 25%,transparent)}.reaction-picker button.applied:after{content:"✓";position:absolute;right:-5px;top:-6px;display:grid;place-items:center;width:13px;height:13px;border-radius:50%;color:#fff;background:var(--accent);font-size:9px}.reaction-picker .add-reaction{margin-left:auto;color:#334155;font-size:16px}.composer{flex-shrink:0;border-top:1px solid #dce2eb;background:var(--surface);padding:10px 20px}.compose-row{display:flex;align-items:flex-end;gap:8px}.compose-row textarea{display:block;flex:1;min-width:0;height:42px;max-height:101px;resize:none;border:1px solid #b7c2d2;border-radius:22px;padding:10px 15px;color:inherit;background:color-mix(in srgb,var(--surface) 88%,var(--canvas));line-height:1.45}.send-arrow{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;padding:0 0 2px;border-radius:50%;font-size:23px;font-weight:500;line-height:1}.arrange-emoji{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #dce2eb}.arrange-emoji input{min-width:0;flex:1;border:1px solid #b7c2d2;border-radius:8px;padding:7px 8px;color:#172033;background:#fff}.arrange-emoji button{padding:7px 10px}@media(max-width:600px){.messages{padding:13px 9px 16px}.message-tools,.composer{padding-left:10px;padding-right:10px}.message-wrap{max-width:94%;touch-action:manipulation}.message-reactions button{min-width:38px;min-height:31px}.edit-box{min-width:min(300px,88vw)}.context-menu{right:auto;bottom:auto;width:min(260px,calc(100vw - 16px));max-width:calc(100vw - 16px);min-width:0;padding:9px;border-width:2px;border-radius:17px}.context-menu>button{min-height:44px;padding:11px 12px;font-size:16px}.reaction-picker{gap:8px;padding:11px 3px 4px}.reaction-picker button{min-width:42px;min-height:42px;padding:7px;font-size:21px}.arrange-emoji input,.arrange-emoji button{min-height:42px;font-size:16px}}
+
+/* Compact controls float above the note; no blur or glass effects. */
+.editor-shell{position:relative;--scale:1.12}
+.message-tools{position:absolute;inset:0 0 auto;z-index:3;padding:8px 12px;border:0;background:transparent;pointer-events:none}
+.message-tools>*{pointer-events:auto}
+.top-row{justify-content:flex-end;gap:6px;pointer-events:none}
+.top-row button{pointer-events:auto}
+.toolbar-button{min-height:40px;padding:6px 12px;color:#172033;background:var(--surface);border:1px solid #b7c2d2;border-radius:20px;font-size:14px}
+.more-button{width:40px;padding:0;font-size:24px;line-height:1}
+.toolbar-button[aria-expanded=true]{border-color:var(--accent);color:var(--accent)}
+.more-options,.appearance,.search-tags-panel{position:absolute;right:12px;top:54px;max-width:calc(100% - 24px);padding:10px;border:1px solid #b7c2d2;border-radius:12px;background:var(--surface);max-height:calc(100dvh - 180px);overflow:auto}
+.more-options{display:flex;gap:6px}
+.more-options button{color:#172033;background:transparent;font-size:14px}
+.more-options button[aria-expanded=true]{background:var(--canvas)}
+.appearance{top:110px;width:330px;margin:0;gap:12px}
+.appearance label{width:100%;justify-content:space-between;font-size:14px}
+.search-tags-panel{width:330px}
+.message-tools:has(.more-options) .search-tags-panel{top:110px}
+.search-tags-panel input{width:100%;font-size:16px}
+.reaction-filter{flex-wrap:wrap;overflow:visible;padding-top:8px}
+.arrange-emoji{flex-wrap:wrap}
+.arrange-emoji input{width:160px}
+.messages{padding-top:62px;padding-bottom:90px;scroll-padding:62px 0 90px}
+.composer{position:absolute;inset:auto 0 0;z-index:2;border:0;background:transparent;padding:8px 12px max(8px,env(safe-area-inset-bottom));pointer-events:none}
+.compose-row{pointer-events:none}
+.compose-row textarea,.compose-row button{pointer-events:auto}
+.compose-row textarea{height:auto;min-height:46px;max-height:140px;background:var(--surface)}
+.selection-tools,.copy-fallback{background:var(--surface);border-radius:10px;padding:8px}
+
+.message-meta{display:block;align-self:flex-end;margin-left:auto;text-align:right}
+@media(max-width:600px){.messages{padding:62px 9px 90px}.toolbar-button{min-height:42px}.message-tools{padding:6px 10px}.appearance,.more-options,.search-tags-panel{right:10px}}
+/* A faint edge fade keeps controls legible while the note remains visible. */
+
+
+.toolbar-button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+
+/* A touch hold belongs to the message menu, not the browser text selector.
+   Editable fields and desktop text selection keep their normal behavior. */
+@media(pointer:coarse){.message-bubble,.message-bubble *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+
+/* Keep metadata at the lower-right edge for both plain and tagged bubbles. */
+.message-footer{align-items:flex-end}
+.message-bubble.no-reactions .message-meta{padding-top:4px}
+.message-meta{line-height:1.2}
+
+.message-meta{position:relative;right:-3px;bottom:-2px}
+/* The time flows after the text instead of reserving an entire right column. */
+.message-bubble.no-reactions{display:flow-root}
+.message-bubble.no-reactions .message-body{display:inline}
+.message-bubble.no-reactions .message-footer{display:contents}
+.message-bubble.no-reactions .message-meta{float:right;position:static;margin:calc(23.2px * var(--scale) - 11.2px) -3px -2px 8px;padding:0}
+
+.save-notice{background:var(--surface);border:1px solid #c2410c;border-radius:10px;padding:10px;max-width:100%;font-size:14px}.save-notice button{margin-left:8px}
+
+/* Compact chronological groups: 2px together, 7px after five minutes,
+   12px after an hour. Selection decoration does not reserve empty space. */
+.messages{gap:0}
+.message-wrap{padding:0;border:0}
+.message-wrap.selected{outline:2px solid var(--accent);outline-offset:0}
+.message-wrap.pressed:not(.selected){outline:1px solid var(--accent);outline-offset:0}
+/* Symmetric emoji labels: matching borders, corners and padding on both sides. */
+.message-reactions button{display:inline-flex;align-items:center;justify-content:center;margin:0;padding:3px 8px;border:2px solid var(--tag-border);border-radius:7px}
+.message-reactions button:after{content:none;display:none}
+
+.context-menu{overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+.message-wrap.context-active{outline:1px solid var(--accent);outline-offset:1px}
+
+/* Vector paper tag: rounded body, centered point and a real transparent hole. */
+.message-reactions button{position:relative;display:inline-flex;align-items:center;justify-content:flex-start;min-width:0;min-height:0;margin:0;padding:0 17px 0 0;border:0;border-radius:0;background:transparent;box-shadow:none;line-height:1}
+.message-reactions button:hover{box-shadow:none}
+.emoji-tag-body,.emoji-tag-tip{position:absolute;top:0;height:100%;fill:var(--tag-bg);pointer-events:none}
+.emoji-tag-body{left:0;width:calc(100% - 17px)}
+.emoji-tag-tip{right:0;width:17px}
+.emoji-tag-emoji{position:relative;display:grid;place-items:center;min-width:34px;min-height:34px;padding:4px 8px;font-size:18px;line-height:1;white-space:nowrap}
+
+.message-wrap.pressed:not(.selected){transform:none}
+
+/* Compact SVG badges: only the emoji and a small pointed tail need space. */
+.message-reactions button{padding-right:11px}
+.emoji-tag-body{width:calc(100% - 11px)}
+.emoji-tag-tip{width:11px}
+.emoji-tag-emoji{min-width:20px;min-height:22px;padding:2px 2px;font-size:14px}
+.message-bubble.has-reactions .message-footer{min-height:22px;margin-top:3px;gap:8px}
+/* Frost is limited to the two top-menu groups; other menus stay opaque. */
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.message-tools .search-tags-panel,.message-tools .more-options,.message-tools .appearance{background:color-mix(in srgb,var(--surface) 22%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.message-tools .search-tags-panel input{background:color-mix(in srgb,var(--surface) 10%,transparent)}
+}
+
+/* Small frosted controls with vector icons, matching the reference capsule. */
+.message-tools .toolbar-button{position:relative;width:46px;height:38px;min-height:38px;padding:4px 8px;border:1px solid rgba(255,255,255,.28);border-radius:999px;color:#fff;background:#202023;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.message-tools .toolbar-button[aria-expanded=true]{color:#fff;border-color:rgba(255,255,255,.65)}
+.message-tools .more-button{width:38px;padding:0}
+.message-tools .toolbar-button svg{flex:none;pointer-events:none}
+.filter-dot{position:absolute;right:4px;top:3px;width:5px;height:5px;border-radius:50%;background:#b9f083}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.message-tools .toolbar-button{background:rgba(32,32,35,.22);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+}
+
+/* Light tint reveals bubble silhouettes; strong blur keeps underlying words unreadable. */
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.message-tools .toolbar-button,.message-tools .toolbar-button[aria-expanded=true]{color:#172033}
+.message-tools .search-tags-panel .chip:not(.active){background:rgba(232,237,245,.20)}
+.message-tools .search-tags-panel .chip.active{background:color-mix(in srgb,var(--accent) 85%,transparent)}
+.message-tools .more-options button[aria-expanded=true],.message-tools .appearance select,.message-tools .appearance .wallpaper-toggle{background:color-mix(in srgb,var(--surface) 15%,transparent)}
+}
+/* Filtering is a persistent state, visible even with the panel closed. */
+.top-row{align-items:center}
+.message-tools .toolbar-button.is-filtering{outline:2px solid #237313;outline-offset:1px;box-shadow:0 0 0 5px rgba(104,183,58,.18)}
+.filter-check{position:absolute;right:-5px;top:-5px;display:grid;place-items:center;width:19px;height:19px;border:2px solid var(--surface);border-radius:50%;background:#276b17;color:#fff;font-size:12px;font-weight:800;line-height:1}
+.filter-status{display:flex;align-items:center;gap:7px;order:-1;max-width:calc(100% - 102px);height:38px;min-height:38px;padding:1px 12px 1px 1px;border:1px solid #657761aa;border-radius:999px;background:var(--surface);color:#233c1b;font-size:13px;font-weight:750;box-shadow:0 2px 6px #1c381a14}
+.filter-status span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filter-status button{flex:none;display:grid;place-items:center;width:34px;height:34px;min-height:34px;padding:0;border:1px solid #65776166;border-radius:50%;color:#233c1b;background:transparent;font-size:22px;line-height:1}
+.message-tools .search-tags-panel .chip{position:relative;min-height:40px;min-width:45px;border:1px solid #68796188;box-shadow:0 1px 2px #23371918,inset 0 1px 0 #ffffff70;color:#21331b;font-size:16px}
+.message-tools .search-tags-panel .chip.active{padding:4px 8px;border:3px solid #526a91;color:#21331b;background:var(--surface);box-shadow:0 0 0 1px #ffffff70}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.message-tools .search-tags-panel .chip:not(.active){background:color-mix(in srgb,var(--surface) 36%,transparent)}
+.message-tools .search-tags-panel .chip.active{background:color-mix(in srgb,var(--surface) 44%,transparent)}
+.filter-status{background:color-mix(in srgb,var(--surface) 22%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+}
+.format-recovery{width:100%;padding:8px;color:#7c2d12;font-size:15px}
+.format-recovery p{padding:12px;border:1px solid #c2410c;border-radius:10px;background:#fff7ed}
+.format-recovery textarea{display:block;width:100%;height:55vh;resize:vertical;padding:12px;border:1px solid #c2410c;border-radius:10px;background:#fff;color:#172033;font:13px/1.5 ui-monospace,monospace;white-space:pre}
+.chat-wallpaper.artwork-garden .messages{background-image:url(./engraved-garden-v1.svg);background-size:540px 660px}
+@media(prefers-reduced-motion:reduce){.toolbar-button,.message-reactions button{transition:none}}
+/* Forwarded records remain ordinary selectable bubbles. */
+.forwarded-label{display:block;margin:0 0 4px;color:var(--muted);font-size:11px;font-weight:650;line-height:1.25;white-space:normal}
+.more-options{flex-wrap:wrap;width:max-content}
+.more-options button{min-height:36px}
+.selection-tools{position:relative;z-index:1;max-height:160px;overflow:auto}
+.transfer-notice{position:absolute;z-index:5;left:12px;right:12px;bottom:80px;display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #94a3b8;border-radius:12px;color:#172033;background:var(--surface);font-size:14px;box-shadow:0 3px 12px #17203322}
+.transfer-notice span{flex:1}
+.transfer-notice button{flex:none;padding:3px 9px;color:#334155;background:transparent;font-size:22px}
+.transfer-backdrop{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:12px;background:#17203366;overscroll-behavior:contain}
+.transfer-dialog{width:min(620px,100%);max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;padding:18px;border:1px solid #b7c2d2;border-radius:18px;background:var(--surface);color:#172033;font-size:15px;box-shadow:0 12px 45px #17203344}
+.transfer-dialog h2{margin:0 0 10px;font-size:20px}
+.transfer-dialog p{line-height:1.45}
+.transfer-dialog textarea{width:100%;min-height:130px;max-height:240px;resize:vertical;padding:10px;border:1px solid #94a3b8;border-radius:10px;background:#fff;color:#172033;font:14px/1.5 ui-monospace,monospace}
+.transfer-actions{display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:-18px;padding:12px 0 0;background:var(--surface)}
+.transfer-actions button{min-height:42px}
+.transfer-preview,.recovery-preview{margin:12px 0}
+.transfer-preview{max-height:32vh;overflow:auto;overscroll-behavior:contain}
+.transfer-preview article,.recovery-preview article{padding:10px;margin:6px 0;border:1px solid #b7c2d2;border-radius:10px;color:#172033;background:var(--surface)}
+.transfer-preview-body{white-space:pre-wrap;overflow-wrap:anywhere}
+.transfer-preview small,.recovery-preview small{display:block;margin-top:6px;color:#475569;overflow-wrap:anywhere}
+.recovery-preview>button{min-height:44px;margin-bottom:8px}
+.format-recovery details{margin-top:12px;color:#172033}
+.format-recovery summary{cursor:pointer;padding:8px 0}
+.transfer-dialog [role=alert]{padding:10px;border:1px solid #c2410c;border-radius:10px;background:#fff7ed;color:#7c2d12}
+
+/* The third menu action occupies its own row; expanded panels clear the menu. */
+.more-options{display:grid;grid-template-columns:1fr 1fr;width:330px}
+.more-options>button:last-child{grid-column:1/-1}
+.message-tools:has(.more-options) .appearance,.message-tools:has(.more-options) .search-tags-panel{top:162px}
+@media(max-width:600px){.transfer-dialog textarea{font-size:16px}}
+
+.message-tools .more-options,.message-tools .appearance,.message-tools .search-tags-panel{z-index:2}
+
+/* Arrange controls: explicit menu deletion never edits message records. */
+.tag-control span button{width:28px;min-height:36px;padding:3px}
+.emoji-delete-help{margin:10px 0 0;color:#475569;font-size:12px;line-height:1.4}
+
+/* Emoji deletion requires an explicit mode, a choice, and confirmation. */
+.arrange-emoji{flex-wrap:wrap}
+.arrange-emoji input{flex:1 1 100%;width:100%}
+.arrange-emoji .emoji-delete-toggle{color:#8b302b;background:transparent;border:1px solid #a1393477}
+.arrange-emoji .emoji-delete-toggle[aria-pressed=true]{border-width:2px}
+.message-tools .search-tags-panel .chip.emoji-delete-choice{border:2px solid #a13934;color:#7f2824;background:color-mix(in srgb,var(--surface) 44%,transparent);box-shadow:none}
+
+/* Selection indicators occupy a permanent outside gutter, never bubble space. */
+.message-group{display:flex;flex-direction:column;flex-shrink:0;width:100%;min-width:0}
+.message-row{position:relative;display:flex;justify-content:flex-end;align-items:center;width:100%;min-width:0;flex-shrink:0}
+.message-wrap{flex:0 1 auto;min-width:0;max-width:min(calc(85% + 8px),calc(100% - 30px))}
+.message-wrap.selection-mode{padding-left:0}
+.message-wrap.selection-mode:hover{transform:none}
+.message-row>.selection-check{left:0;top:50%;z-index:1;width:20px;height:20px;border-width:1.5px;font-size:11px}
+.message-wrap.editing .message-bubble{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Keep floating controls clear of the composer, including multiline edits. */
+.editor-shell{--composer-height:64px}
+.messages{padding-bottom:calc(var(--composer-height) + 24px);scroll-padding-bottom:calc(var(--composer-height) + 24px)}
+.jump-to-bottom{position:absolute;z-index:2;right:14px;bottom:calc(var(--composer-height) + 14px);display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid #b7c2d244;border-radius:50%;color:#172033;background:var(--surface);box-shadow:0 2px 9px #17203324}
+.jump-to-bottom svg{pointer-events:none}
+.composer:is(.is-editing,.is-replying){pointer-events:none}
+.composer:is(.is-editing,.is-replying) .compose-row{padding:0 10px 10px;border-radius:0 0 22px 22px;background:var(--surface)}
+.composer-edit-preview{display:flex;align-items:center;gap:12px;padding:12px 12px 9px;border-radius:22px 22px 0 0;background:var(--surface);pointer-events:auto}
+.composer-edit-context{flex:1;min-width:0;border-left:3px solid var(--accent);padding-left:10px;font-size:14px;line-height:1.4}
+.composer-edit-context strong{display:block;color:var(--accent);font-weight:700}
+.composer-edit-original{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;color:#475569}
+.cancel-edit{display:grid;place-items:center;flex:none;width:36px;height:36px;padding:0;color:#64748b;background:transparent;border-radius:50%}
+.composer:is(.is-editing,.is-replying) textarea{border-color:transparent;background:transparent;padding-left:4px}
+@media(max-width:600px){.message-wrap{max-width:calc(100% - 30px)}.jump-to-bottom{right:12px}.compose-row textarea{font-size:max(16px,1em)}}
+
+/* A smaller visible circle keeps its original tap area. */
+.message-row>.selection-check:before{content:"";position:absolute;inset:-4px;border-radius:50%}
+/* Match the emoji panel's neutral tint and blur, including selection actions. */
+.message-tools .selection-tools{gap:6px;border:1px solid #b7c2d2;background:var(--surface)}
+.message-tools .selection-tools button{min-height:36px;padding:7px 8px;border:1px solid #68796188;color:#21331b;background:var(--surface)}
+.message-tools .selection-tools .danger{color:#8b302b;border-color:#a1393488}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.message-tools .selection-tools{background:color-mix(in srgb,var(--surface) 22%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.message-tools .selection-tools button{background:color-mix(in srgb,var(--surface) 36%,transparent)}
+}
+
+/* Selection replaces the normal top controls and composer without moving bubbles. */
+.selection-toolbar{position:relative;pointer-events:auto}
+.message-tools .selection-actions{display:flex;justify-content:space-between;flex-wrap:nowrap;width:100%;margin:0;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;overflow:visible}
+.message-tools .selection-actions .selection-action{display:grid;place-items:center;flex:none;width:40px;height:40px;min-height:40px;padding:6px;border-radius:50%;border:1px solid #b7c2d288;color:#172033;background:var(--surface);box-shadow:0 1px 3px #17203318}
+.selection-action svg{pointer-events:none}
+.selection-tag-panel{position:absolute;left:0;top:50px;max-width:100%;width:330px;padding:12px;border:1px solid #b7c2d2;border-radius:14px;background:var(--surface);max-height:calc(100dvh - 160px);overflow:auto}
+.selection-tag-panel p{margin:0 0 8px;font-size:13px}
+.selection-tag-panel .reaction-filter{flex-wrap:wrap}
+.selection-tag-panel .chip{border:1px solid #68796188;background:var(--surface);min-width:44px;min-height:40px}
+.selection-copy-notice{display:table;margin-top:8px;padding:6px 10px;border-radius:9px;background:var(--surface);font-size:13px}
+.selection-status{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:center;width:100%;min-height:56px;padding:4px 6px;border-radius:30px;background:var(--surface);pointer-events:auto;color:#73797d}
+.selection-status>span{grid-column:2;text-align:center;font-size:16px;font-weight:550;line-height:1.3}
+.selection-delete{display:grid;place-items:center;width:44px;height:44px;padding:6px;color:#ed4540;background:transparent;border-radius:50%}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.message-tools .selection-actions .selection-action,.selection-tag-panel,.selection-copy-notice{background:color-mix(in srgb,var(--surface) 22%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.selection-tag-panel .chip{background:color-mix(in srgb,var(--surface) 36%,transparent)}
+}
+
+/* One shared material for every interactive surface, including selected states. */
+.editor-shell{--frost-tint:22%;--frost-blur:10px}
+.selection-cancel{display:grid;place-items:center;width:44px;height:44px;padding:6px;border-radius:50%}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.editor-shell :where(button,input,textarea,select,.search-tags-panel,.more-options,.appearance,.filter-status,.context-menu,.transfer-dialog,.transfer-notice,.save-notice,.selection-status,.selection-tag-panel,.selection-copy-notice,.composer-edit-preview,.composer:is(.is-editing,.is-replying) .compose-row,.copy-fallback){
+background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent)!important;
+-webkit-backdrop-filter:blur(var(--frost-blur))!important;backdrop-filter:blur(var(--frost-blur))!important}
+.editor-shell button{color:#172033}
+.editor-shell :is(.selection-delete,.danger,.emoji-delete-toggle,.emoji-delete-choice){color:#ed4540!important}
+.editor-shell .selection-check{color:transparent}
+.editor-shell .selection-check.checked{color:var(--accent);border-color:var(--accent)}
+.editor-shell .message-reactions button{background:transparent!important}
+.editor-shell .emoji-tag-body,.editor-shell .emoji-tag-tip{fill:color-mix(in srgb,var(--surface) var(--frost-tint),transparent)}
+}
+
+/* The bottom writing/selection surface is always solid, never frosted. */
+.editor-shell .composer :is(textarea,.composer-edit-preview),
+.editor-shell .composer:is(.is-editing,.is-replying) .compose-row{
+background:var(--surface)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .composer :is(.cancel-edit){background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .composer textarea,
+.editor-shell .composer textarea:focus,
+.editor-shell .composer textarea:focus-visible{outline:none!important;box-shadow:none!important;border-color:#b7c2d2}
+.editor-shell .composer:is(.is-editing,.is-replying) textarea{border-color:transparent}
+/* Preserve the input width; the absent send button leaves its original space. */
+.composer .selection-status{width:calc(100% - 50px)}
+
+/* Separate selection actions use the shared frost; the layout itself stays clear. */
+.editor-shell .composer .selection-status{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;padding:0;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border-radius:0}
+.editor-shell .composer .selection-cancel{width:44px;height:44px;border:1px solid #b7c2d288;color:#172033;background:var(--surface)!important}
+.selection-status>span{display:grid;place-items:center;align-self:center;min-height:44px;height:44px;padding:6px 10px;border:1px solid #b7c2d288;border-radius:28px;color:#172033;font-weight:750;font-size:15px;text-shadow:0 1px 2px #ffffffd9;background:var(--surface)}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+.editor-shell .composer .selection-cancel,.editor-shell .selection-status>span{background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent)!important;backdrop-filter:blur(var(--frost-blur))!important;-webkit-backdrop-filter:blur(var(--frost-blur))!important}
+}
+
+/* Bubble emoji labels retain the published solid vector-tag appearance. */
+.editor-shell .message-reactions button{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .emoji-tag-body,.editor-shell .emoji-tag-tip{fill:var(--tag-bg)}
+/* Controls are actions, not selectable text; inputs keep native editing behavior. */
+@media(pointer:coarse){
+.editor-shell button,.editor-shell button *,.editor-shell [role="button"],.editor-shell .selection-status,.editor-shell .selection-status *{
+-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+}
+.send-arrow svg{pointer-events:none}
+
+/* Message actions remain solid, including their emoji choices. */
+.editor-shell .context-menu{background:var(--surface)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .context-menu button{background:var(--surface)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .context-menu .reaction-picker button{background:#f7f9fc!important}
+.editor-shell .context-menu .reaction-picker button.applied{background:color-mix(in srgb,var(--accent) 14%,var(--surface))!important}
+.editor-shell .context-menu>button:hover{background:#f1f5f9!important}
+
+/* Keep the published, solid send and bottom-jump controls. */
+.editor-shell .send-arrow{background:var(--accent)!important;color:#fff;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .jump-to-bottom{background:var(--surface)!important;color:#172033;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
+/* Send keeps its slight transparency, with the original button positions. */
+.editor-shell .send-arrow{background:color-mix(in srgb,var(--accent) 88%,transparent)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
+/* Preserve composer geometry while selecting, including multiline drafts. */
+.composer .selection-status{height:var(--selection-row-height,46px);min-height:var(--selection-row-height,46px)}
+.selection-status>span{height:46px;min-height:46px;align-self:end}
+.editor-shell .composer .selection-cancel{width:46px;height:46px}
+.editor-shell .composer .selection-status{grid-template-columns:46px minmax(0,1fr);align-items:end}
+/* Stronger selection contrast within the existing 20px circles. */
+.editor-shell .message-row>.selection-check{border:3px solid #52606d;font-weight:900;font-size:12px;box-shadow:inset 0 0 0 1px #ffffffa8}
+.editor-shell .message-row>.selection-check.checked{border-color:#2f6415;background:#3c801b!important;color:#fff;box-shadow:inset 0 0 0 1px #ffffff60}
+/* Manual clipboard recovery must be solid and easily selectable. */
+.editor-shell .manual-copy-dialog,.editor-shell .manual-copy-dialog :is(textarea,button,.transfer-actions){background:var(--surface)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
+/* Notices must not cover the edit controls or a growing draft input. */
+.transfer-notice{bottom:calc(var(--composer-height) + 12px)}
+
+/* Reply previews keep the writing field solid and all quote text literal. */
+.composer-reply-preview{position:relative}
+.editor-shell .reply-preview-trigger{display:block;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;border:0;border-left:3px solid var(--accent);border-radius:0;padding:0 0 0 10px;cursor:pointer;text-align:left;font-weight:400;color:inherit}
+.reply-options{position:absolute;z-index:80;left:8px;bottom:calc(100% + 8px);width:max-content;max-width:calc(100vw - 40px);padding:6px;border:1px solid var(--frost-border,rgba(120,120,120,.3));border-radius:18px;background:var(--frost-bg,rgba(245,245,245,.78));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 30px #0002;color:var(--text,#202020)}
+.reply-options button{display:flex;align-items:center;gap:16px;width:100%;padding:12px 14px;border:0;background:none;box-shadow:none;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.reply-options button:hover{background:#80808018;border-radius:12px}.reply-options svg{flex-shrink:0}
+.bubble-reply-quote{display:flex;align-items:flex-start;gap:8px;max-width:100%;width:100%;padding:8px 10px;margin:0 0 8px;border:0;border-left:3px solid #ba554c;border-radius:6px;background:rgba(255,255,255,.38);color:inherit;text-align:left;font:inherit;font-size:.9em;cursor:pointer;box-shadow:none}
+.bubble-reply-quote span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+
+
+.editor-shell .bubble-reply-quote{background:color-mix(in srgb,var(--bubble) 78%,var(--ink))!important;color:var(--ink);backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .reply-options{background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent)!important;backdrop-filter:blur(var(--frost-blur));-webkit-backdrop-filter:blur(var(--frost-blur));color:#172033}
+.editor-shell .reply-options button{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;color:inherit;font-weight:550}
+
+
+/* Shared Edit/Reply quote tint; cancel grows by ten percent without blur. */
+.editor-shell .composer-edit-context{background:color-mix(in srgb,var(--accent) 12%,var(--surface))!important;padding:6px 10px;border-radius:9px;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .composer .cancel-edit{color:#d95049!important;width:39.6px;height:39.6px}
+
+/* Smaller raised labels and larger quoted text share the Edit/Reply preview. */
+.editor-shell .composer-edit-context strong{font-size:11.7px;transform:translateY(-2px)}
+.editor-shell .composer-edit-original{font-size:1.3em;line-height:1.35}
+
+/* Message actions: outlined vectors, a clear icon/label gap and red Delete. */
+.editor-shell .context-menu>button{display:flex;align-items:center;gap:20px;font-weight:500}
+.context-action-icon{flex:0 0 24px;pointer-events:none}
+.editor-shell .context-menu>button.danger{color:#ed403b!important}
+
+/* A quiet full-width band identifies the active message without changing its shape. */
+.messages{--message-edge:20px}
+.message-row{isolation:isolate}
+.message-row.message-emphasized:before{content:"";position:absolute;inset:-2px calc(-1 * var(--message-edge));z-index:-1;pointer-events:none;background:rgba(25,45,25,.13)}
+.editor-shell .message-wrap:is(.selected,.context-active,.pressed,.reply-located){outline:none;border-color:transparent;background:transparent;box-shadow:none;transform:none}
+@media(max-width:600px){.messages{--message-edge:9px}}
+
+/* Context actions reuse the selection icons; Reply mirrors the Export arrow. */
+.context-action-icon>svg{display:block;width:24px;height:24px}
+.context-reply-icon>svg{transform:scaleX(-1)}
+
+.bubble-iris{--accent:rgb(78,92,240);--bubble:rgb(78,92,240);--ink:#fff;--muted:#edf0ff;--tag-bg:#e4e7ff;--tag-border:#aeb6ff}
+.untagged-icon{display:inline-block;vertical-align:middle;color:#d95049;flex-shrink:0}
+.editor-shell .transfer-notice{top:62px;bottom:auto;left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);padding:8px 12px;border-radius:14px;background:var(--surface)!important;color:#172033;font-size:13px;font-weight:700;box-shadow:0 3px 16px #0003;border:1px solid #97a58d;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:25}
+.editor-shell .transfer-notice button{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:3px 7px}
+.editor-shell .composer .selection-status{grid-template-columns:46px minmax(0,1fr) 46px;gap:8px}
+.editor-shell .composer .selection-all{align-self:end;width:46px;height:46px;padding:10px;border-radius:50%;border:1px solid #b7c2d288;color:#172033}
+.editor-shell .selection-status>span{font-size:13px;padding:6px 4px;white-space:normal;text-align:center;line-height:1.15}
+.pinned-preview{display:flex;align-items:center;gap:8px;margin-top:6px;padding:6px 8px;border:1px solid #b7c2d288;border-radius:14px;background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent);backdrop-filter:blur(var(--frost-blur));-webkit-backdrop-filter:blur(var(--frost-blur))}
+.editor-shell .pinned-preview button{display:flex;align-items:center;gap:10px;min-width:0;padding:2px 4px;color:#172033;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;text-align:left}
+.pinned-preview>button:first-child{flex:1}.pinned-preview>button:first-child>span{min-width:0;flex:1}.pinned-preview strong{display:block;color:var(--accent);font-size:11px}.pinned-preview span span{display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:14px}.pinned-preview svg{flex-shrink:0}.messages{padding-top:var(--toolbar-height,62px)}
+
+/* Telegram-style pinned carousel and focused pinned-only view. */
+.pinned-carousel{border-radius:28px;padding:6px 8px;gap:6px}
+.pinned-carousel>button:first-child{gap:10px;min-height:40px}
+.pinned-carousel .pin-segments{display:flex;flex-direction:column;gap:3px;flex:0 0 3px!important;height:32px;overflow:hidden}
+.pin-segments i{display:block;flex:1;min-height:2px;border-radius:3px;background:var(--accent)}
+.pinned-carousel .pin-summary{flex:1;min-width:0}.pinned-carousel strong{font-size:12px;font-weight:650}.pinned-carousel .pin-summary>span{font-size:15px;font-weight:400}
+.editor-shell .pinned-carousel .pin-list-button{flex:0 0 40px;width:40px;height:40px;justify-content:center;padding:8px;border-radius:50%;color:#172033}
+.pinned-list-header{position:relative;display:flex;align-items:center;gap:12px;padding:5px;border-radius:28px;background:var(--surface);border:1px solid #b7c2d288}
+.editor-shell .pinned-list-header>button{width:40px;height:40px;border-radius:50%;padding:8px;background:transparent!important;color:#172033;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.pinned-list-header strong{flex:1;min-width:0;font-size:16px}.pin-options{position:absolute;right:0;top:calc(100% + 6px);border-radius:14px;padding:6px;background:var(--surface);box-shadow:0 5px 24px #0002}
+.editor-shell .pin-options button{background:var(--surface)!important;color:#172033;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;white-space:nowrap}
+.editor-shell .composer .unpin-all{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:46px;border-radius:26px;background:var(--surface)!important;color:#172033;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;font-size:15px}
+.bubble-pin-marker{display:inline-flex;vertical-align:middle;margin-right:3px}.bubble-pin-marker svg{width:13px;height:13px;display:block}
+.editor-shell .pin-source-jump{position:absolute;left:2px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;padding:5px;background:var(--accent)!important;color:white;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
+.pin-list-button{clip-path:circle(50%)}.pin-list-button svg{pointer-events:none}
+
+.pinned-carousel{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}.pinned-carousel strong{font-size:13px;color:#368be5}.pinned-carousel .pin-summary>span{font-size:16px}.pin-segments i{background:#368be5}
+
+.pinned-messages:before{content:"";flex:1 0 0;pointer-events:none}
+
+/* Pinned controls use exactly the shared tint and blur, with separate header surfaces. */
+.editor-shell :is(.pinned-carousel,.pinned-list-header>strong,.pinned-list-header>button,.pin-options,.pin-options button,.composer .unpin-all){background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent)!important;backdrop-filter:blur(var(--frost-blur))!important;-webkit-backdrop-filter:blur(var(--frost-blur))!important}
+.editor-shell .pinned-list-header{background:transparent;border:0;padding:0;display:grid;grid-template-columns:46px minmax(0,1fr) 46px;gap:12px;align-items:center}
+.editor-shell .pinned-list-header>button{width:46px;height:46px;display:grid;place-items:center;padding:10px;border:1px solid #b7c2d288;border-radius:50%}
+.editor-shell .pinned-list-header>strong{justify-self:center;display:grid;place-items:center;min-width:0;max-width:100%;height:46px;padding:6px 16px;border:1px solid #b7c2d288;border-radius:26px;text-align:center;font-size:clamp(12px,3.5vw,16px);white-space:nowrap;color:#172033}
+.editor-shell .pinned-carousel .pin-list-button{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.editor-shell .pin-options button{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.bubble-pin-marker svg{transform:rotate(35deg)}
+
+.editor-shell .pin-source-jump{background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent)!important;backdrop-filter:blur(var(--frost-blur))!important;-webkit-backdrop-filter:blur(var(--frost-blur))!important;color:#172033;border:1px solid #b7c2d288}.pin-options button{display:flex;align-items:center;gap:10px}
+
+.editor-shell .composer .unpin-all{width:max-content;max-width:100%;margin-inline:auto;padding:10px 18px;font-weight:650}
+
+/* Pinned previews share the normal toolbar row and height. */
+.top-row{align-items:center}
+.editor-shell .top-row .pinned-carousel{flex:1 1 140px;min-width:0;pointer-events:auto;margin-top:0;height:38px;min-height:38px;padding:3px 7px;gap:4px}
+.editor-shell .top-row .pinned-carousel>button:first-child{height:100%;min-height:0;gap:7px;padding:0}
+.editor-shell .top-row .pinned-carousel .pin-list-button{flex:0 0 30px;width:30px;height:30px;padding:3px;color:#000}
+.top-row .pinned-carousel .pin-segments{height:28px}
+.top-row .pinned-carousel strong{font-size:11px;line-height:12px;transform:translateY(-1.5px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-row .pinned-carousel .pin-summary>span{font-size:13px;line-height:16px}
+.top-row .toolbar-button{flex-shrink:0}
+@media(max-width:600px){.top-row:has(.pinned-carousel) .filter-status{min-width:40px;max-width:86px;flex:0 1 auto}.top-row:has(.pinned-carousel) .filter-status span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}

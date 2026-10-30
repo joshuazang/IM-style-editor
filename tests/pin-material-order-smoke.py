@@ -23,7 +23,12 @@ with sync_playwright() as p:
   def material(locator):return locator.evaluate('(n)=>{const s=getComputedStyle(n);return [s.backgroundColor,s.backdropFilter]}')
   shared=material(e.get_by_role('button',name='Search and tags',exact=True));assert shared[1]=='blur(10px)',shared
   assert material(e.locator('.pinned-carousel'))==shared
-  page.screenshot(path=f'/tmp/pins-frost-carousel-{width}.png');e.get_by_role('button',name='Show all 1 pinned messages').click()
+  one=e.locator('.pinned-carousel');expect(one.locator('strong')).to_have_text('Pinned message');expect(one.get_by_role('button',name='Unpin message',exact=True)).to_be_visible()
+  assert one.get_by_role('button',name='Unpin message',exact=True).evaluate('(n)=>getComputedStyle(n).color')=='rgb(0, 0, 0)'
+  top=one.bounding_box();other=e.get_by_role('button',name='More options',exact=True).bounding_box();assert abs(top['height']-other['height'])<.1 and abs(top['y']-other['y'])<.1,(top,other)
+  page.screenshot(path=f'/tmp/pins-single-top-{width}.png');one.get_by_role('button',name='Unpin message',exact=True).click();expect(e.locator('.pinned-carousel')).to_have_count(0)
+  for i in [0,1]:rows.nth(i).click(button='right');e.get_by_role('menuitem',name='Pin',exact=True).click()
+  page.screenshot(path=f'/tmp/pins-frost-carousel-{width}.png');e.get_by_role('button',name='Show all 2 pinned messages').click()
   header=e.locator('.pinned-list-header');parts=[header.get_by_role('button',name='Back to all messages'),header.locator('strong'),header.get_by_role('button',name='Pinned message options')]
   bounds=[n.bounding_box() for n in parts]
   assert all(abs(n['height']-46)<.1 for n in bounds),bounds
@@ -32,7 +37,7 @@ with sync_playwright() as p:
   assert material(e.get_by_role('button',name='Unpin all messages',exact=True))==shared
   footer=e.get_by_role('button',name='Unpin all messages',exact=True).bounding_box();assert footer['width']<width-40 and abs(footer['x']+footer['width']/2-width/2)<1,footer
   expect(e.get_by_role('button',name='Search and tags',exact=True)).to_have_count(0);expect(e.get_by_role('textbox',name='Search messages',exact=True)).to_have_count(0)
-  assert material(e.get_by_role('button',name='Show pinned message in full note'))==shared
+  assert material(e.get_by_role('button',name='Show pinned message in full note').first)==shared
   page.screenshot(path=f'/tmp/pins-frost-view-{width}.png');parts[-1].click();assert material(e.locator('.pin-options'))==shared
   assert not errors,errors
   print('PASS pin material and Untagged order',width);c.close()

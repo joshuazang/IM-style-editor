@@ -21,7 +21,7 @@ with sync_playwright() as p:
    bar.click();expect(bar).to_contain_text(f'Pinned message #{index}');expect(bar).to_contain_text(text);expect(e.locator('.reply-located')).to_contain_text(text)
    expect(e.locator('.message-emphasized')).to_have_count(1)
   page.screenshot(path=f'/tmp/pins-carousel-{width}.png')
-  list_button=e.get_by_role('button',name='Show all 3 pinned messages',exact=True);bounds=list_button.bounding_box();assert bounds['height']==bounds['width']==40
+  list_button=e.get_by_role('button',name='Show all 3 pinned messages',exact=True);bounds=list_button.bounding_box();assert bounds['height']==bounds['width']==30
   list_button.click();expect(rows).to_have_count(3);expect(e.locator('.pinned-list-header')).to_contain_text('3 Pinned Messages');expect(e.locator('.pinned-carousel')).to_have_count(0)
   expect(e.get_by_role('textbox',name='Message',exact=True)).to_have_count(0);expect(e.get_by_role('button',name='Unpin all messages',exact=True)).to_be_visible();expect(e.locator('.bubble-pin-marker')).to_have_count(3)
   page.screenshot(path=f'/tmp/pins-list-{width}.png')
