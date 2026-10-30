@@ -8,3 +8,6 @@ assert.deepEqual(plain(context.imPinSettings(selected,[b]).pinnedMessageIds),[b.
 const encoded=f.portable([a,b],selected,'draft');const parsed=f.inspect(encoded);assert.equal(parsed.kind,'portable');assert.deepEqual(plain(parsed.settings.pinnedMessageIds),[a.id,b.id]);assert.equal(parsed.draft,'draft');
 assert.ok(!t.create([a,b],selected,'note').includes('pinnedMessageIds'));
 console.log('PASS: multi-pin order, immutable legacy normalization, deletion cleanup, sparse settings, plaintext drafts and export isolation');
+
+const tags=['✅','💡','📌'];assert.deepEqual(plain(context.imFilterOrder(tags)),[...tags,'__im_untagged__']);assert.deepEqual(plain(context.imFilterOrder(tags,1)),['✅','__im_untagged__','💡','📌']);assert.deepEqual(tags,['✅','💡','📌']);
+const arranged=f.inspect(f.portable([a],{untaggedPosition:1,reactionOrder:tags}));assert.equal(arranged.settings.untaggedPosition,1);assert.deepEqual(plain(arranged.messages[0].reactions),[]);

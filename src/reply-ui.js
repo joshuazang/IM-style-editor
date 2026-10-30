@@ -81,7 +81,16 @@ const imUntagged='__im_untagged__';
 function ImUntaggedIcon(){return x.jsxs('svg',{className:'untagged-icon',width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[x.jsx('path',{d:'M4 9V5a2 2 0 0 1 2-2h8l7 7a2 2 0 0 1 0 3l-7 7a2 2 0 0 1-3 0l-4-4M3 3l18 18'}),x.jsx('circle',{cx:10,cy:7,r:1})]})}
 function imPinIds(settings){return [...new Set((Array.isArray(settings.pinnedMessageIds)?settings.pinnedMessageIds:settings.pinnedMessageId?[settings.pinnedMessageId]:[]).filter(id=>typeof id==='string'))]}
 function imPinSettings(settings,messages){const next={...settings};const ids=imPinIds(settings).filter(id=>!messages||messages.some(message=>message.id===id));delete next.pinnedMessageId;if(ids.length)next.pinnedMessageIds=ids;else delete next.pinnedMessageIds;return next}
-function ImPinIcon({list=false}){return x.jsx('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:x.jsx('path',{d:list?'M3 7h7M3 13h5M3 19h14m-1-17 5 5-3 1-2 4-3-2-4 5m4-5-2-3 4-2 1-3Z':'m15 3 6 6-4 1-3 5-3-2-6 8m6-8-3-3 5-3 2-4Z'})})}
+/* One upright pushpin path, its slashed counterpart, and the matching list control. */
+function ImPinIcon({list=false,unpin=false,filled=false}){
+ const pin='M6 3h14c1 0 1.4 1 .7 1.7L17 8v4l3.7 3.3c.7.7.3 1.7-.7 1.7H6c-1 0-1.4-1-.7-1.7L9 12V8L5.3 4.7C4.6 4 5 3 6 3ZM13 17v6';
+ return x.jsxs('svg',{width:24,height:24,viewBox:'0 0 26 26',fill:filled?'currentColor':'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[
+  list&&x.jsx('path',{d:'M2 9h6M2 14h6M2 19h8'}),
+  x.jsx('g',{transform:list?'translate(6 1) scale(.9)':undefined,children:x.jsx('path',{d:pin})}),
+  unpin&&x.jsx('path',{d:'M4 3 23 22',strokeWidth:2.1})]})
+}
+function imFilterOrder(tags,position){const order=tags.filter(tag=>tag!==imUntagged);const index=Number.isInteger(position)?Math.max(0,Math.min(position,order.length)):order.length;return [...order.slice(0,index),imUntagged,...order.slice(index)]}
+
 function ImPinnedPreview({messages,show,openList}){
  const [index,setIndex]=dt.useState(0);const current=Math.min(index,messages.length-1),message=messages[current];
  dt.useEffect(()=>{setIndex(i=>Math.max(0,Math.min(i,messages.length-1)))},[messages.length]);
@@ -94,10 +103,11 @@ function ImPinnedPreview({messages,show,openList}){
   x.jsx('button',{type:'button',className:'pin-list-button','aria-label':`Show all ${messages.length} pinned messages`,onClick:openList,children:x.jsx(ImPinIcon,{list:true})})]})
 }
 function ImPinnedHeader({count,back,unpinAll}){
- const [open,setOpen]=dt.useState(false);
- return x.jsxs('div',{className:'pinned-list-header',children:[x.jsx('button',{type:'button','aria-label':'Back to all messages',onClick:back,children:x.jsx('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,'aria-hidden':true,children:x.jsx('path',{d:'M20 12H4m7-7-7 7 7 7'})})}),
+ const [open,setOpen]=dt.useState(false),root=dt.useRef(null);
+ dt.useEffect(()=>{if(!open)return;const close=event=>{if(!root.current?.contains(event.target))setOpen(false)};window.addEventListener('pointerdown',close);return()=>window.removeEventListener('pointerdown',close)},[open]);
+ return x.jsxs('div',{ref:root,className:'pinned-list-header',children:[x.jsx('button',{type:'button','aria-label':'Back to all messages',onClick:back,children:x.jsx('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,'aria-hidden':true,children:x.jsx('path',{d:'m6 6 12 12M18 6 6 18'})})}),
  x.jsx('strong',{children:`${count} Pinned Message${count===1?'':'s'}`}),
- x.jsx('button',{type:'button','aria-label':'Pinned message options','aria-expanded':open,onClick:()=>setOpen(!open),children:x.jsx('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'currentColor','aria-hidden':true,children:[5,12,19].map(cy=>x.jsx('circle',{cx:12,cy,r:1.5},cy))})}),
- open&&x.jsx('div',{className:'pin-options',children:x.jsx('button',{type:'button',onClick:()=>{setOpen(false);unpinAll()},children:'Unpin all messages'})})]})
+ x.jsx('button',{type:'button','aria-label':'Pinned message options','aria-expanded':open,onClick:()=>setOpen(!open),children:x.jsx('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'currentColor','aria-hidden':true,children:[5,12,19].map(cx=>x.jsx('circle',{cx,cy:12,r:1.5},cx))})}),
+ open&&x.jsx('div',{className:'pin-options',children:x.jsx('button',{type:'button',onClick:()=>{setOpen(false);unpinAll()},children:[x.jsx(ImPinIcon,{unpin:true}),x.jsx('span',{children:'Unpin all messages'})]})})]})
 }
-function ImUnpinAll({count,unpinAll}){return x.jsxs('button',{type:'button',className:'unpin-all','aria-label':'Unpin all messages',onClick:unpinAll,children:[x.jsx(ImPinIcon,{}),`Unpin All ${count} Message${count===1?'':'s'}`]})}
+function ImUnpinAll({unpinAll}){return x.jsxs('button',{type:'button',className:'unpin-all','aria-label':'Unpin all messages',onClick:unpinAll,children:[x.jsx(ImPinIcon,{unpin:true}),'Unpin All Messages']})}
