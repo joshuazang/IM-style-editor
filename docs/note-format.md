@@ -83,12 +83,15 @@ Reply uses the existing Edit composer preview component, labeled Reply to messag
 Editor 3.4.4 emphasizes located messages, selected messages and messages with an open context menu using the same subtle full-width darker row band. Located-message emphasis is temporary; selected-message emphasis lasts until deselection. Reply options stay above the composer and follow the click/tap horizontally, clamped to the viewport; keyboard opening uses the preview center.
 
 
-## Capture controls (editor 3.5.0)
+## Capture controls (editors 3.5.0–3.6.0)
 
-A note may store `pinnedMessageId` in `extra-settings`. It refers to one existing bubble, without duplicating or reordering it; unpinning or deleting the pinned bubble removes the setting. Exported selections do not transfer this note-level pin. Full note plaintext conversion preserves it.
+A note may store an ordered `pinnedMessageIds` array in `extra-settings`. Each ID refers to an existing bubble without duplicating or reordering the timeline. Unpinning or deleting a bubble removes its ID; the setting is omitted when empty. The previous single `pinnedMessageId` setting is normalized to the array. Exported selections do not transfer note-level pins. Full note plaintext conversion preserves them.
 
 Incoming imports discard the source record's Exported flag. Exporting that imported record later sets its own local Exported flag. Existing action history is preserved; this does not guess which Exported flags on historical imports were inherited versus performed locally.
 
 Default emoji choices are 1️⃣, 2️⃣, 3️⃣, 📓, 📚, ✅, 💡, 📌. Notes using the exact previous default order adopt the new defaults. Customized orders, deleted categories and existing bubble reactions remain intact. Untagged is a UI filter with a red SVG icon, never a reaction serialized on a bubble. Sending under Untagged creates an untagged bubble. Select All targets the current search/tag-filter results. Esc exits selection; Cmd/Ctrl+F opens local search when selection and modal dialogs are inactive, within the editor frame. Native text commands remain available.
 
 Clipboard notices appear at the top with an opaque surface and expire five seconds after the latest notice. Tapping Send while the input is focused prevents the button from taking focus, avoiding a blur/refocus cycle; deliberate touch-scroll dismissal remains available.
+
+
+The multi-pin carousel shows the current pin number, a segmented position indicator and a circular list button with a local SVG icon. Clicking the preview advances to the next pin and locates it with the shared darker message-row emphasis. The list button opens a dedicated chronological pinned-only view, ignoring ordinary search/tag filters while preserving them for Back. A source-arrow control returns to the full note and locates that bubble. Reply/Edit from this view return to the normal composer. Unpin All requires confirmation and removes only pin references, never messages. Selection and Select All inside this view apply only to its visible pins.

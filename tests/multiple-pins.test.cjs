@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
+const context={crypto,btoa};vm.createContext(context);vm.runInContext(['note-format.js','message-transfer.js','reply-ui.js'].map(n=>fs.readFileSync('src/'+n,'utf8')).join('\n')+';globalThis.f=imFormat;globalThis.t=imTransfer;',context);
+const {f,t}=context,plain=v=>JSON.parse(JSON.stringify(v)),a={id:f.newId(),text:'One',reactions:[]},b={id:f.newId(),text:'Two',reactions:[]};
+const original={pinnedMessageId:a.id,custom:{keep:'yes'}};
+const upgraded=context.imPinSettings(original,[a,b]);assert.deepEqual(plain(upgraded),{pinnedMessageIds:[a.id],custom:{keep:'yes'}});assert.equal(original.pinnedMessageId,a.id);
+const selected=context.imPinSettings({...upgraded,pinnedMessageIds:[a.id,b.id,a.id]},[a,b]);assert.deepEqual(plain(selected.pinnedMessageIds),[a.id,b.id]);
+assert.deepEqual(plain(context.imPinSettings(selected,[b]).pinnedMessageIds),[b.id]);assert.ok(!Object.hasOwn(context.imPinSettings(selected,[]),'pinnedMessageIds'));
+const encoded=f.portable([a,b],selected,'draft');const parsed=f.inspect(encoded);assert.equal(parsed.kind,'portable');assert.deepEqual(plain(parsed.settings.pinnedMessageIds),[a.id,b.id]);assert.equal(parsed.draft,'draft');
+assert.ok(!t.create([a,b],selected,'note').includes('pinnedMessageIds'));
+console.log('PASS: multi-pin order, immutable legacy normalization, deletion cleanup, sparse settings, plaintext drafts and export isolation');
