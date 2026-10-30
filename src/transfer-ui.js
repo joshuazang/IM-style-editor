@@ -21,7 +21,9 @@ async function imWriteClipboard(text) {
 /* Readable React hooks/components, inlined with the existing static runtime. */
 function imUseTransfer({ noteRef, messages, settings, save, clearFilters, selected }) {
   const [dialog, setDialog] = dt.useState(null);
-  const [notice, setNotice] = dt.useState('');
+  const [notice,setNoticeValue]=dt.useState(''),noticeTimer=dt.useRef(0);
+  const setNotice=value=>{clearTimeout(noticeTimer.current);setNoticeValue(value);if(value)noticeTimer.current=setTimeout(()=>setNoticeValue(''),5000)};
+  dt.useEffect(()=>()=>clearTimeout(noticeTimer.current),[]);
   const latest = dt.useRef(null);
   latest.current = { messages, settings, save, clearFilters, selected };
   const noteId = noteRef.current?.uuid;

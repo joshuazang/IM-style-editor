@@ -16,3 +16,8 @@ const collision=t.merge([{...records[0],text:'Different original'}],payload);ass
 assert.equal(t.read(f.portable(merged.messages,settings)).ok,true);assert.equal(t.read('#!im-style-forward 1\n{}').ok,false);
 assert.deepEqual(copy(f.inspect(f.portable(collision.messages,settings)).messages),copy(collision.messages));
 console.log('PASS: v2 forwarding preserves exact metadata, compact IDs, collision provenance and duplicate detection');
+
+const previouslyExported={...records[0],exported:true};
+const flagged=t.read(t.create([previouslyExported],settings,'source'));
+const imported=t.merge([],flagged);assert.ok(!Object.hasOwn(imported.added[0],'exported'));assert.equal(previouslyExported.exported,true);
+assert.equal(t.merge(imported.messages,flagged).added.length,0);

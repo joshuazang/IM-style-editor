@@ -65,6 +65,7 @@ const imTransfer = (() => {
       });
       if (duplicate) { skipped++; continue; }
       const message = clone(source);
+      delete message.exported;
       if (used.has(message.id)) {
         do { message.id = imFormat.newId(); }
         while (used.has(message.id));

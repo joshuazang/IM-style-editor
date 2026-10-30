@@ -75,3 +75,10 @@ function imShowReply({reply,messages,noteId,scroller,composer,clearFilters,notic
   if(![...list.querySelectorAll('[data-message-id]')].some(node=>node.dataset.messageId===message.id)){clearFilters();requestAnimationFrame(()=>requestAnimationFrame(locate));}
   else locate();
 }
+
+/* Untagged is a filter, never a message reaction. */
+const imUntagged='__im_untagged__';
+function ImUntaggedIcon(){return x.jsxs('svg',{className:'untagged-icon',width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[x.jsx('path',{d:'M4 9V5a2 2 0 0 1 2-2h8l7 7a2 2 0 0 1 0 3l-7 7a2 2 0 0 1-3 0l-4-4M3 3l18 18'}),x.jsx('circle',{cx:10,cy:7,r:1})]})}
+function ImPinnedPreview({message,show,unpin}){return x.jsxs('div',{className:'pinned-preview',children:[
+ x.jsxs('button',{type:'button','aria-label':'Show pinned message',onClick:show,children:[x.jsx('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,'aria-hidden':true,children:x.jsx('path',{d:'m15 3 6 6-4 1-3 5-3-2-6 8m6-8-3-3 5-3 2-4Z'})}),x.jsxs('span',{children:[x.jsx('strong',{children:'Pinned'}),x.jsx('span',{children:message.text})]})]}),
+ x.jsx('button',{type:'button','aria-label':'Unpin message',onClick:unpin,children:x.jsx(ImSelectionIcon,{kind:'cancel'})})]})}
