@@ -110,3 +110,5 @@ Editor 3.6.5 keeps the pinned preview visible during filtering and replaces the 
 Editor 3.6.8 removes carousel sequence labels to give the message text the full available preview width. Cycling, the segmented position indicator and all saved pin references are preserved.
 
 Editor 3.6.9 asks for confirmation before the black X unpins the only pinned message. Cancel does not save or change any note data. Confirming removes only the pin reference, keeping the bubble. The filter-clear X and pinned-view exit X retain their immediate navigation behavior.
+
+Editor 3.6.10 replaces the single-pin unpin X with the same circular pinned-list control used for multiple pins. It always opens the pinned-only view without unpinning or prompting. The preview itself continues cycling/locating pins, and Unpin All retains its confirmation.
