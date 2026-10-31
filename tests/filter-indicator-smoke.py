@@ -11,6 +11,8 @@ with sync_playwright() as p:
   c=b.new_context(viewport={'width':width,'height':844},is_mobile=width<600,has_touch=width<600);page=c.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
   page.route(BASE+'/__indicator',lambda r:r.fulfill(content_type='text/html',body=HOST));page.goto(BASE+'/__indicator');page.evaluate('(n)=>{notes.original=n;openIM("original")}',note)
   e=page.frame_locator('#editor');rows=e.locator('.message-wrap');expect(rows).to_have_count(8);page.wait_for_function('!!notes.original.clientData?.imStyleEditor');saved=page.evaluate('notes.original.content.text')
+  search_box=e.get_by_role('button',name='Search and tags',exact=True).bounding_box();more_box=e.get_by_role('button',name='More options',exact=True).bounding_box()
+  normal_width=more_box['x']+more_box['width']-search_box['x'];normal_pin=e.locator('.pinned-carousel').bounding_box()
   def activate():
    e.get_by_role('button',name='Search and tags',exact=True).click();e.locator('.tag-control .chip').filter(has_text='✅').click();page.keyboard.press('Escape');expect(rows).to_have_count(4)
   def filtered():
@@ -19,12 +21,14 @@ with sync_playwright() as p:
    assert not any(ch.isdigit() for ch in e.locator('.filter-status').inner_text())
    style=e.locator('.filter-status').evaluate('(n)=>{const s=getComputedStyle(n);return {outline:s.outlineColor,width:s.outlineWidth,shadow:s.boxShadow}}');assert style['outline']=='rgb(35, 115, 19)' and style['width']=='2px' and style['shadow']!='none',style
    pin=e.locator('.pinned-carousel').bounding_box();indicator=e.locator('.filter-status').bounding_box();assert abs(pin['height']-indicator['height'])<.1 and abs(pin['y']-indicator['y'])<.1,(pin,indicator);assert indicator['x']+indicator['width']<=width-7
+   assert abs(indicator['width']-normal_width)<.1,(normal_width,indicator)
+   assert abs(pin['width']-normal_pin['width'])<.1 and abs(pin['x']-normal_pin['x'])<.1,(normal_pin,pin)
   activate();filtered();expect(e.locator('.filter-status')).to_contain_text('✅');expect(e.locator('.filter-status')).not_to_contain_text('/')
   change=e.get_by_role('button',name='Change filters',exact=True);box=change.bounding_box();change.click(position={'x':box['width']-3,'y':18});expect(e.locator('.search-tags-panel')).to_be_visible();expect(rows).to_have_count(4)
   change.click(position={'x':3,'y':18});expect(e.locator('.search-tags-panel')).to_have_count(0);expect(rows).to_have_count(4)
   clear=e.get_by_role('button',name='Clear all filters',exact=True);clear.click(position={'x':3,'y':18});expect(rows).to_have_count(8);expect(e.locator('.search-tags-panel')).to_have_count(0);expect(e.get_by_role('button',name='Search and tags',exact=True)).to_be_visible();expect(e.get_by_role('button',name='More options',exact=True)).to_be_visible()
   activate();clear=e.get_by_role('button',name='Clear all filters',exact=True);clear.click(position={'x':18,'y':32});expect(rows).to_have_count(8);expect(e.locator('.search-tags-panel')).to_have_count(0)
-  # Search-only uses a lens and counts; keyboard activation respects each action.
+  # Search-only uses a lens; keyboard activation respects each action.
   e.get_by_role('button',name='Search and tags',exact=True).click();e.get_by_role('textbox',name='Search messages',exact=True).fill('Message 1');page.keyboard.press('Escape');filtered();expect(e.locator('.filter-change svg circle')).to_have_count(1);expect(e.locator('.filter-status')).not_to_contain_text('/')
   change=e.get_by_role('button',name='Change filters',exact=True);change.focus();change.press('Enter');expect(e.locator('.search-tags-panel')).to_be_visible();clear=e.get_by_role('button',name='Clear all filters',exact=True);clear.focus();clear.press('Space');expect(rows).to_have_count(8);expect(e.locator('.search-tags-panel')).to_have_count(0)
   e.get_by_role('button',name='Search and tags',exact=True).click();e.get_by_role('button',name='Untagged',exact=True).click();page.keyboard.press('Escape');filtered();expect(e.locator('.filter-status .untagged-icon')).to_have_count(1);expect(e.locator('.filter-status')).not_to_contain_text('/')
