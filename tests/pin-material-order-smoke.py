@@ -26,7 +26,14 @@ with sync_playwright() as p:
   one=e.locator('.pinned-carousel');expect(one.locator('strong')).to_have_count(0);expect(one).not_to_contain_text('Pinned message');expect(one.get_by_role('button',name='Unpin message',exact=True)).to_be_visible()
   assert one.get_by_role('button',name='Unpin message',exact=True).evaluate('(n)=>getComputedStyle(n).color')=='rgb(0, 0, 0)'
   top=one.bounding_box();other=e.get_by_role('button',name='More options',exact=True).bounding_box();assert abs(top['height']-other['height'])<.1 and abs(top['y']-other['y'])<.1,(top,other)
-  page.screenshot(path=f'/tmp/pins-single-top-{width}.png');one.get_by_role('button',name='Unpin message',exact=True).click();expect(e.locator('.pinned-carousel')).to_have_count(0)
+  page.screenshot(path=f'/tmp/pins-single-top-{width}.png')
+  page.wait_for_function('notes.original.clientData.imStyleEditor.settings.pinnedMessageIds?.length===1');saved_before_cancel=page.evaluate('notes.original.content.text');saves_before_cancel=page.evaluate('saves.length')
+  def cancel_unpin(dialog):
+   assert dialog.message=='Unpin this message? The message will stay in this note.';dialog.dismiss()
+  page.once('dialog',cancel_unpin);one.get_by_role('button',name='Unpin message',exact=True).click();expect(one).to_be_visible();expect(rows).to_have_count(3)
+  assert page.evaluate('notes.original.content.text')==saved_before_cancel and page.evaluate('saves.length')==saves_before_cancel
+  page.once('dialog',lambda dialog:dialog.accept());one.get_by_role('button',name='Unpin message',exact=True).click();expect(e.locator('.pinned-carousel')).to_have_count(0);expect(rows).to_have_count(3)
+  page.wait_for_function('!notes.original.clientData.imStyleEditor.settings.pinnedMessageIds')
   for i in [0,1]:rows.nth(i).click(button='right');e.get_by_role('menuitem',name='Pin',exact=True).click()
   # Active filters keep pins visible and replace Search/More with the two-part indicator.
   e.get_by_role('button',name='Search and tags',exact=True).click();e.get_by_role('button',name='Untagged',exact=True).click();expect(e.locator('.pinned-carousel')).to_be_visible()

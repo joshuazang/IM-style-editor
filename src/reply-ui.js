@@ -100,7 +100,7 @@ function ImPinnedPreview({messages,show,openList,unpin}){
   x.jsxs('button',{type:'button','aria-label':'Show pinned message',onClick:cycle,children:[
    x.jsx('span',{className:'pin-segments','aria-hidden':true,children:messages.map((item,i)=>x.jsx('i',{className:i===current?'active':'',style:{opacity:i===current?1:.25}},item.id))}),
    x.jsxs('span',{className:'pin-summary',children:[x.jsx('span',{children:message.text})]})]}),
-  x.jsx('button',{type:'button',className:'pin-list-button','aria-label':messages.length===1?'Unpin message':`Show all ${messages.length} pinned messages`,onClick:messages.length===1?()=>unpin(message):openList,children:messages.length===1?x.jsx(ImSelectionIcon,{kind:'cancel'}):x.jsx(ImPinIcon,{list:true})})]})
+  x.jsx('button',{type:'button',className:'pin-list-button','aria-label':messages.length===1?'Unpin message':`Show all ${messages.length} pinned messages`,onClick:messages.length===1?()=>{if(window.confirm('Unpin this message? The message will stay in this note.'))unpin(message)}:openList,children:messages.length===1?x.jsx(ImSelectionIcon,{kind:'cancel'}):x.jsx(ImPinIcon,{list:true})})]})
 }
 function ImPinnedHeader({count,back,unpinAll}){
  const [open,setOpen]=dt.useState(false),root=dt.useRef(null);
