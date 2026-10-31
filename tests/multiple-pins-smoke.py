@@ -33,11 +33,11 @@ with sync_playwright() as p:
   # Source arrow leaves the list and highlights the original in the full timeline.
   e.get_by_role('button',name='Show pinned message in full note').nth(1).click();expect(rows).to_have_count(10);expect(e.locator('.reply-located')).to_contain_text('Pinned idea 2')
   page.evaluate('openPlain()');raw=page.locator('#plain-editor').input_value();assert 'pinnedMessageIds' in raw and 'pinnedMessageId"' not in raw;page.evaluate('openIM()');expect(e.get_by_role('button',name='Show all 3 pinned messages')).to_be_visible()
-  # Filtering hides the pinned preview; clearing it restores access to the pinned view.
+  # Pinned view is accessible during filtering and Back restores those filters.
   e.get_by_role('button',name='Search and tags').click();e.get_by_role('button',name='Untagged',exact=True).click();page.keyboard.press('Escape');expect(rows).to_have_count(5)
-  expect(e.get_by_role('button',name='Show all 3 pinned messages')).to_have_count(0);e.get_by_role('button',name='Clear all filters').click();expect(rows).to_have_count(10);e.get_by_role('button',name='Show all 3 pinned messages').click();expect(rows).to_have_count(3);e.get_by_role('button',name='Back to all messages').click();expect(rows).to_have_count(10)
+  e.get_by_role('button',name='Show all 3 pinned messages').click();expect(rows).to_have_count(3);e.get_by_role('button',name='Back to all messages').click();expect(rows).to_have_count(5)
   e.get_by_role('button',name='Show all 3 pinned messages').click();page.once('dialog',lambda d:d.dismiss());e.get_by_role('button',name='Unpin all messages',exact=True).click();expect(rows).to_have_count(3)
-  page.once('dialog',lambda d:d.accept());e.get_by_role('button',name='Unpin all messages',exact=True).click();expect(e.locator('.pinned-list-header')).to_have_count(0);expect(e.locator('.pinned-carousel')).to_have_count(0);expect(rows).to_have_count(10)
+  page.once('dialog',lambda d:d.accept());e.get_by_role('button',name='Unpin all messages',exact=True).click();expect(e.locator('.pinned-list-header')).to_have_count(0);expect(e.locator('.pinned-carousel')).to_have_count(0);expect(rows).to_have_count(5)
   page.wait_for_function('!notes.original.clientData.imStyleEditor.settings.pinnedMessageIds');assert page.evaluate('notes.original.clientData.imStyleEditor.messages.length')==10
   assert not errors,errors
   print('PASS multiple pins',width);c.close()

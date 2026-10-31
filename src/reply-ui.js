@@ -111,3 +111,12 @@ function ImPinnedHeader({count,back,unpinAll}){
  open&&x.jsx('div',{className:'pin-options',children:x.jsx('button',{type:'button',onClick:()=>{setOpen(false);unpinAll()},children:[x.jsx(ImPinIcon,{unpin:true}),x.jsx('span',{children:'Unpin all messages'})]})})]})
 }
 function ImUnpinAll({unpinAll}){return x.jsxs('button',{type:'button',className:'unpin-all','aria-label':'Unpin all messages',onClick:unpinAll,children:[x.jsx(ImPinIcon,{unpin:true}),'Unpin All Messages']})}
+
+/* Two native sibling buttons keep cancel and change-filter actions independent. */
+function ImFilterIndicator({tag,open,change,clear}){
+ const icon=tag===imUntagged?x.jsx(ImUntaggedIcon,{}):tag?x.jsx('span',{className:'filter-emoji',children:tag}):x.jsxs('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round','aria-hidden':true,children:[x.jsx('circle',{cx:10,cy:10,r:7}),x.jsx('path',{d:'m15 15 6 6'})]});
+ return x.jsxs('div',{className:'filter-status',role:'group','aria-label':'Message filter',children:[
+  x.jsx('button',{type:'button',className:'filter-change','aria-label':'Change filters','aria-expanded':open,'aria-controls':'search-tags-panel',title:'Change filters',onClick:change,children:icon}),
+  x.jsx('button',{type:'button',className:'filter-clear','aria-label':'Clear all filters',title:'Clear filtering',onClick:event=>{event.stopPropagation();clear()},children:x.jsx(ImSelectionIcon,{kind:'cancel'})})
+ ]});
+}

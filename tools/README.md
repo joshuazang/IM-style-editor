@@ -1,7 +1,7 @@
 To publish a new static extension release after editing the bundle or styles:
 
 1. Run `python3 tools/package-release.py X.Y.Z` with a new version.
-2. Run the Node format/spacing/layout tests and `python3 tests/update-cache-smoke.py`. With the repository served locally, run the emoji-defaults, pin-material-order, multiple-pins, capture-controls, message-emphasis, reply, draft-status, clipboard-selection, keyboard-scroll, selection-status, selection-menu, editor-interactions, reactions-serialization, emoji-delete, recovery-forwarding, editor-roundtrip, filter-send, filter-artwork, touch-menu, touch-menu-placement, timestamp-layout, appearance-spacing and top-menu-frost checks. Set `IM_STYLE_EDITOR_BASE_URL` to the active local server.
+2. Run the Node format/spacing/layout tests and `python3 tests/update-cache-smoke.py`. With the repository served locally, run the filter-indicator, emoji-defaults, pin-material-order, multiple-pins, capture-controls, message-emphasis, reply, draft-status, clipboard-selection, keyboard-scroll, selection-status, selection-menu, editor-interactions, reactions-serialization, emoji-delete, recovery-forwarding, editor-roundtrip, filter-send, filter-artwork, touch-menu, touch-menu-placement, timestamp-layout, appearance-spacing and top-menu-frost checks. Set `IM_STYLE_EDITOR_BASE_URL` to the active local server.
 3. Commit the updated HTML and manifests, new hashed assets, version-specific install manifest, and ZIP. Keep older published files so cached installation links remain valid.
 4. After pushing, verify the **GitHub Pages** manifest, runtime HTML, assets, and downloadable ZIP. A successful Git push alone does not establish that Pages deployed the release.
 
