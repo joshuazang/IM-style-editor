@@ -28,6 +28,13 @@ with sync_playwright() as p:
   top=one.bounding_box();other=e.get_by_role('button',name='More options',exact=True).bounding_box();assert abs(top['height']-other['height'])<.1 and abs(top['y']-other['y'])<.1,(top,other)
   page.screenshot(path=f'/tmp/pins-single-top-{width}.png');one.get_by_role('button',name='Unpin message',exact=True).click();expect(e.locator('.pinned-carousel')).to_have_count(0)
   for i in [0,1]:rows.nth(i).click(button='right');e.get_by_role('menuitem',name='Pin',exact=True).click()
+  # Active tag and search filters hide the preview without changing saved pins.
+  e.get_by_role('button',name='Search and tags',exact=True).click();e.get_by_role('button',name='Untagged',exact=True).click();expect(e.locator('.pinned-carousel')).to_have_count(0)
+  expect(e.locator('.filter-status')).to_be_visible();assert e.locator('.filter-status').bounding_box()['width']>86
+  page.keyboard.press('Escape');e.get_by_role('button',name='Clear all filters',exact=True).click();expect(e.locator('.pinned-carousel')).to_be_visible()
+  e.get_by_role('button',name='Search and tags',exact=True).click();search=e.get_by_role('textbox',name='Search messages',exact=True);search.fill('Thought 0');expect(rows).to_have_count(1);expect(e.locator('.pinned-carousel')).to_have_count(0)
+  page.keyboard.press('Escape');e.get_by_role('button',name='Clear all filters',exact=True).click();expect(e.locator('.pinned-carousel')).to_be_visible();expect(rows).to_have_count(3)
+  assert page.evaluate('notes.original.clientData.imStyleEditor.settings.pinnedMessageIds.length')==2
   page.screenshot(path=f'/tmp/pins-frost-carousel-{width}.png');e.get_by_role('button',name='Show all 2 pinned messages').click()
   header=e.locator('.pinned-list-header');parts=[header.get_by_role('button',name='Back to all messages'),header.locator('strong'),header.get_by_role('button',name='Pinned message options')]
   bounds=[n.bounding_box() for n in parts]
