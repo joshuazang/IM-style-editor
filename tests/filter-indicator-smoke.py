@@ -20,7 +20,10 @@ with sync_playwright() as p:
    buttons=e.locator('.filter-status button');assert buttons.nth(0).get_attribute('aria-label')=='Change filters' and buttons.nth(1).get_attribute('aria-label')=='Clear all filters'
    assert not any(ch.isdigit() for ch in e.locator('.filter-status').inner_text())
    badge=e.locator('.filter-change .filter-check');expect(badge).to_be_visible();expect(badge.locator('svg path')).to_have_count(1);assert badge.evaluate('(n)=>getComputedStyle(n).pointerEvents')=='none'
-   style=e.locator('.filter-status').evaluate('(n)=>{const s=getComputedStyle(n);return {outline:s.outlineColor,width:s.outlineWidth,shadow:s.boxShadow}}');assert style['outline']=='rgb(35, 115, 19)' and style['width']=='2px' and style['shadow']!='none',style
+   style=e.locator('.filter-status').evaluate('(n)=>{const s=getComputedStyle(n);return {outline:s.outlineColor,width:s.outlineWidth,shadow:s.boxShadow}}');assert style['outline']=='rgb(35, 115, 19)' and style['width']=='3px' and style['shadow']!='none',style
+   left=e.get_by_role('button',name='Change filters',exact=True);right=e.get_by_role('button',name='Clear all filters',exact=True)
+   shape=left.evaluate('(n)=>{const s=getComputedStyle(n);return {border:s.borderTopWidth,radius:s.borderTopLeftRadius}}');assert shape['border']=='1px' and shape['radius']=='999px',shape
+   assert abs(left.bounding_box()['width']-52)<.1 and abs(right.bounding_box()['width']-36)<.1
    pin=e.locator('.pinned-carousel').bounding_box();indicator=e.locator('.filter-status').bounding_box();assert abs(pin['height']-indicator['height'])<.1 and abs(pin['y']-indicator['y'])<.1,(pin,indicator);assert indicator['x']+indicator['width']<=width-7
    assert abs(indicator['width']-normal_width)<.1,(normal_width,indicator)
    assert abs(pin['width']-normal_pin['width'])<.1 and abs(pin['x']-normal_pin['x'])<.1,(normal_pin,pin)
