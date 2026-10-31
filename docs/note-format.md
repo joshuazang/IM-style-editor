@@ -106,3 +106,5 @@ Editor 3.6.3 hides the top pinned preview while any search or tag filter is acti
 The 3.6.4 defaults use 📍 in place of 📌 for newly configured notes. Existing saved reaction orders remain authoritative: opening an older note does not replace its choices or append new defaults. Existing bubble reactions are never rewritten by a default-menu change.
 
 Editor 3.6.5 keeps the pinned preview visible during filtering and replaces the normal Search/Tags and More buttons with a compact green-emphasized indicator. It contains no label or counts: the left emoji (or search-only lens) button opens Search/Tags, while the entire right X circle clears filtering and closes the panels. Separate native buttons prevent one action from triggering the other and retain keyboard activation.
+
+Editor 3.6.8 removes carousel sequence labels to give the message text the full available preview width. Cycling, the segmented position indicator and all saved pin references are preserved.

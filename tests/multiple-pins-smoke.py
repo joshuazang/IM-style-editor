@@ -18,7 +18,7 @@ with sync_playwright() as p:
   page.wait_for_function('notes.original.clientData.imStyleEditor.settings.pinnedMessageIds.length===3')
   expect(e.locator('.pin-segments i')).to_have_count(3)
   for index,text in [(2,'Pinned idea 2'),(3,'Pinned idea 5'),(1,'Pinned idea 0')]:
-   bar.click();expect(bar).to_contain_text(f'#{index}');expect(bar).to_contain_text(text);expect(e.locator('.reply-located')).to_contain_text(text)
+   bar.click();expect(e.locator('.pin-segments i').nth(index-1)).to_have_class('active');expect(bar.locator('strong')).to_have_count(0);expect(bar).to_contain_text(text);expect(e.locator('.reply-located')).to_contain_text(text)
    expect(e.locator('.message-emphasized')).to_have_count(1)
   page.screenshot(path=f'/tmp/pins-carousel-{width}.png')
   list_button=e.get_by_role('button',name='Show all 3 pinned messages',exact=True);bounds=list_button.bounding_box();assert bounds['height']==bounds['width']==30

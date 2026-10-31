@@ -36,8 +36,8 @@ with sync_playwright() as p:
   e.get_by_role('button',name='Search and tags',exact=True).click();search=e.get_by_role('textbox',name='Search messages',exact=True);search.fill('Thought 0');expect(rows).to_have_count(1);expect(e.locator('.pinned-carousel')).to_be_visible()
   page.keyboard.press('Escape');e.get_by_role('button',name='Clear all filters',exact=True).click();expect(e.locator('.pinned-carousel')).to_be_visible();expect(rows).to_have_count(3)
   assert page.evaluate('notes.original.clientData.imStyleEditor.settings.pinnedMessageIds.length')==2
-  summary=e.locator('.pin-summary');expect(summary.locator('strong')).to_have_text('#1');expect(summary).not_to_contain_text('Pinned message')
-  label=summary.locator('strong').bounding_box();body=summary.locator('span').bounding_box();assert abs(label['y']-body['y'])<1 and label['x']+label['width']<body['x'],(label,body)
+  summary=e.locator('.pin-summary');expect(summary.locator('strong')).to_have_count(0);expect(summary).not_to_contain_text('Pinned message')
+  body=summary.locator('span').bounding_box();space=summary.bounding_box();assert abs(body['width']-space['width'])<1,(space,body)
   assert summary.locator('span').evaluate('(n)=>getComputedStyle(n).fontSize')=='16px';assert summary.locator('span').evaluate('(n)=>getComputedStyle(n).fontWeight')=='400'
   page.screenshot(path=f'/tmp/pins-frost-carousel-{width}.png');e.get_by_role('button',name='Show all 2 pinned messages').click()
   header=e.locator('.pinned-list-header');parts=[header.get_by_role('button',name='Back to all messages'),header.locator('strong'),header.get_by_role('button',name='Pinned message options')]
