@@ -19,11 +19,13 @@ with sync_playwright() as p:
    expect(e.get_by_role('button',name='Search and tags',exact=True)).to_have_count(0);expect(e.get_by_role('button',name='More options',exact=True)).to_have_count(0);expect(e.locator('.pinned-carousel')).to_be_visible();expect(e.locator('.filter-status')).not_to_contain_text('Filtering');expect(e.locator('.filter-status button')).to_have_count(2)
    buttons=e.locator('.filter-status button');assert buttons.nth(0).get_attribute('aria-label')=='Change filters' and buttons.nth(1).get_attribute('aria-label')=='Clear all filters'
    assert not any(ch.isdigit() for ch in e.locator('.filter-status').inner_text())
+   badge=e.locator('.filter-change .filter-check');expect(badge).to_be_visible();expect(badge.locator('svg path')).to_have_count(1);assert badge.evaluate('(n)=>getComputedStyle(n).pointerEvents')=='none'
    style=e.locator('.filter-status').evaluate('(n)=>{const s=getComputedStyle(n);return {outline:s.outlineColor,width:s.outlineWidth,shadow:s.boxShadow}}');assert style['outline']=='rgb(35, 115, 19)' and style['width']=='2px' and style['shadow']!='none',style
    pin=e.locator('.pinned-carousel').bounding_box();indicator=e.locator('.filter-status').bounding_box();assert abs(pin['height']-indicator['height'])<.1 and abs(pin['y']-indicator['y'])<.1,(pin,indicator);assert indicator['x']+indicator['width']<=width-7
    assert abs(indicator['width']-normal_width)<.1,(normal_width,indicator)
    assert abs(pin['width']-normal_pin['width'])<.1 and abs(pin['x']-normal_pin['x'])<.1,(normal_pin,pin)
   activate();filtered();expect(e.locator('.filter-status')).to_contain_text('✅');expect(e.locator('.filter-status')).not_to_contain_text('/')
+  badge=e.locator('.filter-change .filter-check').bounding_box();page.mouse.click(badge['x']+badge['width']/2,badge['y']+badge['height']/2);expect(e.locator('.search-tags-panel')).to_be_visible();e.get_by_role('button',name='Change filters',exact=True).click();expect(e.locator('.search-tags-panel')).to_have_count(0)
   change=e.get_by_role('button',name='Change filters',exact=True);box=change.bounding_box();change.click(position={'x':box['width']-3,'y':18});expect(e.locator('.search-tags-panel')).to_be_visible();expect(rows).to_have_count(4)
   change.click(position={'x':3,'y':18});expect(e.locator('.search-tags-panel')).to_have_count(0);expect(rows).to_have_count(4)
   clear=e.get_by_role('button',name='Clear all filters',exact=True);clear.click(position={'x':3,'y':18});expect(rows).to_have_count(8);expect(e.locator('.search-tags-panel')).to_have_count(0);expect(e.get_by_role('button',name='Search and tags',exact=True)).to_be_visible();expect(e.get_by_role('button',name='More options',exact=True)).to_be_visible()
