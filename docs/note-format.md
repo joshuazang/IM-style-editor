@@ -112,3 +112,11 @@ Editor 3.6.8 removes carousel sequence labels to give the message text the full 
 Editor 3.6.9 asks for confirmation before the black X unpins the only pinned message. Cancel does not save or change any note data. Confirming removes only the pin reference, keeping the bubble. The filter-clear X and pinned-view exit X retain their immediate navigation behavior.
 
 Editor 3.6.10 replaces the single-pin unpin X with the same circular pinned-list control used for multiple pins. It always opens the pinned-only view without unpinning or prompting. The preview itself continues cycling/locating pins, and Unpin All retains its confirmation.
+
+## Emoji category management (editor 3.7.0)
+
+Edit emoji in Arrange tags selects an existing category and presents a replacement field with an affected-message count. Save replaces that exact reaction on every bubble in the current note. A new replacement keeps the category's menu slot; an existing replacement keeps its own slot and merges duplicate target reactions. Other reactions retain their order. The active category filter follows the replacement. Unchanged replacements and canceled edits do not save. Untagged is a filter and cannot be renamed or deleted as a category.
+
+Delete emoji retains its explicit mode and confirmation but now removes the selected reaction from all current bubbles as well as the menu. Every bubble stays, with its other reactions and all non-reaction fields untouched. A deleted active category filter clears; empty reactions remain omitted in plaintext and load as []. Re-adding a deleted category does not restore removed reactions. These category operations preserve text, IDs, timestamps, ordering, pins, reply snapshots, drafts, statuses and unrelated metadata, and do not affect other notes. No copy/export/edited statuses are reset by a category change.
+
+Choosing All, Untagged or an emoji for ordinary filtering closes Search/Tags automatically. Arrange/Edit/Delete operations keep that panel available.
