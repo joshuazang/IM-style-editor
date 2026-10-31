@@ -22,8 +22,8 @@ with sync_playwright() as p:
   menu(1);e.get_by_role('menuitem',name='Unpin',exact=True).click();menu(0);e.get_by_role('menuitem',name='Unpin',exact=True).click();expect(e.locator('.pinned-preview')).to_have_count(0)
   field.focus();field.press('Control+f');search=e.get_by_role('textbox',name='Search messages',exact=True);expect(search).to_be_focused();search.fill('Message');search.press('Escape');expect(search).to_have_count(0)
   e.get_by_role('button',name='Search and tags').click();untagged=e.get_by_role('button',name='Untagged',exact=True);expect(untagged.locator('svg')).to_have_count(1)
-  for emoji in ['1️⃣','2️⃣','3️⃣','📓','📚']:expect(e.locator('.tag-control .chip').filter(has_text=emoji)).to_have_count(1)
-  for emoji in ['❤️','🛍️','⭐']:expect(e.locator('.tag-control .chip').filter(has_text=emoji)).to_have_count(0)
+  for emoji in ['1️⃣','2️⃣','3️⃣','📓','📚','📍']:expect(e.locator('.tag-control .chip').filter(has_text=emoji)).to_have_count(1)
+  for emoji in ['❤️','🛍️','⭐','📌']:expect(e.locator('.tag-control .chip').filter(has_text=emoji)).to_have_count(0)
   untagged.click();expect(rows).to_have_count(4);expect(e.locator('.filter-status')).to_contain_text('4/8');page.keyboard.press('Escape')
   menu();e.get_by_role('menuitem',name='Select',exact=True).click();e.get_by_role('button',name='Select all visible messages').click();expect(e.locator('.selection-status')).to_contain_text('4 messages selected');expect(e.locator('.selection-check.checked')).to_have_count(4)
   controls=[e.get_by_role('button',name='Select all visible messages'),e.locator('.selection-status>span'),e.get_by_role('button',name='Cancel',exact=True)]
