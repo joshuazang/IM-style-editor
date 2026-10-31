@@ -1,1 +1,1 @@
-A IM-style editor for Standard Notes
+An IM-style editor for Standard Notes
