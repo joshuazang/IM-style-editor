@@ -1,0 +1,13 @@
+{
+  "identifier": "com.im-style-editor",
+  "name": "IM-style-editor Archive",
+  "content_type": "SN|Component",
+  "area": "editor-editor",
+  "version": "3.7.1",
+  "description": "Archived format-2 editor for existing notes. Use message Export to transfer selected bubbles into the independent new editor.",
+  "url": "https://joshuazang.github.io/IM-style-editor/index.html?v=3.7.1",
+  "download_url": "https://joshuazang.github.io/IM-style-editor/IM-style-editor-3.7.1.zip",
+  "latest_url": "https://joshuazang.github.io/IM-style-editor/im-style-editor.ext.json",
+  "marketing_url": "https://joshuazang.github.io/IM-style-editor/",
+  "thumbnail_url": ""
+}
