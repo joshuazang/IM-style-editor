@@ -17,7 +17,7 @@ ASSETS.mkdir(exist_ok=True)
 helpers = []
 for name in ['note-format.js', 'note-storage.js', 'message-spacing.js', 'menu-layout.js',
              'message-transfer.js', 'transfer-ui.js', 'editor-interactions.js',
-             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js']:
+             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js']:
     path = TARGET / 'src' / name
     helpers.append((path if path.exists() else ROOT / 'src' / name).read_text())
 # Reuse the immutable React/SDK build prefix; only the application runtime is forked.
@@ -29,6 +29,10 @@ old_html = (ROOT / 'index.html').read_text()
 css_path = re.search(r'href="\./(assets/[^"?]+\.css)', old_html)[1]
 styles = (ROOT / css_path).read_text() + '''
 /* Windowed rows retain full scroll space; anchoring is handled with measured offsets. */
+.selection-actions{display:flex;justify-content:space-between;grid-template-columns:repeat(5,1fr)}
+.status-clear-options{display:flex;flex-direction:column;gap:14px;margin:20px 0}
+.status-clear-options label{display:flex;align-items:center;gap:12px}
+.status-clear-options input{width:20px;height:20px;margin:0}
 .messages{overflow-anchor:none}
 .virtual-message{width:100%;min-width:0;flex-shrink:0;overflow-anchor:none}
 .virtual-spacer{flex:0 0 auto;pointer-events:none;overflow-anchor:none}
