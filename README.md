@@ -12,3 +12,5 @@ Editor 4.0.3 remembers selections through Standard Notes’ encrypted account pr
 Editor 4.0.4 adds **Timer** to the main three-dot menu: silent 5- and 25-minute presets. When it finishes, typing pauses until you cancel, extend, or restart. In that dialog, 2/3/4 focus the choices and Enter confirms; Esc cancels. If the editor was suspended or closed, the finished prompt appears when you return.
 
 Editor 4.0.5 reduces work while saving drafts, changing bubbles, importing messages and displaying the countdown. Drafts still save immediately through the same acknowledged queue, and the note format and Archive remain unchanged.
+
+Editor 4.0.6 fixes false selection-saving warnings when an embedded editor blocks access to old browser storage. Current selections continue to use Standard Notes’ encrypted preferences.

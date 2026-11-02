@@ -4,7 +4,15 @@
  */
 const imSelectionPreferenceKey='imStyleSelectionV1';
 const imLegacySelectionPrefix='im-style-editor.next.selection.v1:';
-const imSelectionPreferences={bridge:null,notes:Object.create(null),legacy:new Set(),error:'',queued:false,listeners:new Set(),revision:0,ready:false};
+const imSelectionPreferences={bridge:null,notes:Object.create(null),legacy:new Set(),legacyBlocked:false,error:'',queued:false,listeners:new Set(),revision:0,ready:false};
+function imReadLegacySelection(uuid){
+  const state=imSelectionPreferences;
+  if(state.legacyBlocked)return undefined;
+  try{return localStorage.getItem(imLegacySelectionPrefix+uuid);}
+  // Legacy storage is optional. Denied access is not an encrypted-save failure.
+  // Undefined means unavailable, distinct from a verified absent entry (null).
+  catch{state.legacyBlocked=true;return undefined;}
+}
 function imSelectionValue(value){
   if(!value||!Array.isArray(value.ids)||!value.ids.every(id=>imFormat.validId(id)))throw new Error('Invalid selection preference');
   return {ids:[...new Set(value.ids)],...(Number.isFinite(value.height)&&value.height>=46?{height:value.height}:{})};
@@ -44,11 +52,14 @@ function imInitializeSelectionPreferences(bridge){
     let cleanup=false;
     for(const [uuid,normalized] of Object.entries(notes)){
       // This is a fresh host registration, not the SDK's locally updated copy.
-      try{
+      const old=imReadLegacySelection(uuid);let removed=old===null;
+      if(old!==undefined&&old!==null)try{
         const key=imLegacySelectionPrefix+uuid;
-        if(localStorage.getItem(key)!==null){localStorage.removeItem(key);if(localStorage.getItem(key)!==null)throw new Error('Local removal failed');}
+        localStorage.removeItem(key);if(localStorage.getItem(key)!==null)throw new Error('Local removal failed');removed=true;
       }catch{state.legacy.add(uuid);state.error='Old local selection data could not be removed. Standard Notes preferences were read, but local cleanup is incomplete.';}
-      if(!normalized.ids.length&&!state.legacy.has(uuid)){delete state.notes[uuid];cleanup=true;}
+      // Keep cancellation tombstones when storage cannot be checked, so a
+      // cancelled legacy selection cannot return if access becomes available.
+      if(!normalized.ids.length&&removed){delete state.notes[uuid];cleanup=true;}
     }
     if(cleanup)imSaveSelectionPreferences();
   }catch{imSelectionFailure();}
@@ -57,7 +68,7 @@ function imInitializeSelectionPreferences(bridge){
 function imRememberSelection(uuid,ids,composer){
   const state=imSelectionPreferences;
   const height=parseFloat(composer?.style.getPropertyValue('--selection-row-height'));
-  if(ids.size||state.legacy.has(uuid))state.notes[uuid]={ids:[...ids],...(Number.isFinite(height)&&height>=46?{height}:{})};
+  if(ids.size||state.legacy.has(uuid)||(state.legacyBlocked&&Object.hasOwn(state.notes,uuid)))state.notes[uuid]={ids:[...ids],...(Number.isFinite(height)&&height>=46?{height}:{})};
   else delete state.notes[uuid];
   state.revision++;imSaveSelectionPreferences();
 }
@@ -65,8 +76,8 @@ function imRestoreSelection(uuid,messages,composer){
   const state=imSelectionPreferences;let value=state.notes[uuid];
   if(!Object.hasOwn(state.notes,uuid)){
     try{
-      const old=localStorage.getItem(imLegacySelectionPrefix+uuid);
-      if(old!==null){
+      const old=imReadLegacySelection(uuid);
+      if(old!==undefined&&old!==null){
         value=imSelectionValue(JSON.parse(old));state.legacy.add(uuid);
         const valid=new Set(messages.map(message=>message.id));
         // Migrate only a note supplied by the host, not unknown notes from local storage.
