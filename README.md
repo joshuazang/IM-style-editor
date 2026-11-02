@@ -14,3 +14,5 @@ Editor 4.0.4 adds **Timer** to the main three-dot menu: silent 5- and 25-minute 
 Editor 4.0.5 reduces work while saving drafts, changing bubbles, importing messages and displaying the countdown. Drafts still save immediately through the same acknowledged queue, and the note format and Archive remain unchanged.
 
 Editor 4.0.6 fixes false selection-saving warnings when an embedded editor blocks access to old browser storage. Current selections continue to use Standard Notes’ encrypted preferences.
+
+Editor 4.0.7 releases past save contents from the host bridge, skips identical saves already confirmed by the host, and limits temporary note/row caches. Changed drafts still save promptly using complete note snapshots.

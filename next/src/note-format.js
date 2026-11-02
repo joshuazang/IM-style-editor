@@ -222,6 +222,14 @@ const imFormat = (() => {
     return spans.map((span,index) => ({...newMessage(text.slice(span.start,span.end)),separatorAfter:index<spans.length-1?text.slice(span.end,spans[index+1].start):''}));
   };
   const serialize = messages => messages.map((message,index) => message.text + (index<messages.length-1 ? message.separatorAfter ?? '\n' : '')).join('');
+  const preview = messages => {
+    let text='';
+    for(let i=0;i<messages.length&&text.length<160;i++){
+      text+=messages[i].text.slice(0,160-text.length);
+      if(i<messages.length-1&&text.length<160)text+=(messages[i].separatorAfter??'\n').slice(0,160-text.length);
+    }
+    return text||' ';
+  };
   // These caches are temporary working memory, never extra fields in the saved note.
   let inspectedText, inspectedResult;
   const notes=new WeakMap();
@@ -255,7 +263,7 @@ const imFormat = (() => {
     // Delete only this editor's obsolete mirrors; retain title, references and other editors' data.
     delete content.appendEditorMessageData;delete content.appendEditorMessages;delete content.appendEditorSettings;
     if(note.clientData?.imStyleEditor){const data={...note.clientData};delete data.imStyleEditor;note.clientData=data;}
-    if(messages!==previous.messages || !Object.hasOwn(content,'preview_plain'))content.preview_plain=serialize(messages).slice(0,160)||' ';
+    if(messages!==previous.messages || !Object.hasOwn(content,'preview_plain'))content.preview_plain=preview(messages);
     content.preview_html=undefined;note.content=content;
     const saved={kind:'portable',messages,settings,draft,reply};
     notes.set(note,{...saved,text});inspectedText=text;inspectedResult=saved;

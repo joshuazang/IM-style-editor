@@ -74,6 +74,11 @@ f.portable(merged.messages,settings);
 assert.equal(context.bubbleEncodes-beforeImport,1);
 assert.equal(f.inspect(f.portable(merged.messages,settings)).messages.length,1001);
 console.log('PASS: importing one message also reuses all 1,000 existing bubble blocks without changing the source records');
+const withPreview=vm.runInNewContext(source.replace('return {validateReply,','return {preview,validateReply,')+';imFormat',{crypto,btoa});
+const first={text:'x'.repeat(10000)},unneeded={get text(){throw new Error('Preview read beyond its 160-character limit');}};
+assert.equal(withPreview.preview([first,unneeded]),'x'.repeat(160));
+for(const records of [[],[{text:''}],[{text:'',separatorAfter:''},{text:'🙂'}],messages,many])assert.equal(withPreview.preview(records),f.serialize(records).slice(0,160)||' ');
+console.log('PASS: note previews preserve exact output and stop reading text after the first 160 characters');
 
 const corrupt=text.replace('@@IM:CONTENT',''),bad={content:{text:corrupt}};
 assert.equal(f.inspect(corrupt).kind,'damaged');assert.throws(()=>f.write(bad,messages,settings));assert.equal(bad.content.text,corrupt);

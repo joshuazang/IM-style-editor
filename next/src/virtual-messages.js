@@ -25,6 +25,10 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1}) {
       }
       offsets.push(offsets[index]+height);
     });
+    if(modelRef.current?.messages!==messages)for(const [id,saved] of measurements.current){
+      const index=indices.get(id);
+      if(index===undefined||saved.message!==messages[index]||saved.previous!==messages[index-1])measurements.current.delete(id);
+    }
     return {messages,offsets,indices,layout};
   },[messages,layout,measured]);
   const previousModel=modelRef.current,node=scroller.current;

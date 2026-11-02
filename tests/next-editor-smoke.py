@@ -178,8 +178,7 @@ with sync_playwright() as p:
         assert page.evaluate('(notes.a.content.text.match(/^@@IM:BUBBLE$/gm)||[]).length')==300
         page.evaluate('openIM("a")');expect(field).to_have_value('Failed send draft')
         page.evaluate('rejectSend=false;holdAck=true');e.get_by_role('button',name='Send message',exact=True).click()
-        page.wait_for_function('acks.length>0');expect(field).to_have_value('Failed send draft')
-        page.evaluate('releaseAcks()')
+        # The draft is already saved: only the final message write needs an ack.
         page.wait_for_function('(notes.a.content.text.match(/^@@IM:BUBBLE$/gm)||[]).length===301&&acks.length>0')
         expect(field).to_have_value('Failed send draft')
         page.evaluate('holdAck=false;releaseAcks()');expect(field).to_have_value('');expect(field).to_be_focused()

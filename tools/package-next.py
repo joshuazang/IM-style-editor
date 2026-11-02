@@ -15,7 +15,7 @@ TARGET = ROOT / 'next'
 ASSETS = TARGET / 'assets'
 ASSETS.mkdir(exist_ok=True)
 helpers = []
-for name in ['note-format.js', 'note-storage.js', 'message-spacing.js', 'menu-layout.js',
+for name in ['note-format.js', 'host-bridge.js', 'note-storage.js', 'message-spacing.js', 'menu-layout.js',
              'message-transfer.js', 'transfer-ui.js', 'editor-interactions.js',
              'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'selection-memory.js', 'silent-timer.js']:
     path = TARGET / 'src' / name
@@ -24,6 +24,11 @@ for name in ['note-format.js', 'note-storage.js', 'message-spacing.js', 'menu-la
 # This source file is packaged in full, so the installed editor has no dependency on Archive.
 seed = (ROOT / 'assets/index-ca276a0e4a5e.js').read_text().split('/* IM_NOTE_HELPERS_END */', 1)[1].lstrip()
 prefix = seed[:seed.index('function lv(')]
+# Keep the immutable Archive SDK untouched. The new editor only retains lean
+# reply callbacks instead of a deep copy of every outgoing note and keystroke.
+history = '},E=JSON.parse(JSON.stringify(o));let N;E.callback=U,this.sentMessages.push(E),N='
+assert prefix.count(history) == 1, 'SDK message-history patch no longer matches'
+prefix = prefix.replace(history, '};let N;imTrackHostReply(this,o,U),N=')
 prefix = prefix.replace('onReady:()=>pf.streamContextItem(Md)', 'onReady:()=>{imInitializeSelectionPreferences(pf);imInitializeSilentTimer(pf);pf.streamContextItem(Md)}')
 script = '\n'.join(helpers) + '\n' + prefix + (TARGET / 'src/editor-runtime.js').read_text()
 old_html = (ROOT / 'index.html').read_text()
