@@ -126,7 +126,7 @@ with sync_playwright() as p:
     e.locator('.message-wrap').first.click(button='right')
     e.get_by_role('menuitem',name='Select',exact=True).click()
     e.get_by_role('button',name='Select all visible messages',exact=True).click()
-    expect(e.locator('.selection-status')).to_contain_text('1667 out of 5000 messages selected')
+    expect(e.locator('.selection-status')).to_contain_text('1667 / 5000 selected')
     assert e.locator('.message-wrap').count()<100
     e.get_by_role('button',name='Export',exact=True).click()
     page.wait_for_function('JSON.parse(testClipboard.slice(testClipboard.indexOf("\\n")+1)).messages.length===1667')

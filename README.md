@@ -6,3 +6,5 @@ An IM-style editor for Standard Notes
 The two note formats are intentionally incompatible. Keep existing notes in Archive. To move messages, clear filters in Archive, select all the intended messages, choose **Export**, then open a **new note** in the new editor and choose **Import from clipboard**. This transfers bubbles with their timestamps, tags and message metadata; it does not transfer the unsent draft, pins, or the source note's appearance/settings. Imported messages use the destination's appearance and show **Imported**. Keep the source note until you have checked the import.
 
 The new editor saves one complete plain-text representation, reuses decoded messages while saving drafts, and renders a measured window of nearby bubbles. See [format 3](docs/note-format-3.md) for storage details and validation.
+
+Editor 4.0.3 remembers selections through Standard Notes’ encrypted account preferences. Existing browser-local selections migrate as their notes are opened; their local entries are removed only after an editor reopening reads the saved preferences back from Standard Notes. The bottom indicator uses `selected / total selected`.

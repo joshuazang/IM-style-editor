@@ -3,6 +3,9 @@
 <script>
 window.notes = {};
 window.saves = [];
+window.pluginPreferences = {};
+window.rejectPreferences = false;
+window.preferenceWrites = [];
 window.rejectedSaves = 0;
 window.rejectSaves = false;
 window.activeUuid = 'original';
@@ -38,7 +41,7 @@ window.openIM = uuid => {
   editor.style = 'position:fixed;inset:0;width:100%;height:100%;border:0';
   editor.src = '/index.html';
   editor.addEventListener('load', () => editor.contentWindow.postMessage({
-    action: 'component-registered', sessionKey: 'synthetic-roundtrip-session', componentData: {},
+    action: 'component-registered', sessionKey: 'synthetic-roundtrip-session', componentData: structuredClone(pluginPreferences),
     data: {uuid: 'same-editor-identity', environment: 'web', platform: 'web', activeThemeUrls: []}
   }, location.origin));
   document.body.append(editor);
@@ -51,6 +54,11 @@ window.addEventListener('message', event => {
   if (message.action === 'stream-context-item') {
     subscription = message;
     reply({item: structuredClone(notes[activeUuid])});
+  } else if (message.action === 'set-component-data') {
+    if (rejectPreferences) { reply({error:'preference-save-error'}); return; }
+    pluginPreferences=structuredClone(message.data.componentData);
+    preferenceWrites.push(structuredClone(pluginPreferences));
+    // The official host does not send a success acknowledgment for this action.
   } else if (message.action === 'save-items') {
     if (rejectSaves) {
       rejectedSaves++;

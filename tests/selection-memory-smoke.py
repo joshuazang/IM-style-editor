@@ -14,21 +14,21 @@ with sync_playwright() as p:
   page.evaluate('(text)=>{for(const uuid of ["a","b"])notes[uuid]={uuid,content_type:"Note",content:{text}};openIM("a")}',data['text'])
   e=page.frame_locator('#editor');rows=e.locator('.message-wrap');expect(rows.last).to_contain_text('Message 499')
   aid=rows.last.get_attribute('data-message-id');rows.last.click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
-  expect(e.locator('.selection-status')).to_contain_text('1 out of 500 messages selected')
+  expect(e.locator('.selection-status')).to_contain_text('1 / 500 selected')
   e.get_by_role('button',name='Copy',exact=True).click();expect(e.locator('.message-wrap.selected .message-meta')).to_contain_text('Copied')
   def switch(uuid):
    page.evaluate('(uuid)=>{activeUuid=uuid;editor.contentWindow.postMessage({action:"reply",original:subscription,data:{item:structuredClone(notes[uuid])}},location.origin)}',uuid)
   switch('b');expect(e.locator('.selection-status')).to_have_count(0);expect(e.get_by_role('textbox',name='Message',exact=True)).to_be_visible()
   bid=rows.first.get_attribute('data-message-id');assert bid!=aid
   rows.first.click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
-  switch('a');expect(e.locator('.selection-status')).to_contain_text('1 out of 500 messages selected');expect(e.locator('.message-wrap.selected')).to_have_attribute('data-message-id',aid)
+  switch('a');expect(e.locator('.selection-status')).to_contain_text('1 / 500 selected');expect(e.locator('.message-wrap.selected')).to_have_attribute('data-message-id',aid)
   # Recreating the iframe is how some hosts switch editors/notes.
-  page.evaluate('openIM("b")');expect(e.locator('.selection-status')).to_contain_text('1 out of 500 messages selected');expect(e.locator('.message-wrap.selected')).to_have_attribute('data-message-id',bid)
-  page.evaluate('openIM("a")');expect(e.locator('.selection-status')).to_contain_text('1 out of 500 messages selected');expect(e.locator('.message-wrap.selected')).to_have_attribute('data-message-id',aid)
-  e.get_by_role('button',name='Cancel',exact=True).click();page.evaluate('openIM("a")');expect(e.locator('.selection-status')).to_have_count(0)
-  page.evaluate('openIM("b")');expect(e.locator('.selection-status')).to_contain_text('1 out of 500 messages selected');e.get_by_role('button',name='Cancel',exact=True).focus();page.keyboard.press('Escape');expect(e.locator('.selection-status')).to_have_count(0);page.evaluate('openIM("b")');expect(e.locator('.selection-status')).to_have_count(0)
+  page.evaluate('openIM("b")');expect(e.locator('.selection-status')).to_contain_text('1 / 500 selected');expect(e.locator('.message-wrap.selected')).to_have_attribute('data-message-id',bid)
+  page.evaluate('openIM("a")');expect(e.locator('.selection-status')).to_contain_text('1 / 500 selected');expect(e.locator('.message-wrap.selected')).to_have_attribute('data-message-id',aid)
+  e.get_by_role('button',name='Cancel',exact=True).click();page.wait_for_function('!pluginPreferences.imStyleSelectionV1?.notes.a');page.evaluate('openIM("a")');expect(e.locator('.selection-status')).to_have_count(0)
+  page.evaluate('openIM("b")');expect(e.locator('.selection-status')).to_contain_text('1 / 500 selected');e.get_by_role('button',name='Cancel',exact=True).focus();page.keyboard.press('Escape');expect(e.locator('.selection-status')).to_have_count(0);page.wait_for_function('!pluginPreferences.imStyleSelectionV1?.notes.b');page.evaluate('openIM("b")');expect(e.locator('.selection-status')).to_have_count(0)
   # Delete a selected record externally and reopen: no phantom selection remains.
-  rows.last.click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
+  expect(rows.last).to_contain_text('Message 499');rows.last.click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
   raw=page.evaluate('notes.b.content.text');raw=re.sub(r'(?ms)^@@IM:BUBBLE\nid: '+re.escape(aid)+r'\n.*?(?=^@@IM:BUBBLE\n|^@@IM:END\n)','',raw)
   page.evaluate('(text)=>{notes.b.content.text=text;openIM("b")}',raw);expect(e.locator('.selection-status')).to_have_count(0)
   # Stored UI state contains IDs/height only, never message bodies or drafts.

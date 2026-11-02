@@ -24,6 +24,7 @@ for name in ['note-format.js', 'note-storage.js', 'message-spacing.js', 'menu-la
 # This source file is packaged in full, so the installed editor has no dependency on Archive.
 seed = (ROOT / 'assets/index-ca276a0e4a5e.js').read_text().split('/* IM_NOTE_HELPERS_END */', 1)[1].lstrip()
 prefix = seed[:seed.index('function lv(')]
+prefix = prefix.replace('onReady:()=>pf.streamContextItem(Md)', 'onReady:()=>{imInitializeSelectionPreferences(pf);pf.streamContextItem(Md)}')
 script = '\n'.join(helpers) + '\n' + prefix + (TARGET / 'src/editor-runtime.js').read_text()
 old_html = (ROOT / 'index.html').read_text()
 css_path = re.search(r'href="\./(assets/[^"?]+\.css)', old_html)[1]
