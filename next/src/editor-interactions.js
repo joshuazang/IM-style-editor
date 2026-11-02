@@ -152,11 +152,11 @@ function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessa
     notice&&x.jsx('div',{className:'selection-copy-notice',role:'status',children:notice})
   ]});
 }
-function ImSelectionStatus({count,cancel,selectAll}) {
+function ImSelectionStatus({count,total,cancel,selectAll}) {
   return x.jsxs('div',{className:'selection-status',children:[
     x.jsx('button',{type:'button',className:'selection-all','aria-label':'Select all visible messages',title:'Select all visible messages',onClick:selectAll,
       children:x.jsxs('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[x.jsx('rect',{x:3,y:3,width:18,height:18,rx:5}),x.jsx('path',{d:'m7 12 3 3 7-7M7 18h10'})]})}),
-    x.jsx('span',{role:'status',children:`${count} message${count===1?'':'s'} selected`}),
+    x.jsx('span',{role:'status',children:`${count} out of ${total} message${total===1?'':'s'} selected`}),
     x.jsx('button',{type:'button',className:'selection-cancel','aria-label':'Cancel',title:'Cancel selection',onClick:cancel,children:x.jsx(ImSelectionIcon,{kind:'cancel'})})
   ]});
 }

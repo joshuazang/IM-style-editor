@@ -17,7 +17,7 @@ ASSETS.mkdir(exist_ok=True)
 helpers = []
 for name in ['note-format.js', 'note-storage.js', 'message-spacing.js', 'menu-layout.js',
              'message-transfer.js', 'transfer-ui.js', 'editor-interactions.js',
-             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js']:
+             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'selection-memory.js']:
     path = TARGET / 'src' / name
     helpers.append((path if path.exists() else ROOT / 'src' / name).read_text())
 # Reuse the immutable React/SDK build prefix; only the application runtime is forked.

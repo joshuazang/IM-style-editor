@@ -25,3 +25,5 @@ IM_STYLE_EDITOR_BASE_URL=http://127.0.0.1:8010 python3 tests/next-editor-smoke.p
 The browser test uses synthetic notes and a local Standard Notes bridge fixture. It does not replace checking an installed editor on a physical iPhone and Mac.
 
 Editor 4.0.1 adds selective status clearing for all messages or a selected set. Clearing Imported stores the sparse `importedStatusCleared` marker in extra message metadata while retaining forwarding provenance for reply navigation and duplicate detection. A new import resets that suppression so the new arrival is visibly Imported. Other selected status fields are removed entirely.
+
+Editor 4.0.2 remembers selected bubble IDs independently per note in device-local plugin UI storage, including editor reloads. It stores no message text and adds nothing to the saved note. Cancel/Escape remove the remembered selection. IDs absent from the current note are not restored. The selection indicator uses the entire current note as its denominator, even when filtering. This UI state does not sync between devices.
