@@ -17,14 +17,14 @@ ASSETS.mkdir(exist_ok=True)
 helpers = []
 for name in ['note-format.js', 'note-storage.js', 'message-spacing.js', 'menu-layout.js',
              'message-transfer.js', 'transfer-ui.js', 'editor-interactions.js',
-             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'selection-memory.js']:
+             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'selection-memory.js', 'silent-timer.js']:
     path = TARGET / 'src' / name
     helpers.append((path if path.exists() else ROOT / 'src' / name).read_text())
 # Reuse the immutable React/SDK build prefix; only the application runtime is forked.
 # This source file is packaged in full, so the installed editor has no dependency on Archive.
 seed = (ROOT / 'assets/index-ca276a0e4a5e.js').read_text().split('/* IM_NOTE_HELPERS_END */', 1)[1].lstrip()
 prefix = seed[:seed.index('function lv(')]
-prefix = prefix.replace('onReady:()=>pf.streamContextItem(Md)', 'onReady:()=>{imInitializeSelectionPreferences(pf);pf.streamContextItem(Md)}')
+prefix = prefix.replace('onReady:()=>pf.streamContextItem(Md)', 'onReady:()=>{imInitializeSelectionPreferences(pf);imInitializeSilentTimer(pf);pf.streamContextItem(Md)}')
 script = '\n'.join(helpers) + '\n' + prefix + (TARGET / 'src/editor-runtime.js').read_text()
 old_html = (ROOT / 'index.html').read_text()
 css_path = re.search(r'href="\./(assets/[^"?]+\.css)', old_html)[1]
@@ -34,6 +34,20 @@ styles = (ROOT / css_path).read_text() + '''
 .status-clear-options{display:flex;flex-direction:column;gap:14px;margin:20px 0}
 .status-clear-options label{display:flex;align-items:center;gap:12px}
 .status-clear-options input{width:20px;height:20px;margin:0}
+.silent-timer-row{display:flex;justify-content:flex-end;width:100%}
+.silent-timer-badge{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:4px 11px;border-radius:20px;color:var(--ink,#172033);font-size:13px}
+.silent-timer-countdown{font-variant-numeric:tabular-nums;white-space:nowrap}
+.editor-shell .silent-timer-badge.is-finished{color:#326d32;border-color:#75a275}
+.silent-timer-presets{display:flex;gap:12px;margin:18px 0}
+.silent-timer-presets button{flex:1;padding:12px;border-radius:20px}
+.editor-shell .silent-timer-presets button[aria-pressed=true]{outline:2px solid #548b3b}
+.timer-finished-backdrop{z-index:1000}
+.timer-finish-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.timer-finish-actions button{display:flex;align-items:center;gap:10px;min-height:60px;padding:10px;text-align:left;border-radius:18px}
+.timer-finish-actions kbd{font:inherit;font-weight:750;min-width:24px;text-align:center}
+.editor-shell .timer-finish-actions button:focus{outline:3px solid #548b3b;outline-offset:2px}
+.timer-key-help{font-size:13px}
+.silent-timer-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .messages{overflow-anchor:none}
 .virtual-message{width:100%;min-width:0;flex-shrink:0;overflow-anchor:none}
 .virtual-spacer{flex:0 0 auto;pointer-events:none;overflow-anchor:none}

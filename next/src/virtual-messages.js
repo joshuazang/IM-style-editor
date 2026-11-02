@@ -83,6 +83,8 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1}) {
       has:id=>modelRef.current.indices.has(id),
       reveal:(id,ready)=>{
         const current=modelRef.current,index=current.indices.get(id);if(index===undefined)return false;
+        // An explicit jump supersedes a pending measurement anchor.
+        anchor.current=null;
         const top=parseFloat(getComputedStyle(node).paddingTop)||0;
         node.scrollTop=Math.max(0,top+current.offsets[index]-node.clientHeight/2+(current.offsets[index+1]-current.offsets[index])/2);
         update();

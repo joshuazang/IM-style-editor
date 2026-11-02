@@ -118,6 +118,11 @@ with sync_playwright() as p:
     expect(e.locator('.message-wrap')).to_have_count(2)
     e.get_by_role('button',name='Show pinned message in full note').first.click()
     expect(e.locator('[data-message-id="'+large['messages'][50]['id']+'"]')).to_be_visible()
+    for _ in range(3):
+        e.get_by_role('button',name='Show all 2 pinned messages',exact=True).click()
+        expect(e.locator('.message-wrap')).to_have_count(2)
+        e.get_by_role('button',name='Show pinned message in full note').first.click()
+        expect(e.locator('[data-message-id="'+large['messages'][50]['id']+'"]')).to_be_visible()
     print('PASS: off-screen reply/pin navigation, resize anchoring and pinned-view return',flush=True)
 
     e.get_by_role('button',name='Search and tags',exact=True).click()
