@@ -1,8 +1,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const source=fs.readFileSync('next/src/note-format.js','utf8');
-const context={crypto,btoa,parses:0,encodes:0};
+const context={crypto,btoa,parses:0,encodes:0,bubbleEncodes:0};
 const measured=source.replace('function parseDocument(text) {','function parseDocument(text) {parses++;')
-  .replace('    validateMessages(messages);\n    const lines=[];','    encodes++;validateMessages(messages);\n    const lines=[];');
+  .replace('    const text=messages.map(bubble)', '    encodes++;const text=messages.map(bubble)')
+  .replace('if (!bubbleText.has(original)) {','if (!bubbleText.has(original)) {bubbleEncodes++;');
 const f=vm.runInNewContext(measured+';imFormat',context),copy=value=>JSON.parse(JSON.stringify(value));
 const old=vm.runInNewContext(fs.readFileSync('src/note-format.js','utf8')+';imFormat',{crypto,btoa});
 const bodies=['',' ','\n','\n\n','\r\n','  hello\n\n世界🙂\n','@@IM:BUBBLE\n@@IM:CONTENT\n@@IM:END','@@IM:END-BUBBLE','\\literal\n\\@@IM:BUBBLE'];
@@ -51,6 +52,28 @@ assert.equal(context.parses,before.parses);assert.equal(context.encodes,before.e
 const independent={content:{text:note.content.text}};assert.deepEqual(copy(old.inspect(independent.content.text).kind),'damaged');
 assert.deepEqual(copy(f.readMessages(independent)),messages);assert.equal(f.readDraft(independent),'Draft 39');
 console.log('PASS: one saved representation, unrelated data retained, zero full parses or bubble re-encodes across 40 draft updates');
+
+const many=Array.from({length:1000},(_,i)=>Object.freeze({id:f.newId(),text:`Message ${i}\n@@IM:END\n`,reactions:[]}));
+f.portable(many,settings);
+const count=context.bubbleEncodes;
+const changed=many.map((message,i)=>i===510?{...message,text:'Changed 🙂\n\n@@IM:BUBBLE',copied:true,custom:{keep:true}}:message);
+const changedText=f.portable(changed,settings);
+assert.equal(context.bubbleEncodes-count,1);
+const uncached=vm.runInNewContext(source+';imFormat',{crypto,btoa});
+assert.equal(changedText,uncached.portable(copy(changed),copy(settings)));
+assert.equal(f.inspect(changedText).messages[510].text,changed[510].text);
+assert.throws(()=>f.portable([...changed,changed[0]],settings),/duplicate/);
+assert.throws(()=>f.portable([...changed,{...changed[0],id:f.newId(),reactions:null}],settings),/metadata/);
+console.log('PASS: editing 1 of 1,000 bubbles encodes exactly 1 block; output matches a fresh serializer; full validation remains');
+const indexedTransfer=vm.runInNewContext(fs.readFileSync('next/src/message-transfer.js','utf8')+';imTransfer',{imFormat:f});
+const incomingMessage={id:f.newId(),text:'Imported text',reactions:[]};
+const merged=indexedTransfer.merge(changed,{ok:true,sourceNoteId:'source',messages:[incomingMessage]},'fixed');
+assert.equal(merged.messages[0],changed[0]);assert.notEqual(merged.added[0],incomingMessage);
+const beforeImport=context.bubbleEncodes;
+f.portable(merged.messages,settings);
+assert.equal(context.bubbleEncodes-beforeImport,1);
+assert.equal(f.inspect(f.portable(merged.messages,settings)).messages.length,1001);
+console.log('PASS: importing one message also reuses all 1,000 existing bubble blocks without changing the source records');
 
 const corrupt=text.replace('@@IM:CONTENT',''),bad={content:{text:corrupt}};
 assert.equal(f.inspect(corrupt).kind,'damaged');assert.throws(()=>f.write(bad,messages,settings));assert.equal(bad.content.text,corrupt);

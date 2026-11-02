@@ -1,8 +1,10 @@
-import os
+import os,re
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8015')
 HOST=Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = '/index.html';","editor.src = '/next/index.html';")
+bundle='next/'+re.search(r'src="\./([^"?]+\.js)',Path('next/index.html').read_text())[1]
+script=Path(bundle).read_text().replace('function nv(){','function nv(){window.__editorRenders=(window.__editorRenders||0)+1;')
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)
  for width in [320,1000]:
@@ -11,6 +13,7 @@ with sync_playwright() as p:
   page.on('dialog',lambda dialog:(dialogs.append(dialog.message),dialog.dismiss()))
   page.on('request',lambda request:requests.append(request.url))
   page.add_init_script("""(()=>{const real=Date.now;Date.now=()=>parent.auditNow??real();window.Audio=window.AudioContext=window.webkitAudioContext=function(){throw new Error('Sound is forbidden')};Object.defineProperty(navigator,'vibrate',{value:()=>{throw new Error('Vibration is forbidden')}})})();""")
+  page.route(BASE+'/'+bundle,lambda route:route.fulfill(content_type='text/javascript',body=script))
   page.route(BASE+'/__timer',lambda route:route.fulfill(content_type='text/html',body=HOST));page.goto(BASE+'/__timer')
   page.evaluate('()=>{auditNow=1700000000000;notes.a={uuid:"a",content_type:"Note",content:{text:"Keep this message"}};notes.b={uuid:"b",content_type:"Note",content:{text:"Other note"}};openIM("a")}')
   e=page.frame_locator('#editor');field=e.get_by_role('textbox',name='Message',exact=True);expect(field).to_be_visible()
@@ -24,7 +27,11 @@ with sync_playwright() as p:
   control.get_by_role('button',name='Start timer',exact=True).click();expect(e.locator('.silent-timer-countdown')).to_have_text('05:00')
   page.wait_for_function('pluginPreferences.imSilentTimerV1?.durationMs===300000')
   writes=page.evaluate('preferenceWrites.length');network=len(requests)
-  page.wait_for_timeout(1100);assert page.evaluate('preferenceWrites.length')==writes
+  page.wait_for_timeout(200)
+  renders=e.locator('body').evaluate('()=>window.__editorRenders')
+  page.evaluate('auditNow+=1000');expect(e.locator('.silent-timer-countdown')).to_have_text('04:59')
+  assert e.locator('body').evaluate('()=>window.__editorRenders')==renders,'Countdown tick rerendered the editor'
+  assert page.evaluate('preferenceWrites.length')==writes
   assert len(requests)==network
   field.focus();field.evaluate('el=>el.setSelectionRange(2,2)')
   before=page.evaluate('notes.a.content.text')
@@ -65,6 +72,12 @@ with sync_playwright() as p:
   expire(1500001);page.keyboard.press('Escape');expect(finished).to_have_count(0);expect(e.locator('.selection-status')).to_contain_text('1 / 1 selected')
   page.wait_for_function('pluginPreferences.imSilentTimerV1===null')
   assert page.evaluate('pluginPreferences.imStyleSelectionV1.notes.a.ids.length')==1
+  # A real deadline callback, without typing or a visibility event, must also
+  # interrupt the editor. Returning to a suspended app is not the only trigger.
+  page.evaluate('()=>{pluginPreferences.imSilentTimerV1={version:1,durationMs:300000,deadline:auditNow+500};openIM("b")}')
+  expect(e.locator('.silent-timer-countdown')).to_be_visible()
+  page.evaluate('auditNow+=501');expect(finished).to_be_visible();expect(field).to_be_disabled()
+  page.keyboard.press('Escape');expect(finished).to_have_count(0)
   assert page.evaluate('localStorage.length')==0
   assert not errors,errors
   assert not dialogs,dialogs

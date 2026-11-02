@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const requests=[],timers=[];let hide;
-const api=vm.runInNewContext(fs.readFileSync('src/note-storage.js','utf8')+';({save:imPersistNote,pending:imNoteSavePending,flush:imFlushNoteSaves})',{
+const api=vm.runInNewContext(fs.readFileSync(process.argv[2]||'src/note-storage.js','utf8')+';({save:imPersistNote,pending:imNoteSavePending,flush:imFlushNoteSaves})',{
  pf:{jsonObjectForItem:n=>n,postMessage:(action,data,callback)=>requests.push({action,data,callback})},
  setTimeout:fn=>{timers.push(fn);return timers.length-1},clearTimeout:()=>{},window:{addEventListener:(name,fn)=>{hide=fn}}
 });

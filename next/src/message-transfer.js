@@ -50,18 +50,35 @@ const imTransfer = (() => {
   }
   function merge(existing, payload, now = new Date().toISOString()) {
     if (!payload.ok) throw new Error('Invalid import');
-    const messages = clone(existing), added = [], used = new Set(messages.map(message => message.id));
+    // Existing format-3 records are immutable; retain their identities so the
+    // serializer can reuse their blocks. Only incoming records need cloning.
+    const messages = [...existing], added = [], used = new Set(messages.map(message => message.id));
+    const byId=new Map(),bySource=new Map(),comparisons=new WeakMap();
+    const append=(index,key,message)=>{if(!index.has(key))index.set(key,[]);index.get(key).push(message);};
+    const index=message=>{
+      append(byId,message.id,message);
+      const forwarded=message.forwarding;
+      if(object(forwarded)&&forwarded.sourceNoteId===payload.sourceNoteId)append(bySource,forwarded.sourceMessageId,message);
+    };
+    const comparable=message=>{
+      if(!comparisons.has(message))comparisons.set(message,stable(message));
+      return comparisons.get(message);
+    };
+    messages.forEach(index);
     let skipped = 0;
     for (const source of payload.messages) {
-      const duplicate = messages.some(candidate => {
-        if (candidate.id === source.id && stable(candidate) === stable(source)) return true;
+      // IDs only narrow the candidates. Full metadata/content equality is still
+      // required, including when the same ID belongs to different message text.
+      const candidates=new Set([...(byId.get(source.id)||[]),...(bySource.get(source.id)||[])]);
+      const duplicate = [...candidates].some(candidate => {
+        if (candidate.id === source.id && comparable(candidate) === comparable(source)) return true;
         const forwarded = candidate.forwarding;
         if (!object(forwarded) || forwarded.sourceMessageId !== source.id ||
             forwarded.sourceNoteId !== payload.sourceNoteId) return false;
         const original = { ...candidate, id: forwarded.sourceMessageId };
         if ('previous' in forwarded) original.forwarding = forwarded.previous;
         else delete original.forwarding;
-        return stable(original) === stable(source);
+        return stable(original) === comparable(source);
       });
       if (duplicate) { skipped++; continue; }
       const message = clone(source);
@@ -73,7 +90,7 @@ const imTransfer = (() => {
       message.forwarding = { sourceMessageId: source.id, sourceNoteId: payload.sourceNoteId, forwardedAt: now,
         ...('forwarding' in source ? { previous: clone(source.forwarding) } : {}) };
       used.add(message.id);
-      messages.push(message); added.push(message);
+      messages.push(message); added.push(message);index(message);
     }
     return { messages, added, skipped };
   }

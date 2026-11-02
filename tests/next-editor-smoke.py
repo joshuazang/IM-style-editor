@@ -24,7 +24,7 @@ large=fixture('next/src/note-format.js',5000,True)
 html=Path('next/index.html').read_text()
 bundle='next/'+re.search(r'src="\./([^"?]+\.js)',html)[1]
 script=Path(bundle).read_text().replace('function parseDocument(text) {','function parseDocument(text) {window.__fullParses=(window.__fullParses||0)+1;')
-script=script.replace('    validateMessages(messages);\n    const lines=[];','    window.__bubbleEncodes=(window.__bubbleEncodes||0)+1;validateMessages(messages);\n    const lines=[];')
+script=script.replace('if (!bubbleText.has(original)) {','if (!bubbleText.has(original)) {window.__bubbleEncodes=(window.__bubbleEncodes||0)+1;')
 assert json.loads(Path('im-style-editor.ext.json').read_text())['identifier']!=json.loads(Path('im-style-editor-next.ext.json').read_text())['identifier']
 
 with sync_playwright() as p:

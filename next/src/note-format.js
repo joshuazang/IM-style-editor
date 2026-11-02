@@ -71,17 +71,19 @@ const imFormat = (() => {
     if (Object.keys(extras).length) lines.push(extrasName + ': ' + JSON.stringify(extras));
     return lines;
   }
-  const messageText = new WeakMap(), settingText = new WeakMap();
+  const messageText = new WeakMap(), bubbleText = new WeakMap(), settingText = new WeakMap();
+  function bubble(original) {
+    if (!bubbleText.has(original)) {
+      const message=normalizeMessage(original);
+      bubbleText.set(original,['@@IM:BUBBLE', ...fields(message,bubbleFields,'extra-metadata'),
+        '@@IM:CONTENT','','',encodeBody(message.text),'',''].join('\n')+'\n');
+    }
+    return bubbleText.get(original);
+  }
   function bubbles(messages) {
     if (messageText.has(messages)) return messageText.get(messages);
     validateMessages(messages);
-    const lines=[];
-    for (const original of messages) {
-      const message=normalizeMessage(original);
-      lines.push('@@IM:BUBBLE', ...fields(message,bubbleFields,'extra-metadata'),
-        '@@IM:CONTENT','','',encodeBody(message.text),'','');
-    }
-    const text=lines.length?lines.join('\n')+'\n':'';
+    const text=messages.map(bubble).join('');
     messageText.set(messages,text);return text;
   }
   function settingsText(settings) {

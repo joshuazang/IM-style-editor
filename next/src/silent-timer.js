@@ -42,6 +42,7 @@ function imExtendSilentTimer(longer,now=Date.now()){
 function imCancelSilentTimer(){if(!imTimerState.ready)return false;imTimerState.timer=null;imTimerState.revision++;return imSaveSilentTimer();}
 function imUseSilentTimer(){
   const [snapshot,setSnapshot]=dt.useState(imTimerSnapshot),[,tick]=dt.useState(0),[open,setOpen]=dt.useState(false);
+  const checkExpiry=dt.useCallback(()=>tick(value=>value+1),[]);
   dt.useEffect(()=>{imTimerState.listeners.add(setSnapshot);setSnapshot(imTimerSnapshot());return()=>imTimerState.listeners.delete(setSnapshot);},[]);
   const remaining=imTimerRemaining(snapshot.timer),finished=!!snapshot.timer&&!remaining;
   const previousFocus=dt.useRef(null),wasFinished=dt.useRef(false);
@@ -49,8 +50,16 @@ function imUseSilentTimer(){
   wasFinished.current=finished;
   dt.useEffect(()=>{
     if(!snapshot.timer)return;
-    const refresh=()=>tick(value=>value+1);
-    const interval=finished?null:setInterval(refresh,1000);
+    // The editor wakes at the deadline, not once per second. Recheck after a
+    // suspended tab or clock change; early timer callbacks simply reschedule.
+    let timeout;
+    const refresh=()=>{
+      clearTimeout(timeout);
+      const expired=imTimerRemaining(snapshot.timer)===0;
+      if(expired!==finished)tick(value=>value+1);
+      else if(!expired)timeout=setTimeout(refresh,Math.max(1,snapshot.timer.deadline-Date.now()));
+    };
+    refresh();
     const stopExpiredInput=event=>{
       if(event.type==='keydown'&&(event.ctrlKey||event.metaKey||event.altKey))return;
       if(imTimerRemaining(imTimerState.timer)>0||!imTimerState.timer)return;
@@ -58,18 +67,29 @@ function imUseSilentTimer(){
     };
     window.addEventListener('beforeinput',stopExpiredInput,true);window.addEventListener('keydown',stopExpiredInput,true);
     document.addEventListener('visibilitychange',refresh);window.addEventListener('focus',refresh);
-    return()=>{if(interval!==null)clearInterval(interval);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh);window.removeEventListener('beforeinput',stopExpiredInput,true);window.removeEventListener('keydown',stopExpiredInput,true);};
-  },[snapshot.timer?.deadline,finished]);
-  return {...snapshot,remaining,finished,restoreFocus:previousFocus.current,open,show:()=>setOpen(true),close:()=>setOpen(false),start:imStartSilentTimer,cancel:imCancelSilentTimer,extend:imExtendSilentTimer};
+    return()=>{clearTimeout(timeout);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh);window.removeEventListener('beforeinput',stopExpiredInput,true);window.removeEventListener('keydown',stopExpiredInput,true);};
+  },[snapshot.timer,finished]);
+  return {...snapshot,finished,checkExpiry,restoreFocus:previousFocus.current,open,show:()=>setOpen(true),close:()=>setOpen(false),start:imStartSilentTimer,cancel:imCancelSilentTimer,extend:imExtendSilentTimer};
 }
 function ImSilentTimerBadge({timer}){
+  const [,tick]=dt.useState(0);
+  dt.useEffect(()=>{
+    if(!timer.timer||timer.finished)return;
+    const refresh=()=>tick(value=>value+1),interval=setInterval(refresh,1000);
+    document.addEventListener('visibilitychange',refresh);window.addEventListener('focus',refresh);
+    return()=>{clearInterval(interval);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh);};
+  },[timer.timer,timer.finished]);
+  const remaining=imTimerRemaining(timer.timer),finished=!!timer.timer&&remaining===0;
+  // A forward system-clock change can finish the badge before the scheduled
+  // deadline callback. Notify the editor only for that transition.
+  dt.useEffect(()=>{if(finished&&!timer.finished)timer.checkExpiry();},[finished,timer.finished,timer.checkExpiry]);
   if(!timer.timer)return null;
-  const progress=Math.max(0,Math.min(1,1-timer.remaining*1000/(timer.timer.runMs||timer.timer.durationMs)));
+  const progress=Math.max(0,Math.min(1,1-remaining*1000/(timer.timer.runMs||timer.timer.durationMs)));
   return x.jsx('div',{className:'silent-timer-row',children:x.jsxs('button',{type:'button',className:`silent-timer-badge${timer.finished?' is-finished':''}`,
     'aria-label':timer.finished?'Silent timer finished. Open timer':'Open silent timer',onClick:timer.show,children:[
       x.jsxs('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,'aria-hidden':true,children:[
         x.jsx('circle',{cx:12,cy:12,r:9,opacity:.22}),x.jsx('circle',{cx:12,cy:12,r:9,strokeDasharray:56.55,strokeDashoffset:56.55*(1-progress),transform:'rotate(-90 12 12)',strokeLinecap:'round'})]}),
-      x.jsx('span',{className:'silent-timer-countdown','aria-live':'off',children:timer.finished?'Finished':imTimerLabel(timer.remaining)}),
+      x.jsx('span',{className:'silent-timer-countdown','aria-live':'off',children:finished?'Finished':imTimerLabel(remaining)}),
       x.jsx('span',{className:'silent-timer-announcement',role:'status',children:timer.finished?'Silent timer finished':''})
     ]})});
 }
