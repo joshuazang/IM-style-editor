@@ -13,3 +13,13 @@ function imTrackHostReply(bridge,message,callback){
   }};
   bridge.sentMessages.push(record);
 }
+/* Sync status carries a content snapshot too, but it is not a content change.
+ * Preserve the editor's current content/clientData and accept only host dates.
+ */
+function imApplyNoteMetadata(note,update){
+  if(!note||update?.isMetadataUpdate!==true||note.uuid!==update.uuid)return;
+  const timestamp=value=>{try{return value==null?NaN:new Date(value).getTime()}catch{return NaN}};
+  const incoming=timestamp(update.updated_at),current=timestamp(note.updated_at);
+  if(Number.isFinite(incoming)&&(!Number.isFinite(current)||incoming>=current))note.updated_at=update.updated_at;
+  if(note.created_at==null&&Number.isFinite(timestamp(update.created_at)))note.created_at=update.created_at;
+}

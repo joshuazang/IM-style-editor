@@ -29,6 +29,9 @@ prefix = seed[:seed.index('function lv(')]
 history = '},E=JSON.parse(JSON.stringify(o));let N;E.callback=U,this.sentMessages.push(E),N='
 assert prefix.count(history) == 1, 'SDK message-history patch no longer matches'
 prefix = prefix.replace(history, '};let N;imTrackHostReply(this,o,U),N=')
+context = 'Md=M=>{if(!M)return;const Z='
+assert prefix.count(context) == 1, 'SDK context-stream patch no longer matches'
+prefix = prefix.replace(context, 'Md=M=>{if(!M)return;if(M.isMetadataUpdate===true){if(yf?.uuid!==M.uuid)return;imApplyNoteMetadata(yf,M);for(const q of gf)q(M);return}const Z=')
 prefix = prefix.replace('onReady:()=>pf.streamContextItem(Md)', 'onReady:()=>{imInitializeSelectionPreferences(pf);imInitializeSilentTimer(pf);pf.streamContextItem(Md)}')
 script = '\n'.join(helpers) + '\n' + prefix + (TARGET / 'src/editor-runtime.js').read_text()
 old_html = (ROOT / 'index.html').read_text()

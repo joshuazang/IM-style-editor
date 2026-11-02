@@ -16,3 +16,5 @@ Editor 4.0.5 reduces work while saving drafts, changing bubbles, importing messa
 Editor 4.0.6 fixes false selection-saving warnings when an embedded editor blocks access to old browser storage. Current selections continue to use Standard Notes’ encrypted preferences.
 
 Editor 4.0.7 releases past save contents from the host bridge, skips identical saves already confirmed by the host, and limits temporary note/row caches. Changed drafts still save promptly using complete note snapshots.
+
+Editor 4.0.8 fixes metadata-only sync updates restoring an older draft after Send. Host timestamps update without replacing the current message content or draft; ordinary content updates and draft autosaving continue normally.

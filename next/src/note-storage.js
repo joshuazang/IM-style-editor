@@ -15,6 +15,15 @@ function imNoteSnapshot(note) {
 const imSameNoteSnapshot=(a,b)=>!!a&&a.text===b.text&&a.metadataText===b.metadataText;
 /* A streamed host note is already persisted. Keep only the current note's baseline. */
 function imNoteReceived(note){imConfirmedNote={note,snapshot:imNoteSnapshot(note)};}
+function imNoteMetadataReceived(note,update){
+  if(!note||update?.isMetadataUpdate!==true||note.uuid!==update.uuid)return;
+  imApplyNoteMetadata(note,update);
+  if(imConfirmedNote?.note===note&&imConfirmedNote.snapshot){
+    const item={...imConfirmedNote.snapshot.item};
+    imApplyNoteMetadata(item,{uuid:note.uuid,isMetadataUpdate:true,updated_at:note.updated_at,created_at:note.created_at});
+    imConfirmedNote.snapshot=imNoteSnapshot(item);
+  }
+}
 function imPersistNote(note) {
   const uuid=note.uuid;
   const snapshot=imNoteSnapshot(note);
