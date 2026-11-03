@@ -22,3 +22,5 @@ Editor 4.0.8 fixes metadata-only sync updates restoring an older draft after Sen
 Editor 4.1.0 adds **Merge selected** to the selection three-dot menu, with a combined-message preview. Text stays in note order, separated by blank lines; tags and pins are combined and reply destinations are preserved. The first message keeps its position/date. The combined message is edited and its Copied/Exported statuses reset.
 
 Reading older messages now stays anchored when messages change below. Near the bottom, new messages follow smoothly; otherwise the down-arrow shows how many new messages are below. Date boundaries have doubled separator margins, and clicking a date’s selection control selects that day’s messages in the current view, including off-screen filter matches. **Iris blue** is `rgb(78, 92, 240)` with white text.
+
+Editor 4.1.1 adds **Occult field journal** in **Appearance → Artwork**: a dense vector wallpaper combining mysterious expeditions, lost observatories, enchanted natural history, nocturnal scholars and ocean secrets. Existing artwork choices and note settings are retained. See [artwork details](docs/artwork.md).
