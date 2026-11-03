@@ -22,6 +22,10 @@ Editor 4.0.8 honors the host's `isMetadataUpdate` contract. A metadata-only sync
 
 Nearby rows are drawn with estimated off-screen heights, then measured as they enter view. Scroll anchors are maintained across measurements and width changes. Selection and filtering operate on the complete record list; reply and pinned-message navigation first mounts an off-screen destination before locating/highlighting it.
 
+Editor 4.1.0 keeps format 3. Merge selected joins exact message text with two newlines in note order, retains the first ID/date/position, combines tags, and maps selected pins to that ID. The merged record has `edited` and omits active `copied`/`exported`. `mergeSources` in extra metadata preserves source IDs/note IDs, dates and other non-text metadata (including quoted reply/forwarding information); it does not duplicate the source bodies or reactions. Repeated merges deduplicate source IDs within their note. Existing quoted snapshots remain unchanged, and navigation can resolve a source ID to the merged bubble, including after export/import. The preview checks its source records again before saving; an unconfirmed save retains the combined text and the normal Retry save path.
+
+Automatic following uses the last 15% of the visible message area, bounded to 48–120 pixels from the bottom. Appending outside that range keeps the visible message and its pixel offset. The existing down-arrow shows a temporary count of new messages below; reaching the bottom or changing views clears it. This count is working memory only. Following respects reduced-motion preferences and yields to pointer, wheel and scroll-key input. Per-day selection operates on all current filter matches, rather than just rendered rows.
+
 Validation:
 
 ```sh

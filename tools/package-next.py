@@ -17,7 +17,7 @@ ASSETS.mkdir(exist_ok=True)
 helpers = []
 for name in ['note-format.js', 'host-bridge.js', 'note-storage.js', 'message-spacing.js', 'menu-layout.js',
              'message-transfer.js', 'transfer-ui.js', 'editor-interactions.js',
-             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'selection-memory.js', 'silent-timer.js']:
+             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js']:
     path = TARGET / 'src' / name
     helpers.append((path if path.exists() else ROOT / 'src' / name).read_text())
 # Reuse the immutable React/SDK build prefix; only the application runtime is forked.
@@ -59,6 +59,20 @@ styles = (ROOT / css_path).read_text() + '''
 .messages{overflow-anchor:none}
 .virtual-message{width:100%;min-width:0;flex-shrink:0;overflow-anchor:none}
 .virtual-spacer{flex:0 0 auto;pointer-events:none;overflow-anchor:none}
+.day-divider.day-break{margin-top:14px;margin-bottom:4px}
+.day-divider .day-select{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 9px;border:0;border-radius:16px;font:inherit;line-height:20px;color:inherit;background:var(--surface)}
+.day-divider .day-select span{padding:0}
+.day-select svg{opacity:.7;pointer-events:none}
+.day-select[aria-pressed=true]{color:var(--accent);box-shadow:0 0 0 1px currentColor}
+.selection-more-menu{position:absolute;right:0;top:50px;width:230px;max-width:100%;padding:6px;border:1px solid #b7c2d2;border-radius:16px;background:var(--surface);color:#172033;box-shadow:0 6px 20px #17203322}
+.selection-more-menu button{display:block;width:100%;padding:12px;text-align:left;border:0;border-radius:10px;background:transparent;font:inherit;color:inherit}
+.selection-more-menu button:hover{background:#17203310}
+.selection-more-menu button:disabled{opacity:.45;cursor:default}
+.merge-preview{max-height:35dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border:1px solid #b7c2d2;border-radius:12px;background:var(--surface);color:#172033}
+.jump-to-bottom .new-message-count{position:absolute;right:-3px;top:-7px;min-width:20px;height:20px;padding:1px 5px;border:2px solid var(--surface);border-radius:12px;background:#21653d;color:white;font-size:11px;font-weight:750;line-height:14px;text-align:center;pointer-events:none}
+@supports(backdrop-filter:blur(1px)){
+ .selection-more-menu,.day-divider .day-select{background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent);backdrop-filter:blur(var(--frost-blur));-webkit-backdrop-filter:blur(var(--frost-blur))}
+}
 '''
 files = {}
 for data, suffix in [(script.encode(), '.js'), (styles.encode(), '.css')]:

@@ -9,8 +9,13 @@ function imReplyRecord(reply){return {...reply.metadata,id:reply.id,text:reply.t
 function imReplyTarget(messages,reply,noteId){
   return messages.find(message=>{
     if(message.id===reply.id&&(reply.noteId===noteId||(message.text===reply.text&&message.createdAt===reply.createdAt)))return true;
-    let source=message.forwarding;
-    while(source){if(source.sourceMessageId===reply.id&&source.sourceNoteId===reply.noteId)return true;source=source.previous;}
+    const sources=[message,...(Array.isArray(message.mergeSources)?message.mergeSources:[])];
+    for(const record of sources){
+      if(!record||typeof record!=='object')continue;
+      if(record.id===reply.id&&record.noteId===reply.noteId)return true;
+      let source=record.forwarding;
+      while(source){if(source.sourceMessageId===reply.id&&source.sourceNoteId===reply.noteId)return true;source=source.previous;}
+    }
     return false;
   });
 }

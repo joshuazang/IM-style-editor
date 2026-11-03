@@ -16,7 +16,7 @@ with sync_playwright() as p:
   buttons=e.locator('.selection-actions > button');expect(buttons).to_have_count(5)
   assert [buttons.nth(i).get_attribute('aria-label') for i in range(5)]==['Add tags to selected messages','Copy','Export','More selection options','Delete selected messages']
   boxes=[buttons.nth(i).bounding_box() for i in range(5)];gaps=[boxes[i+1]['x']-boxes[i]['x']-boxes[i]['width'] for i in range(4)];assert max(gaps)-min(gaps)<1
-  e.get_by_role('button',name='More selection options').click();dialog=e.get_by_role('dialog');expect(dialog).to_contain_text('1 selected message')
+  e.get_by_role('button',name='More selection options').click();e.get_by_role('menuitem',name='Clear message statuses…').click();dialog=e.get_by_role('dialog');expect(dialog).to_contain_text('1 selected message')
   expect(dialog.get_by_role('checkbox',name='Copied')).not_to_be_checked();expect(dialog.get_by_role('button',name='Clear selected statuses')).to_be_disabled()
   dialog.get_by_role('checkbox',name='Copied').check();page.once('dialog',lambda d:d.dismiss());dialog.get_by_role('button',name='Clear selected statuses').click();expect(dialog).to_be_visible()
   page.once('dialog',lambda d:d.accept());dialog.get_by_role('button',name='Clear selected statuses').click();expect(dialog).to_have_count(0)

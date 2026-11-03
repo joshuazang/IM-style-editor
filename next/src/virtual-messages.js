@@ -6,6 +6,11 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1}) {
     return Math.min(low,Math.max(0,offsets.length-2));
   };
   const measurements=dt.useRef(new Map()),modelRef=dt.useRef(null),anchor=dt.useRef(null);
+  const capture=(current,node,bottom,appended=false)=>{
+    const top=parseFloat(getComputedStyle(node).paddingTop)||0;
+    const visible=indexAt(current.offsets,Math.max(0,node.scrollTop-top));
+    return {id:current.messages[visible]?.id,offset:node.scrollTop-top-current.offsets[visible],bottom,appended};
+  };
   const frame=dt.useRef(0),observer=dt.useRef(null),renderRef=dt.useRef(render);
   renderRef.current=render;
   const [view,setView]=dt.useState({top:0,height:800,width:390}),[measured,setMeasured]=dt.useState(0);
@@ -21,7 +26,7 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1}) {
       else {
         const lines=message.text.split('\n').reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/chars)),0);
         const day=!previous||Ed(previous.createdAt)!==Ed(message.createdAt);
-        height=Math.max(42,lines*23*scale+28+(message.reactions.length?18:0)+(message.replyTo?55:0)+(message.forwarding?18:0)+(day?30:0));
+        height=Math.max(42,lines*23*scale+28+(message.reactions.length?18:0)+(message.replyTo?55:0)+(message.forwarding?18:0)+(day?(previous?46:37):0));
       }
       offsets.push(offsets[index]+height);
     });
@@ -33,10 +38,8 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1}) {
   },[messages,layout,measured]);
   const previousModel=modelRef.current,node=scroller.current;
   if(previousModel && previousModel!==model && node && !anchor.current){
-    const top=parseFloat(getComputedStyle(node).paddingTop)||0;
-    const visible=indexAt(previousModel.offsets,Math.max(0,node.scrollTop-top));
-    anchor.current={id:previousModel.messages[visible]?.id,offset:node.scrollTop-top-previousModel.offsets[visible],
-      bottom:node.scrollHeight-node.clientHeight-node.scrollTop<48};
+    const appended=messages.length>previousModel.messages.length&&previousModel.messages.every((message,index)=>message.id===messages[index].id);
+    anchor.current=capture(previousModel,node,node.imScroll?.following||node.scrollHeight-node.clientHeight-node.scrollTop<=imBottomThreshold(node),appended);
   }
   modelRef.current=model;
   const list=scroller.current,padding=list?parseFloat(getComputedStyle(list).paddingTop)||0:0;
@@ -57,10 +60,7 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1}) {
       const saved=measurements.current.get(id);
       if(height>0 && (!saved||Math.abs(saved.height-height)>.5||saved.message!==current.messages[index]||saved.previous!==current.messages[index-1]||saved.layout!==current.layout)){
         if(!anchor.current){
-          const top=parseFloat(getComputedStyle(node).paddingTop)||0;
-          const visible=indexAt(current.offsets,Math.max(0,node.scrollTop-top));
-          anchor.current={messages:current.messages,id:current.messages[visible]?.id,
-            offset:node.scrollTop-top-current.offsets[visible],bottom:node.scrollHeight-node.clientHeight-node.scrollTop<48};
+          anchor.current=capture(current,node,node.imScroll?.following||node.scrollHeight-node.clientHeight-node.scrollTop<=imBottomThreshold(node));
         }
         measurements.current.set(id,{message:current.messages[index],previous:current.messages[index-1],layout:current.layout,height});changed=true;
       }
@@ -80,15 +80,22 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1}) {
     const node=scroller.current;if(!node)return;
     const saved=anchor.current;anchor.current=null;
     if(saved){
-      if(saved.bottom)node.scrollTop=node.scrollHeight;
+      if(saved.bottom){
+        if(!node.imScroll?.following){if(saved.appended&&node.imScroll)node.imScroll.follow();else node.scrollTop=node.scrollHeight;}
+      }
       else if(model.indices.has(saved.id))node.scrollTop=(parseFloat(getComputedStyle(node).paddingTop)||0)+model.offsets[model.indices.get(saved.id)]+saved.offset;
     }
     node.imVirtual={
       has:id=>modelRef.current.indices.has(id),
+      releaseFollow:()=>{
+        if(!anchor.current?.bottom)return;
+        anchor.current=capture(modelRef.current,node,false);
+      },
       reveal:(id,ready)=>{
         const current=modelRef.current,index=current.indices.get(id);if(index===undefined)return false;
         // An explicit jump supersedes a pending measurement anchor.
         anchor.current=null;
+        node.imScroll?.cancel();
         const top=parseFloat(getComputedStyle(node).paddingTop)||0;
         node.scrollTop=Math.max(0,top+current.offsets[index]-node.clientHeight/2+(current.offsets[index+1]-current.offsets[index])/2);
         update();
