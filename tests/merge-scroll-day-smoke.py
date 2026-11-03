@@ -49,7 +49,7 @@ with sync_playwright() as p:
   day=e.locator(f'[data-virtual-message="{data["messages"][90]["id"]}"] .day-select');expect(day).to_be_visible();day.click()
   expect(e.locator('.selection-status')).to_contain_text('45 / 182 selected')
   expect(day).to_have_attribute('aria-pressed','true')
-  margins=e.locator('.day-divider.day-break').evaluate('el=>({top:parseFloat(getComputedStyle(el).marginTop),bottom:parseFloat(getComputedStyle(el).marginBottom)})');assert margins=={'top':14,'bottom':4},margins
+  margins=e.locator('.day-divider.day-break').evaluate('el=>({top:parseFloat(getComputedStyle(el).marginTop),bottom:parseFloat(getComputedStyle(el).marginBottom)})');assert margins=={'top':20,'bottom':6},margins
   e.get_by_role('button',name='Cancel',exact=True).click()
   e.get_by_role('button',name='Clear all filters',exact=True).click()
   # Merge the last two original messages and check the preview/cancel path first.
@@ -68,7 +68,7 @@ with sync_playwright() as p:
   expect(merged.locator('.message-meta')).to_contain_text('edited');expect(merged.locator('.message-meta')).not_to_contain_text('Copied');expect(merged.locator('.bubble-pin-marker')).to_have_count(1)
   colors=merged.locator('.message-bubble').evaluate('el=>({background:getComputedStyle(el).backgroundColor,color:getComputedStyle(el).color})');assert colors=={'background':'rgb(78, 92, 240)','color':'rgb(255, 255, 255)'},colors
   page.evaluate('openIM("test")');expect(e.locator('.selection-status')).to_contain_text('1 / 181 selected');expect(e.locator(f'[data-message-id="{data["messages"][178]["id"]}"] .message-body')).to_have_text(exact)
-  print('PASS filtered day selection, doubled date margins, merge preview/cancel, persisted text/pins/statuses, Iris color',width,flush=True)
+  print('PASS filtered day selection, prominent date separators, merge preview/cancel, persisted text/pins/statuses, Iris color',width,flush=True)
   # Reduced motion jumps directly. A manual scroll interrupts an active smooth jump.
   e.get_by_role('button',name='Cancel',exact=True).click();list_.evaluate('el=>{el.scrollTop=0}');page.wait_for_timeout(200)
   page.emulate_media(reduced_motion='reduce');e.get_by_role('button',name='Scroll to bottom',exact=True).click();page.wait_for_timeout(100)

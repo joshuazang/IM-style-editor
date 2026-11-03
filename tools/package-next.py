@@ -59,10 +59,12 @@ styles = (ROOT / css_path).read_text() + '''
 .messages{overflow-anchor:none}
 .virtual-message{width:100%;min-width:0;flex-shrink:0;overflow-anchor:none}
 .virtual-spacer{flex:0 0 auto;pointer-events:none;overflow-anchor:none}
-.day-divider.day-break{margin-top:14px;margin-bottom:4px}
-.day-divider .day-select{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 9px;border:0;border-radius:16px;font:inherit;line-height:20px;color:inherit;background:var(--surface)}
+.day-divider{font-size:17px;font-weight:750;color:#334155}
+.day-divider:before,.day-divider:after{border-top-color:#9aa7b7}
+.day-divider.day-break{margin-top:20px;margin-bottom:6px}
+.day-divider .day-select{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:5px 12px;border:1px solid #64748b55;border-radius:22px;font:inherit;line-height:28px;color:inherit;background:var(--surface)}
 .day-divider .day-select span{padding:0}
-.day-select svg{opacity:.7;pointer-events:none}
+.day-select svg{width:22px;height:22px;opacity:.85;pointer-events:none}
 .day-select[aria-pressed=true]{color:var(--accent);box-shadow:0 0 0 1px currentColor}
 .selection-more-menu{position:absolute;right:0;top:50px;width:230px;max-width:100%;padding:6px;border:1px solid #b7c2d2;border-radius:16px;background:var(--surface);color:#172033;box-shadow:0 6px 20px #17203322}
 .selection-more-menu button{display:block;width:100%;padding:12px;text-align:left;border:0;border-radius:10px;background:transparent;font:inherit;color:inherit}
