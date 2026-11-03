@@ -26,3 +26,5 @@ Reading older messages now stays anchored when messages change below. Near the b
 Editor 4.1.1 adds **Occult field journal** in **Appearance → Artwork**: a dense vector wallpaper combining mysterious expeditions, lost observatories, enchanted natural history, nocturnal scholars and ocean secrets. Existing artwork choices and note settings are retained. See [artwork details](docs/artwork.md).
 
 Editor 4.1.2 makes date separators more prominent with about 40% more space at day boundaries, larger bold date labels, stronger contrast and clearer divider lines. Same-day message spacing is unchanged.
+
+Editor 4.1.3 redraws Occult field journal with smooth SVG curves, enlarges its drawing scale by 10%, and adds an upright, taller composition with matching edge details. The wallpaper joins without mirrored or upside-down copies.
