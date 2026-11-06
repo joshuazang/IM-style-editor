@@ -12,6 +12,13 @@ The complete note content (messages, note settings, draft and pending reply) is 
 
 The working-memory caches are not saved copies. Message/settings records are immutable: changes create new records/arrays. A note is decoded again only when unfamiliar text arrives. Draft-only saves reuse the serialized bubble section; Standard Notes still receives a complete note snapshot. No delay is added to draft persistence. Existing acknowledgment, ordered-save, failure/retry and malformed-document protections remain.
 
+Editor 4.1.4 keeps that immediate-save policy and format 3. Send no longer forces
+a separate draft-only save before queuing the final message. The existing ordered
+queue can replace a waiting draft snapshot with the final message, retaining the
+input until host acknowledgment and preserving newer draft typing. There is no
+new storage or custom-app API. Delayed-saving and custom-host experiments are
+excluded from the build.
+
 Editor 4.0.5 also caches individual immutable bubble blocks. A new message array is still validated in full, but unchanged bubbles reuse their prepared text. Save snapshots capture the immutable `content.text` string directly and deep-copy the remaining metadata; superseded queued drafts therefore avoid JSON-encoding/decoding the full document. The host still receives complete snapshots, in order, with the same acknowledgment and retry behavior. Import matching uses temporary ID/provenance indexes to find candidates, then compares their full content and metadata as before. These caches and indexes are working memory only.
 
 Editor 4.0.7 replaces the new editor's SDK outgoing-message history with lean reply records. Historical note payloads and fire-and-forget events are not retained. One-off callbacks are removed after replies or save timeout; streaming subscriptions remain live. The SDK's origin/session checks, object/JSON transport and host save acknowledgments remain intact. Archive's SDK is unchanged.

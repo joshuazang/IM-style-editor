@@ -28,3 +28,9 @@ Editor 4.1.1 adds **Occult field journal** in **Appearance → Artwork**: a dens
 Editor 4.1.2 makes date separators more prominent with about 40% more space at day boundaries, larger bold date labels, stronger contrast and clearer divider lines. Same-day message spacing is unchanged.
 
 Editor 4.1.3 redraws Occult field journal with smooth SVG curves, enlarges its drawing scale by 10%, and adds an upright, taller composition with matching edge details. The wallpaper joins without mirrored or upside-down copies.
+
+Editor 4.1.4 removes the forced draft-only save before Send. When a newer draft is
+waiting behind an unfinished save, the final message can replace that queued draft.
+Draft saving remains immediate, and the input stays until the host acknowledges
+the save. This reduces some save submissions; large notes can still encounter
+sync limits. Keep existing notes intact and use a smaller active capture note if needed.

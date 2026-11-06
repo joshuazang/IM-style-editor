@@ -3,7 +3,6 @@ if(Mt.size)return;if(At){Ua();return}const note=o.current,text=H;
 if(!note||!text.trim()||sending.current.has(note.uuid))return;
 const sentReply=imFormat.readReply(note);sending.current.set(note.uuid,{text,id:null,reply:sentReply});
 try{
- await persistDraft(text);
  if(o.current?.uuid!==note.uuid){sending.current.delete(note.uuid);return}
  const currentDraft=imFormat.readDraft(note),message={id:Sf(),text,createdAt:new Date().toISOString(),reactions:X&&X!==imUntagged?[X]:[],...(sentReply?{replyTo:sentReply}:{})};
  sending.current.set(note.uuid,{text,id:message.id,reply:sentReply});
