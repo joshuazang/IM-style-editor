@@ -19,6 +19,12 @@ input until host acknowledgment and preserving newer draft typing. There is no
 new storage or custom-app API. Delayed-saving and custom-host experiments are
 excluded from the build.
 
+Editor 4.1.5 keeps format 3 and immediate draft saving. Its manual clipboard clear
+adds no preferences, timers, note statuses, storage, or network access. Import-and-clear
+waits for the existing note-save acknowledgment, then requests a separate confirmation
+click to empty the current clipboard. Invalid or rejected imports do not open clearing,
+and clipboard API failures remain visible. Archive's transfer source and bundle are unchanged.
+
 Editor 4.0.5 also caches individual immutable bubble blocks. A new message array is still validated in full, but unchanged bubbles reuse their prepared text. Save snapshots capture the immutable `content.text` string directly and deep-copy the remaining metadata; superseded queued drafts therefore avoid JSON-encoding/decoding the full document. The host still receives complete snapshots, in order, with the same acknowledgment and retry behavior. Import matching uses temporary ID/provenance indexes to find candidates, then compares their full content and metadata as before. These caches and indexes are working memory only.
 
 Editor 4.0.7 replaces the new editor's SDK outgoing-message history with lean reply records. Historical note payloads and fire-and-forget events are not retained. One-off callbacks are removed after replies or save timeout; streaming subscriptions remain live. The SDK's origin/session checks, object/JSON transport and host save acknowledgments remain intact. Archive's SDK is unchanged.

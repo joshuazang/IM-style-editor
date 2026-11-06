@@ -34,3 +34,11 @@ waiting behind an unfinished save, the final message can replace that queued dra
 Draft saving remains immediate, and the input stays until the host acknowledges
 the save. This reduces some save submissions; large notes can still encounter
 sync limits. Keep existing notes intact and use a smaller active capture note if needed.
+
+Editor 4.1.5 adds **Clear clipboard** to the three-dot menu, with confirmation.
+Import offers **Cancel**, **Import**, and a red **Import and clear clipboard**.
+The combined action waits for the import-save acknowledgment before asking to clear;
+cancelling keeps the clipboard, and rejected imports never initiate clearing.
+Clearing uses an explicit click through the existing clipboard compatibility path.
+Timed clearing is not offered because the official-style sandbox blocks it without
+a fresh user gesture. This clears the current clipboard, not clipboard-manager history.

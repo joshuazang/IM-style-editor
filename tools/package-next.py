@@ -55,6 +55,8 @@ styles = (ROOT / css_path).read_text() + '''
 .timer-finish-actions kbd{font:inherit;font-weight:750;min-width:24px;text-align:center}
 .editor-shell .timer-finish-actions button:focus{outline:3px solid #548b3b;outline-offset:2px}
 .timer-key-help{font-size:13px}
+.clipboard-import-actions{flex-wrap:wrap}
+.clipboard-import-actions button{min-width:0;white-space:normal}
 .silent-timer-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .messages{overflow-anchor:none}
 .virtual-message{width:100%;min-width:0;flex-shrink:0;overflow-anchor:none}

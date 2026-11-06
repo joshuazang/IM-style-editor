@@ -51,7 +51,7 @@ with sync_playwright() as p:
     e.get_by_role('button',name='More options',exact=True).click()
     e.get_by_role('button',name='Import from clipboard',exact=True).click()
     expect(e.get_by_role('dialog')).to_contain_text('30 messages ready to import')
-    e.get_by_role('button',name='Import messages',exact=True).click()
+    e.get_by_role('button',name='Import',exact=True).click()
     expect(e.get_by_role('dialog')).to_have_count(0)
     page.wait_for_function('notes.new.content.text.includes("Message 29:")')
     assert page.evaluate('notes.new.content.text').startswith('#!im-style-editor 3\n')
