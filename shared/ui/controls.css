@@ -1,0 +1,9 @@
+/* IM's two compact top-right controls, reused by the board. */
+.ui-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:6px;pointer-events:none}
+.ui-toolbar>*{pointer-events:auto}
+.ui-toolbar .ui-toolbar-button{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:46px;height:38px;min-height:38px;padding:4px 8px;border:1px solid rgba(255,255,255,.28);border-radius:999px;color:#fff;background:#202023;box-shadow:0 1px 3px #0000001f}
+.ui-toolbar .ui-toolbar-more{width:38px;padding:0}
+.ui-toolbar .ui-toolbar-button[aria-expanded=true]{border-color:#ffffffa6}
+.ui-toolbar .ui-toolbar-button svg{width:28px;height:28px;pointer-events:none}
+.ui-toolbar .ui-toolbar-more svg{width:20px;height:20px}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.ui-toolbar .ui-toolbar-button{background:rgba(32,32,35,.22);color:#172033;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}

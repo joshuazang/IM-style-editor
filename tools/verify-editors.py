@@ -4,11 +4,11 @@ import re
 import subprocess
 from pathlib import Path
 from zipfile import ZipFile
-from shared_core import ROOT, core_digest, release_config
+from shared_core import ROOT, core_digest, release_config, ui_digest
 
 config = release_config()
 release = json.loads((ROOT / 'editors-release.json').read_text())
-assert release == {**config, 'shared_core_sha256': core_digest(),
+assert release == {**config, 'shared_core_sha256': core_digest(), 'shared_ui_sha256': ui_digest(),
                    'im_manifest': 'im-style-editor-next.ext.json', 'mosaic_manifest': 'mosaic.ext.json'}
 for directory, manifest, key, identifier, package in [
     ('next', 'im-style-editor-next.ext.json', 'im_version', 'com.im-style-editor.next', 'IM-style-editor'),

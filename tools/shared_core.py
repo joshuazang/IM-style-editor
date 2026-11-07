@@ -6,6 +6,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CORE_FILES = ['note-format.js', 'host-bridge.js', 'note-storage.js', 'message-transfer.js',
               'privacy.js', 'clipboard.js', 'reply-record.js']
+UI_FILES = ['icons.js', 'menu.css', 'controls.css']
+
+def ui_digest():
+    return hashlib.sha256(b''.join(name.encode()+b'\0'+(ROOT/'shared/ui'/name).read_bytes() for name in UI_FILES)).hexdigest()
+
+def ui_script():
+    return '/* IM_SHARED_UI_BEGIN '+ui_digest()+' */\n'+(ROOT/'shared/ui/icons.js').read_text()+'\n/* IM_SHARED_UI_END */\n'
+
+def ui_styles():
+    return '/* Shared UI '+ui_digest()+' */\n'+'\n'.join((ROOT/'shared/ui'/name).read_text() for name in UI_FILES if name.endswith('.css'))
 
 def release_config():
     return json.loads((ROOT / 'shared/release.json').read_text())

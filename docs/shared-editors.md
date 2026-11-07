@@ -6,6 +6,12 @@ text-field defaults and reply records. `next/src` contains the IM interface;
 `mosaic/src` contains the Mosaic interface. Root `src` and root `index.html`
 belong to the independent format-2 Archive, which is not migrated.
 
+`shared/ui` contains the common static SVG dictionary, solid message-menu panels
+and compact toolbar-control styles. It is compiled into both interfaces, with
+its own SHA-256 recorded in `editors-release.json` and generated page metadata.
+Interface action handlers remain in their respective source trees. A shared
+visual design does not require different interfaces to expose identical actions.
+
 Each application bundles the identical common block at build time. It works
 independently after installation and does not fetch another editor's scripts.
 Plugin IDs remain `com.im-style-editor.next` and `com.joshuazang.mosaic`.

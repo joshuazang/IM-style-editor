@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 from playwright.sync_api import sync_playwright, expect
 from browser_engine import chromium_options
+from mosaic_helpers import fill_search,click_outside_capture,choose_tag,open_more
 
 ROOT=Path(__file__).resolve().parents[1]
 IM=Path(os.environ.get('IM_EDITOR_ROOT','/workspace/IM-style-editor'))
@@ -66,15 +67,15 @@ readText:async()=>window.__incomingClipboard||''}});
         assert page.evaluate('saves.length')==0
         assert page.evaluate('notes.a.content.text')==small['note']['content']['text']
         # Opening and no-op editing preserve CRLF and every metadata field.
-        e.locator('#search').fill('A title')
+        fill_search(e,'A title')
         e.locator('[data-id="'+small['messages'][0]['id']+'"]').click()
-        e.get_by_role('button',name='Edit',exact=True).click()
+        pass
         expect(e.get_by_role('textbox',name='Card title',exact=True)).to_have_value('  A title  ')
-        e.get_by_role('button',name='Save changes',exact=True).click()
+        e.get_by_role('button',name='Close',exact=True).click()
         expect(e.locator('dialog')).not_to_be_visible()
         assert page.evaluate('saves.length')==0
         assert page.evaluate('notes.a.content.text')==small['note']['content']['text']
-        e.locator('#search').fill('')
+        fill_search(e,'')
 
         capture=e.get_by_role('textbox',name='Take a note',exact=True)
         expect(capture).to_have_value(small['draft'].replace('\r\n','\n'))
@@ -82,7 +83,7 @@ readText:async()=>window.__incomingClipboard||''}});
         page.wait_for_function('notes.a.content.text.includes("Second line")')
         before_idle=page.evaluate('saves.length');page.wait_for_timeout(1600);assert page.evaluate('saves.length')==before_idle
         page.evaluate('holdAck=true')
-        e.locator('#search').click()
+        click_outside_capture(e)
         page.wait_for_function('(notes.a.content.text.match(/^@@IM:BUBBLE$/gm)||[]).length===21&&acks.length>0')
         expect(capture).to_have_value('A new thought\nFirst line\n\nSecond line 🙂')
         capture.fill('Newer typing survives')
@@ -98,7 +99,7 @@ readText:async()=>window.__incomingClipboard||''}});
         # Rejected final submissions keep input; retry saves exactly one card.
         page.evaluate('rejectSaves=true')
         capture.fill('Retain on failure')
-        e.locator('#search').click()
+        click_outside_capture(e)
         expect(e.locator('#notice')).to_contain_text('Saving was not confirmed')
         expect(capture).to_have_value('Retain on failure')
         page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click()
@@ -106,7 +107,7 @@ readText:async()=>window.__incomingClipboard||''}});
         assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==22
 
         # Filtering and selection cover all matches, and persist only IDs as preferences.
-        e.get_by_role('button',name='Filter by 📓',exact=True).click()
+        choose_tag(e,'Filter by 📓')
         e.locator('.card').first.click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
         e.get_by_role('button',name='Select all',exact=True).click()
         expect(e.locator('.selection-description')).to_have_text('7 / 22 selected')
@@ -118,7 +119,7 @@ readText:async()=>window.__incomingClipboard||''}});
         page.evaluate('switchNote("b")');expect(e.locator('.selection-bar')).not_to_be_visible()
         page.evaluate('switchNote("a")');expect(e.locator('.selection-description')).to_have_text('7 / 22 selected')
         e.get_by_role('button',name='Cancel selection',exact=True).click()
-        e.get_by_role('button',name='All tags',exact=True).click()
+        choose_tag(e,'All tags')
         assert not errors,errors;assert not external,external
         results.append(f'PASS {width}px opaque sandbox, {"mobile JSON" if mobile else "desktop objects"}: no-op format preservation, drafts, idle, late acknowledgments, failed send/retry, filtered export and selection restoration')
         print(results[-1],flush=True)
@@ -130,9 +131,9 @@ readText:async()=>window.__incomingClipboard||''}});
     expect(e.locator('.card').first).to_be_visible();page.wait_for_timeout(100)
     rendered=e.locator('.card').count();dom=e.locator('*').count();assert rendered<80 and dom<1600,(rendered,dom)
     e.locator('#viewport').evaluate('node=>node.scrollTop=node.scrollHeight/2');page.wait_for_timeout(100);assert e.locator('.card').count()<80
-    e.locator('#search').fill('Thought 4999');expect(e.locator('.card')).to_have_count(1)
-    e.locator('.card').click();e.get_by_role('button',name='Edit',exact=True).click();e.get_by_role('textbox',name='Card title',exact=True).fill('Changed from Mosaic')
-    e.get_by_role('button',name='Save changes',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
+    fill_search(e,'Thought 4999');expect(e.locator('.card')).to_have_count(1)
+    e.locator('.card').click();e.get_by_role('textbox',name='Card title',exact=True).fill('Changed from Mosaic')
+    e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     shared=parse(page.evaluate('notes.a.content.text'));assert shared['messages'][-1]['text'].startswith('Changed from Mosaic\n')
     assert shared['draft']==large['draft'] and shared['settings']['extra']=={'keep':True}
     if IM.exists():
@@ -179,22 +180,22 @@ readText:async()=>window.__incomingClipboard||''}});
     # Card operations and transfer UI, using the same real sandbox protocol.
     context,page,errors,external=setup();e=open_note(page)
     def find_card(index):
-        e.locator('#search').fill('A title' if index==0 else 'Thought '+str(index))
+        fill_search(e,'A title' if index==0 else 'Thought '+str(index))
         return e.locator('[data-id="'+small['messages'][index]['id']+'"]')
     find_card(2).click(button='right');e.get_by_role('menuitem',name='Pin',exact=True).click()
     parsed=parse(page.evaluate('notes.a.content.text'));assert small['messages'][2]['id'] in parsed['settings']['pinnedMessageIds']
     find_card(2).click(button='right');e.get_by_role('menuitem',name='Unpin',exact=True).click()
     parsed=parse(page.evaluate('notes.a.content.text'));assert small['messages'][2]['id'] not in parsed['settings']['pinnedMessageIds']
-    find_card(2).click();e.get_by_role('button',name='Edit',exact=True).click()
-    e.get_by_role('button',name='Tag 📍',exact=True).click();e.get_by_role('button',name='Save changes',exact=True).click()
+    find_card(2).click();pass
+    e.get_by_role('button',name='Tag 📍',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
     expect(e.locator('dialog')).not_to_be_visible();parsed=parse(page.evaluate('notes.a.content.text'))
     assert parsed['messages'][2]['text']==small['messages'][2]['text'] and parsed['messages'][2]['reactions']==['📍'] and not parsed['messages'][2].get('edited')
     find_card(2).click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click()
     page.wait_for_function('notes.a.content.text.includes("copied")')
     assert frame(page).evaluate('window.__copied')==small['messages'][2]['text']
     assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['copied']
-    find_card(2).click();e.get_by_role('button',name='Reply',exact=True).click()
-    expect(e.locator('#capture-reply')).to_be_visible();e.locator('#capture-input').fill('A reply\nReply body');e.locator('#search').click()
+    find_card(2).click();e.locator('dialog').get_by_role('button',name='Card options',exact=True).click();e.get_by_role('menuitem',name='Reply',exact=True).click()
+    expect(e.locator('#capture-reply')).to_be_visible();e.locator('#capture-input').fill('A reply\nReply body');click_outside_capture(e)
     expect(e.locator('#capture-input')).to_have_value('')
     parsed=parse(page.evaluate('notes.a.content.text'));assert parsed['messages'][-1]['replyTo']['id']==small['messages'][2]['id'] and not parsed['reply']
 
@@ -211,22 +212,22 @@ readText:async()=>window.__incomingClipboard||''}});
     e.get_by_role('button',name='Delete selected',exact=True).click();e.get_by_role('button',name='Cancel',exact=True).click()
     assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==20
     e.get_by_role('button',name='Cancel selection',exact=True).click()
-    e.locator('#search').fill('');e.get_by_role('button',name='More options',exact=True).click();e.get_by_role('menuitem',name='Export all cards',exact=True).click()
+    fill_search(e,'');open_more(e);e.get_by_role('menuitem',name='Export all cards',exact=True).click()
     exported=frame(page).evaluate('window.__copied');assert exported.startswith('#!im-style-forward 2')
-    page.evaluate('switchNote("b")');e.get_by_role('button',name='More options',exact=True).click();e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
+    page.evaluate('switchNote("b")');open_more(e);e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
     e.get_by_role('textbox',name='Import text',exact=True).fill(exported);e.get_by_role('button',name='Import',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     parsed=parse(page.evaluate('notes.b.content.text'));assert len(parsed['messages'])==20 and all(m.get('forwarding') and not m.get('exported') for m in parsed['messages'])
-    e.get_by_role('button',name='More options',exact=True).click();e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
+    open_more(e);e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
     e.get_by_role('textbox',name='Import text',exact=True).fill(exported);page.evaluate('holdAck=true')
     e.get_by_role('button',name='Import and clear clipboard',exact=True).click()
     # An identical, previously acknowledged import may skip writing altogether.
     page.evaluate('holdAck=false;releaseAcks()');expect(e.locator('#dialog-title')).to_have_text('Clear your clipboard?')
     e.get_by_role('button',name='Cancel',exact=True).click();assert len(parse(page.evaluate('notes.b.content.text'))['messages'])==20
     frame(page).evaluate('document.execCommand=()=>false;window.__denyClipboard=false')
-    e.get_by_role('button',name='More options',exact=True).click();e.get_by_role('menuitem',name='Clear clipboard',exact=True).click()
+    open_more(e);e.get_by_role('menuitem',name='Clear clipboard',exact=True).click()
     e.get_by_role('button',name='Clear clipboard',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert frame(page).evaluate('window.__copied')==''
     frame(page).evaluate('window.__denyClipboard=true')
-    e.locator('#search').fill('Thought 7');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click()
+    fill_search(e,'Thought 7');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click()
     expect(e.get_by_role('textbox',name='Text to copy',exact=True)).to_be_visible()
     assert e.get_by_role('textbox',name='Text to copy',exact=True).evaluate('node=>getComputedStyle(node).backdropFilter')=='none'
     assert not next(m for m in parse(page.evaluate('notes.b.content.text'))['messages'] if m['id']==small['messages'][7]['id']).get('copied')
@@ -236,7 +237,7 @@ readText:async()=>window.__incomingClipboard||''}});
     context,page,errors,external=setup(390,True);e=open_note(page)
     field=e.locator('#capture-input');field.focus()
     field.evaluate("node=>{node.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));node.value='中文未完成';node.dispatchEvent(new InputEvent('input',{bubbles:true,isComposing:true}));}")
-    e.locator('#search').click();assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==20
+    click_outside_capture(e);assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==20
     field.evaluate("node=>{node.value='中文已完成';node.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'已完成'}));node.dispatchEvent(new InputEvent('input',{bubbles:true,isComposing:false}));}")
     expect(field).to_have_value('');parsed=parse(page.evaluate('notes.a.content.text'))
     assert len(parsed['messages'])==21 and parsed['messages'][-1]['text']=='中文已完成'

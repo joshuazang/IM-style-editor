@@ -3,15 +3,15 @@ import hashlib
 import json
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
-from shared_core import core_source, core_digest, release_config
+from shared_core import core_source, core_digest, release_config, ui_script, ui_styles, ui_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / 'mosaic'
 VERSION = release_config()['mosaic_version']
 BASE = 'https://joshuazang.github.io/IM-style-editor/'
-script = ('"use strict";\nconst MOSAIC_VERSION=' + json.dumps(VERSION) + ';\n' + core_source() + '\n' +
+script = ('"use strict";\nconst MOSAIC_VERSION=' + json.dumps(VERSION) + ';\n' + core_source() + ui_script() + '\n' +
           '\n'.join((TARGET / 'src' / name).read_text() for name in ['relay.js','model.js','icons.js','app.js'])).encode()
-style = (TARGET / 'src/styles.css').read_bytes()
+style = ((TARGET / 'src/styles.css').read_text()+'\n'+ui_styles()).encode()
 files = {}
 for data, suffix in [(script,'.js'),(style,'.css')]:
     name = 'assets/mosaic-' + hashlib.sha256(data).hexdigest()[:12] + suffix
@@ -21,7 +21,7 @@ for data, suffix in [(script,'.js'),(style,'.css')]:
 # Retain published fingerprinted assets for cached pages. The install ZIP below
 # contains only this release's assets, so installed size does not grow.
 html = (TARGET/'index.template.html').read_text().replace('__JS__','./'+js_path).replace('__CSS__','./'+css_path).replace('__VERSION__',VERSION)
-html = html.replace('</head>',f'<meta name="im-shared-core" content="{core_digest()}">\n</head>')
+html = html.replace('</head>',f'<meta name="im-shared-core" content="{core_digest()}">\n<meta name="im-shared-ui" content="{ui_digest()}">\n</head>')
 (TARGET/'index.html').write_text(html);files['index.html']=html.encode()
 files['icon.svg']=(TARGET/'icon.svg').read_bytes()
 metadata={'identifier':'com.joshuazang.mosaic','name':'Mosaic','content_type':'SN|Component','area':'editor-editor','version':VERSION,

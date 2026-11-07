@@ -97,7 +97,7 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
   const copyMessage=message=>copyRecords([message]);
   const copySelected=()=>copyRecords(latest.current.messages.filter(message=>latest.current.selected.has(message.id)));
   const manualCopied=()=>{if(dialog){mark(dialog.records||[],dialog.kind==='export'?'exported':'copied',dialog.uuid);setNotice(dialog.replyExport?'Copied. Open another note and choose Import from clipboard.':dialog.kind==='export'?'Exported to clipboard':'Copied')}};
-  return { dialog, notice, exportSelected, exportReply, copyMessage, copySelected, manualCopied, openImport, openClearClipboard, clearClipboard, close, apply, dismissNotice: () => setNotice(''), notify:setNotice,
+  return { dialog, notice, exportSelected, exportReply, exportMessage:message=>exportRecords([message]), copyMessage, copySelected, manualCopied, openImport, openClearClipboard, clearClipboard, close, apply, dismissNotice: () => setNotice(''), notify:setNotice,
     edit: text => { request.current++; setDialog(current => ({ ...current, text, reading: false, error: '' })); } };
 }
 function ImTransferDialog({ transfer }) {

@@ -3,6 +3,7 @@ import functools, http.server, json, re, subprocess, threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 from browser_engine import chromium_options
+from mosaic_helpers import fill_search,click_outside_capture,choose_tag,open_more
 
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
@@ -64,7 +65,7 @@ try:
 
   # A failed final submission survives switching without duplication on retry.
   context,page,e,errors,outside=start();field=e.locator('#capture-input')
-  page.evaluate('rejectSaves=true');field.fill('Final message survives failure');e.locator('#search').click()
+  page.evaluate('rejectSaves=true');field.fill('Final message survives failure');click_outside_capture(e)
   expect(e.locator('#notice')).to_contain_text('Saving was not confirmed')
   expect(field).to_have_value('Final message survives failure')
   page.evaluate('switchNote("b")');expect(field).to_have_value('');page.evaluate('switchNote("a")')
@@ -78,16 +79,16 @@ try:
   # More than one unfinished card edit is retained independently in this frame.
   context,page,e,errors,outside=start()
   for index in [2,3]:
-    e.locator('#search').fill('Thought '+str(index));e.locator('.card').click(button='right')
+    fill_search(e,'Thought '+str(index));e.locator('.card').click(button='right')
     e.get_by_role('menuitem',name='Edit',exact=True).click()
     field=e.get_by_role('textbox',name='Card title',exact=True)
     assert field.evaluate('n=>n.spellcheck') is False
-    field.fill('Unfinished card '+str(index));e.get_by_role('button',name='Close',exact=True).last.click()
+    field.fill('Unfinished card '+str(index));page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   for index in [3,2]:
-    e.get_by_role('button',name='More options',exact=True).click();e.get_by_role('menuitem',name='Resume unfinished edit',exact=True).click()
+    open_more(e);e.get_by_role('menuitem',name='Resume unfinished edit',exact=True).click()
     expect(e.get_by_role('textbox',name='Card title',exact=True)).to_have_value('Unfinished card '+str(index))
-    e.get_by_role('button',name='Save changes',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
+    e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
   result=parse(page.evaluate('notes.a.content.text'))
   assert result['messages'][2]['text'].startswith('Unfinished card 2\n') and result['messages'][3]['text'].startswith('Unfinished card 3\n')
   finish(context,errors,outside);print('PASS: multiple unfinished card edits remain separate across note switches',flush=True)
@@ -95,7 +96,7 @@ try:
   # A late Copy or Export result rebases its status against the newest same-note item.
   for action,flag in [('Copy text','copied'),('Export','exported')]:
     context,page,e,errors,outside=start();f=frame(page);f.evaluate('window.__holdClipboard=true')
-    e.locator('#search').fill('Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name=action,exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
+    fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name=action,exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
     remote=changed(small['note']['content']['text'],"s.messages[19].text='New remote body';s.draft='New remote draft'")
     page.evaluate('(text)=>{notes.a.content.text=text;notes.a.content.title="New native title";stream(notes.a)}',remote)
     expect(e.locator('#capture-input')).to_have_value('New remote draft');f.evaluate('window.__finishClipboard()')
@@ -106,7 +107,7 @@ try:
 
   # Inactive notes are not written through the current-note-only host permission.
   context,page,e,errors,outside=start();f=frame(page);f.evaluate('window.__holdClipboard=true')
-  e.locator('#search').fill('Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
+  fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
   page.evaluate('enforceContext=true;switchNote("b")');expect(e.locator('#capture-input')).to_have_value('')
   f.evaluate('window.__finishClipboard()');page.wait_for_timeout(80);assert page.evaluate('window.saveCount||0')==0
   page.evaluate('switchNote("a")');page.wait_for_function('(notes.a.content.text.match(/^copied$/gm)||[]).length===2')
@@ -115,7 +116,7 @@ try:
 
   # A real edit invalidates a delayed copy status for the earlier text.
   context,page,e,errors,outside=start();f=frame(page);f.evaluate('window.__holdClipboard=true')
-  e.locator('#search').fill('Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
+  fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
   remote=changed(small['note']['content']['text'],"s.messages[2].text='Changed while copying'")
   page.evaluate('(text)=>{notes.a.content.text=text;stream(notes.a)}',remote);expect(e.locator('.card')).to_have_count(0)
   f.evaluate('window.__finishClipboard()');page.wait_for_timeout(80);result=parse(page.evaluate('notes.a.content.text'))
@@ -153,7 +154,7 @@ try:
   # All text-input updates keep the cached message section after changing records.
   large=fixture(5000);large['note']['content']['text']=changed(large['note']['content']['text'],"s.draft=''")
   context,page,e,errors,outside=start(large);field=e.locator('#capture-input');field.fill('Prime cache')
-  page.wait_for_function('notes.a.content.text.includes("Prime cache")');e.locator('#search').click();expect(field).to_have_value('')
+  page.wait_for_function('notes.a.content.text.includes("Prime cache")');click_outside_capture(e);expect(field).to_have_value('')
   f=frame(page);f.evaluate('window.__perf={parses:0,joins:0,encodes:0}')
   for i in range(5):field.fill('Post-send draft '+str(i));page.wait_for_function('(text)=>notes.a.content.text.includes(text)',arg='Post-send draft '+str(i))
   counters=f.evaluate('window.__perf');assert counters=={'parses':0,'joins':0,'encodes':0},counters

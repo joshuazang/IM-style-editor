@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.1.6](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.0.2](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.1.7](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.0.3](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. The original
 [Mosaic install link](https://joshuazang.github.io/Mosaic/mosaic.ext.json)
@@ -75,3 +75,15 @@ palette for preset background colors and **Add label** in its three-dot menu.
 Labels reuse the shared tags; card colors are optional message metadata that
 IM preserves. Nearby previews use their measured heights to avoid blank space
 and clipped controls. Draft saving and the shared core are unchanged.
+
+IM 4.1.7 and Mosaic 1.0.3 share the same solid context-menu design and SVG
+dictionary in `shared/ui`. A separate tag panel appears above the actions, and
+Delete has its own separator. Existing IM actions keep their handlers; Export
+and Add label expose the existing transfer/tag data paths from the context menu.
+
+Mosaic cards open directly for editing. Enter adds newlines inside the opened
+card; the bottom-right **Close** saves and waits for acknowledgment. The timestamp
+and separate edited/status indicators appear in that editor, with no timestamps
+on the board. Only Pin occupies the top-right corner; palette, More and Close
+are at the bottom. Capture moves to the bottom and retains Enter-to-send, while
+the top-right Search/tags and More controls match IM. See [release validation](docs/release-4.1.7-mosaic-1.0.3.md).

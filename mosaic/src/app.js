@@ -9,7 +9,7 @@ function button(label, icon, handler, className='icon-button') {
   if(handler)node.addEventListener('click',event=>{event.stopPropagation();handler(event);});return node;
 }
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
-let active=null, modalState=null, toastTimer, frame=0, layout={items:[],headings:[],height:0,count:0};
+let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null);
 const viewMemory=new Map(), unfinishedEdits=new Map();
 // Only unconfirmed sessions and deferred status intents survive note switches.
@@ -223,7 +223,7 @@ function renderTags() {
   const box=$('tag-filters');box.replaceChildren();if(!active)return;
   const s=active;
   const add=(tag,label,icon)=>{
-    const node=button(label,icon,()=>{s.view.tag=s.view.tag===tag?'':tag;s.view.scroll=0;viewport.scrollTop=0;renderAll();},'tag-chip'+(tag==='__untagged__'?' untagged':''));
+    const node=button(label,icon,()=>{s.view.tag=s.view.tag===tag?'':tag;s.view.scroll=0;viewport.scrollTop=0;searchOpen=false;renderAll();},'tag-chip'+(tag==='__untagged__'?' untagged':''));
     if(!icon){node.replaceChildren(el('span','',tag?label:'All'));}
     node.setAttribute('aria-label',tag==='__untagged__'?'Untagged cards':tag?'Filter by '+tag:'All tags');node.setAttribute('aria-pressed',String(s.view.tag===tag));
     box.append(node);
@@ -234,8 +234,9 @@ function renderTags() {
 }
 function renderAll() {
   const s=active;renderStatus();renderNotice();renderCapture();renderTags();
-  $('welcome').hidden=!!s;$('more-button').disabled=!s;$('pinned-filter').disabled=!s;$('search').disabled=!s;
+  $('welcome').hidden=!!s;$('more-button').disabled=!s;$('search-button').disabled=!s;$('pinned-filter').disabled=!s;$('search').disabled=!s;
   $('pinned-filter').setAttribute('aria-pressed',String(!!s?.view.pinned));
+  renderSearchControls();refreshEditorMetadata();
   $('app').classList.toggle('selection-mode',!!s?.view.selecting);
   rebuildLayout();renderSelection();
 }
@@ -292,6 +293,21 @@ function metaText(message) {
   if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime()))bits.push(new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.createdAt)));
   if(message.edited)bits.push('Edited');return bits.join(' · ');
 }
+function statusText(message) {
+  return [message.copied&&'Copied',message.exported&&'Exported',MosaicModel.isImported(message)&&'Imported',message.edited&&'edited'].filter(Boolean).join(' · ');
+}
+function renderSearchControls() {
+  const s=active,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned);
+  $('search-tags-panel').hidden=!searchOpen;$('search-button').setAttribute('aria-expanded',String(searchOpen));$('change-filter').setAttribute('aria-expanded',String(searchOpen));
+  if(searchOpen){const header=document.querySelector('.board-toolbar');$('search-tags-panel').style.top=(header.offsetTop+header.offsetHeight+6)+'px';}
+  $('search-button').hidden=!!filtered;$('more-button').hidden=!!filtered;$('filter-pill').hidden=!filtered;
+  const change=$('change-filter');change.replaceChildren();
+  const symbol=el('span','filter-symbol');
+  if(s?.view.tag&&s.view.tag!=='__untagged__')symbol.textContent=s.view.tag;
+  else symbol.append(mosaicIcon(s?.view.tag==='__untagged__'?'untagged':s?.view.pinned?'pin':'searchTags'));
+  const check=el('span','filter-check');check.append(mosaicIcon('check'));symbol.append(check);change.append(symbol);
+}
+function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
 function cardNode(message) {
   const s=active,parts=MosaicModel.split(message.text),pinned=MosaicModel.pins(s.settings).includes(message.id);
   const node=el('article','card'+(pinned?' is-pinned':'')+(s.view.selected.has(message.id)?' selected':''));
@@ -304,13 +320,13 @@ function cardNode(message) {
   if(message.replyTo)node.append(el('div','card-reply',message.replyTo.text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
   if(parts.body)node.append(el('p','card-body',parts.body));
   if(message.reactions.length){const tags=el('div','card-tags');for(const tag of message.reactions.slice(0,10))tags.append(el('span','card-tag',tag));node.append(tags);}
-  const meta=el('div','card-meta');meta.append(el('span','meta-text',metaText(message)),el('span','meta-dot'));node.append(meta);
+  const statuses=statusText(message);if(statuses)node.append(el('div','card-meta',statuses));
   const tools=el('div','card-tools');tools.append(
     button('Background options','palette',event=>colorMenu(message.id,event),'icon-button palette-card'),
     button('Card options','more',event=>cardMenu(message,event),'icon-button more-card'));
   node.append(tools);
   let longPressed=false;
-  node.addEventListener('click',()=>{if(longPressed){longPressed=false;return;}if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):readCard(message.id);});
+  node.addEventListener('click',()=>{if(longPressed){longPressed=false;return;}if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);});
   node.addEventListener('keydown',event=>{if(event.target!==node)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
   node.addEventListener('contextmenu',event=>{event.preventDefault();cardMenu(message,event);});
   let press=0,start;
@@ -337,19 +353,29 @@ function togglePin(s,id) {
   const ids=MosaicModel.pins(s.settings);const next=ids.includes(id)?ids.filter(value=>value!==id):[...ids,id];
   return update(s,{settings:{...s.settings,pinnedMessageIds:next}});
 }
-function showMenu(items,event) {
-  hideMenu();menu.replaceChildren();menu.className='menu';menu.setAttribute('role','menu');menu.removeAttribute('aria-label');
-  for(const item of items){if(!item){menu.append(el('hr'));continue;}const [label,icon,action,danger]=item;const b=button(label,icon,()=>{hideMenu();safeRun(action);},danger?'danger':'');b.append(el('span','',label));b.setAttribute('role','menuitem');menu.append(b);}
+function showMenu(items,event,{message,addLabel,toggleTag}={}) {
+  hideMenu();menu.replaceChildren();menu.className='menu ui-context-menu';menu.setAttribute('role','menu');menu.removeAttribute('aria-label');
+  if(message){
+    const panel=el('section','ui-tag-panel'),grid=el('div','ui-tag-grid');grid.setAttribute('role','group');grid.setAttribute('aria-label','Tags');
+    for(const tag of new Set([...MosaicModel.tags(active.messages,active.settings),...message.reactions])){
+      const choice=button('Tag '+tag,null,()=>{hideMenu();toggleTag(tag);},'ui-tag-choice');choice.textContent=tag;choice.setAttribute('aria-pressed',String(message.reactions.includes(tag)));grid.append(choice);
+    }
+    const add=button('Add label','plus',()=>{hideMenu();addLabel();},'ui-tag-add');add.append(el('span','','Add label'));panel.append(grid,add);menu.append(panel);
+  }
+  const panel=el('div','ui-action-panel');
+  for(const item of items){if(!item){panel.append(el('hr'));continue;}const [label,icon,action,danger]=item;const b=button(label,icon,()=>{hideMenu();safeRun(action);},danger?'danger':'');b.append(el('span','',label));b.setAttribute('role','menuitem');panel.append(b);}
+  menu.append(panel);
   placeMenu(event);
 }
 function placeMenu(event) {
+  (modal.open?$('modal-content'):document.body).append(menu);
   menu.hidden=false;
   const anchor=(event?.currentTarget||$('more-button')).getBoundingClientRect();
   const x=event?.clientX||anchor.right,y=event?.clientY||anchor.bottom;
   const rect=menu.getBoundingClientRect();menu.style.left=Math.max(10,Math.min(x-rect.width+20,innerWidth-rect.width-10))+'px';menu.style.top=Math.max(10,Math.min(y+7,innerHeight-rect.height-10))+'px';
   menu.querySelector('button')?.focus({preventScroll:true});
 }
-function hideMenu(){menu.hidden=true;}
+function hideMenu(){menu.hidden=true;if(menu.parentNode!==document.body)document.body.append(menu);}
 function colorMenu(id,event) {
   const s=active,message=s?.messages.find(m=>m.id===id);if(!message||!writable(s))return;
   hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Card background colors');
@@ -395,17 +421,27 @@ function labelDialog(id) {
 }
 function cardMenu(message,event) {
   const s=active,pinned=MosaicModel.pins(s.settings).includes(message.id);
-  showMenu([['Edit','edit',()=>editCard(message.id)],['Add label','tag',()=>labelDialog(message.id)],['Reply','reply',()=>replyTo(message.id)],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
-    ['Copy text','copy',()=>copyRecords(s,[message])],['Export','export',()=>exportRecords(s,[message])],['Select','select',()=>startSelection(message.id)],null,['Delete','trash',()=>deleteCards(s,new Set([message.id])),true]],event);
+  const editing=modalState?.kind==='edit'&&modalState.uuid===s.note.uuid&&modalState.id===message.id?modalState:null;
+  const current=()=>s.messages.find(m=>m.id===message.id);
+  const saved=action=>async()=>{if(editing&&!(await editing.commit(false)))return;return action();};
+  showMenu([['Edit','edit',()=>editCard(message.id)],['Reply','reply',saved(()=>replyTo(message.id))],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
+    ['Copy text','copy',saved(()=>copyRecords(s,[current()]))],['Export','export',saved(()=>exportRecords(s,[current()]))],['Select','select',saved(()=>{closeModal(true);startSelection(message.id);})],null,['Delete','trash',saved(()=>deleteCards(s,new Set([message.id]))),true]],event,{
+    message:editing?{...message,reactions:[...editing.tags]}:message,
+    addLabel:()=>editing?editing.custom.focus():labelDialog(message.id),
+    toggleTag:tag=>{
+      if(editing){editing.toggleTag(tag);return;}
+      const source=current();if(source)safeRun(()=>update(s,{messages:s.messages.map(m=>m.id===source.id?{...m,reactions:m.reactions.includes(tag)?m.reactions.filter(value=>value!==tag):[...m.reactions,tag]}:m)}));
+    }
+  });
 }
 function mainMenu(event) {
-  if(!active)return;const s=active;
+  if(!active)return;const s=active;searchOpen=false;renderSearchControls();
   showMenu([['Import from clipboard','import',()=>importDialog()],['Export all cards','export',()=>exportRecords(s,s.messages)],['Select cards','select',()=>startSelection()],
     ['Clear message statuses','select',()=>statusDialog(null)],['Clear clipboard','trash',()=>clearClipboardDialog()],null,
     ...(latestUnfinished(s.note.uuid)?[['Resume unfinished edit','edit',()=>editCard(latestUnfinished(s.note.uuid).id)]]:[]),['About Mosaic','info',()=>aboutDialog()]],event);
 }
 function openModal(kind,title) {
-  closeModal(true);const root=$('modal-content');root.replaceChildren();const heading=el('div','dialog-heading'),h=el('h2','',title);h.id='dialog-title';
+  stashEdit();closeModal(true);const root=$('modal-content');root.replaceChildren();modal.classList.toggle('card-edit-dialog',kind==='edit');const heading=el('div','dialog-heading'),h=el('h2','',title);h.id='dialog-title';
   const state={kind,uuid:active?.note.uuid,root,error:null,busy:false};modalState=state;
   heading.append(h,button('Close','close',()=>closeModal()));root.append(heading);modal.showModal();return state;
 }
@@ -414,8 +450,9 @@ function dialogError(record,text) {
 }
 function closeModal(force=false) {
   if(!force&&modalState?.busy)return;
+  if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
-  if(modal.open)modal.close();modalState=null;
+  hideMenu();if(modal.open)modal.close();modalState=null;
 }
 function stashEdit() {
   const d=modalState;if(!d||d.kind!=='edit'||!d.currentText||!active||d.uuid!==active.note.uuid)return;
@@ -431,68 +468,93 @@ function confirmAction(title,description,label,action,danger=false) {
   },danger?'secondary-button danger':'primary-button');
   const cancel=button('Cancel',null,()=>closeModal(),'secondary-button');actions(d,[cancel,confirm]);cancel.focus();return d;
 }
+function refreshEditorMetadata() {
+  const d=modalState,s=active;if(d?.kind!=='edit'||d.uuid!==s?.note.uuid||!d.meta)return;
+  const message=s.messages.find(m=>m.id===d.id);if(!message)return;
+  const color=MosaicModel.color(message,dark.matches);modal.style.setProperty('--edit-card-color',color.background);modal.style.setProperty('--edit-card-ink',color.ink);
+  const pinned=MosaicModel.pins(s.settings).includes(message.id);d.pin.setAttribute('aria-label',pinned?'Unpin card':'Pin card');d.pin.title=pinned?'Unpin card':'Pin card';d.pin.setAttribute('aria-pressed',String(pinned));
+  d.meta.replaceChildren();
+  const add=(text,className='')=>{if(d.meta.childNodes.length)d.meta.append(el('span','metadata-separator',' · '));d.meta.append(el('span',className,text));};
+  if(message.copied)add('Copied');if(message.exported)add('Exported');if(MosaicModel.isImported(message))add('Imported');
+  if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime())){
+    const text=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.createdAt));
+    add(text,'card-timestamp');d.meta.querySelector('.card-timestamp').title=new Date(message.createdAt).toLocaleString();
+  }
+  if(message.edited)add('edited','card-edited');
+}
 function editorDialog(id=null) {
   if(!id){$('capture-input').focus();return;}
+  if(modalState?.kind==='edit'&&modalState.id===id&&modalState.uuid===active?.note.uuid){modalState.body.focus();return;}
   const s=active;if(!writable(s)){notify('This note is read only until the notice above is resolved.');return;}
   const message=s.messages.find(m=>m.id===id);if(!message)return;
   const stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
-  const restored=stashed?.id===id&&stashed.original===message?.text?stashed:null;
+  const restored=stashed?.id===id&&stashed.original===message.text?stashed:null;
   const original=message.text,parts=MosaicModel.split(restored?.text??original);
-  const d=openModal('edit','Edit card');Object.assign(d,{id,original,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false});
+  const d=openModal('edit','Edit card');Object.assign(d,{id,original,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
   if(stashed&&!restored){
     d.root.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
     const earlier=el('textarea','transfer-text');earlier.readOnly=true;earlier.value=stashed.text;earlier.setAttribute('aria-label','Earlier unfinished edit');d.root.append(earlier);
   }
-  const title=el('input','editor-title');title.type='text';title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=parts.title;title.autocomplete='off';
-  const body=el('textarea','editor-body');body.placeholder='Text';body.setAttribute('aria-label','Card body');body.value=parts.body;
-  d.root.append(title,body);
-  const tags=el('div','editor-tags');
-  const tagButton=tag=>{const b=button(tag,null,()=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;b.setAttribute('aria-pressed',String(d.tags.has(tag)));},'editor-tag');b.setAttribute('aria-label','Tag '+tag);b.setAttribute('aria-pressed',String(d.tags.has(tag)));return b;};
-  for(const tag of [...new Set([...MosaicModel.tags(s.messages,s.settings),...d.tags])])tags.append(tagButton(tag));
-  const custom=el('input','new-tag');custom.placeholder='Add emoji';custom.setAttribute('aria-label','Add emoji tag');custom.maxLength=32;
-  custom.addEventListener('keydown',event=>{if(event.key==='Enter'&&custom.value.trim()){event.preventDefault();const tag=custom.value.trim();d.tags.add(tag);tags.insertBefore(tagButton(tag),custom);custom.value='';d.fieldRevision++;}});tags.append(custom);d.root.append(tags);
-  const submit=button('Save changes',null,()=>safeRun(saveEditor),'primary-button');d.submit=submit;
-  const close=button('Close',null,()=>closeModal(),'secondary-button');actions(d,[close,submit]);
-  const change=()=>{
-    d.fieldRevision++;d.currentText=MosaicModel.join(original,title.value,body.value);submit.disabled=!d.currentText.trim()||d.sending;
-  };
+  const title=el('input','editor-title');title.type='text';title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=parts.title;title.enterKeyHint='enter';
+  const body=el('textarea','editor-body');body.placeholder='Text';body.setAttribute('aria-label','Card body');body.value=parts.body;body.enterKeyHint='enter';d.body=body;
+  const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
+  d.root.append(title,pin,body);
+  const tags=el('div','editor-tags'),custom=el('input','new-tag');custom.placeholder='Add label';custom.setAttribute('aria-label','New label');custom.maxLength=32;d.custom=custom;
+  function renderEditorTags(){
+    tags.replaceChildren();
+    for(const tag of new Set([...MosaicModel.tags(s.messages,s.settings),...d.tags])){
+      const b=button('Tag '+tag,null,()=>d.toggleTag(tag),'editor-tag');b.textContent=tag;b.setAttribute('aria-pressed',String(d.tags.has(tag)));tags.append(b);
+    }
+    tags.append(custom);
+  }
+  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags();};
+  custom.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&custom.value.trim()){event.preventDefault();d.tags.add(custom.value.trim());d.fieldRevision++;custom.value='';renderEditorTags();custom.focus();}});
+  renderEditorTags();d.root.append(tags);
+  d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');d.root.append(d.meta);
+  const footer=el('div','card-detail-tools');
+  const palette=button('Background options','palette',event=>colorMenu(id,event));
+  const more=button('Card options','more',event=>cardMenu(s.messages.find(m=>m.id===id),event),'icon-button detail-more');
+  const close=button('Close',null,()=>safeRun(()=>saveEditor(true)),'detail-close');d.submit=close;
+  footer.append(palette,more,close);d.root.append(footer);
+  const change=()=>{d.fieldRevision++;d.currentText=MosaicModel.join(original,title.value,body.value);};
   title.addEventListener('input',change);body.addEventListener('input',change);
-  body.enterKeyHint='send';title.enterKeyHint='send';
-  bindSubmitField(body,()=>submit.click());
-  bindSubmitField(title,()=>submit.click(),{newline:()=>{
-    const suffix=title.value.slice(title.selectionEnd);title.value=title.value.slice(0,title.selectionStart);
+  // Enter is ordinary multiline editing here; the capture field has its own send keys.
+  title.addEventListener('keydown',event=>{
+    if(event.key!=='Enter'||event.isComposing||event.keyCode===229)return;
+    event.preventDefault();const suffix=title.value.slice(title.selectionEnd);title.value=title.value.slice(0,title.selectionStart);
     body.value=suffix+(body.value?'\n'+body.value:'');change();body.focus();body.setSelectionRange(0,0);
-  }});
-  async function saveEditor() {
-    if(active!==s||modalState!==d)return;
-    if(!writable(s)){dialogError(d,'Saving is paused. Your edit is still here; review the saved version before continuing.');return;}
-    if(d.sending){await persist(s);return;}
-    if(!d.currentText.trim())return;
+  });
+  d.root.addEventListener('contextmenu',event=>{if(event.target.closest('#menu'))return;event.preventDefault();cardMenu(s.messages.find(m=>m.id===id),event);});
+  d.commit=saveEditor;
+  async function saveEditor(closeAfter=true) {
+    if(active!==s||modalState!==d)return false;
+    if(!writable(s)){dialogError(d,'Saving is paused. Your edit is still here; review the saved version before continuing.');return false;}
+    d.wantClose=d.wantClose||closeAfter;
+    if(d.sending){try{await persist(s);return !d.sending;}catch{return false;}}
     const submitted=d.currentText,submittedTags=[...d.tags],revision=d.fieldRevision;
-    const source=s.messages.find(m=>m.id===id);if(!source||source.text!==d.original){dialogError(d,'This card changed since you opened it. Your text is still here; copy it before reopening the card.');return;}
-      const edited={...imFormat.editMessage(source,submitted),reactions:submittedTags};
-      if(submitted===source.text&&JSON.stringify(edited.reactions)===JSON.stringify(source.reactions)){if(restored)unfinishedEdits.delete(editKey(s.note.uuid,id));closeModal(true);return;}
-    const next=s.messages.map(m=>m.id===id?edited:m);
+    const source=s.messages.find(m=>m.id===id);if(!source||source.text!==d.original){dialogError(d,'This card changed since you opened it. Your text is still here; copy it before reopening the card.');return false;}
+    const edited={...imFormat.editMessage(source,submitted),reactions:submittedTags};
+    if(submitted===source.text&&JSON.stringify(edited.reactions)===JSON.stringify(source.reactions)){
+      if(restored)unfinishedEdits.delete(editKey(s.note.uuid,id));if(d.wantClose)closeModal(true);return true;
+    }
     const tagOrder=[...new Set([...(s.settings.reactionOrder||MosaicModel.tags(s.messages,s.settings)),...d.tags])];
-    d.sending=true;d.busy=true;submit.disabled=true;
-    const saving=update(s,{messages:next,settings:{...s.settings,reactionOrder:tagOrder}});
+    d.sending=true;d.busy=true;close.disabled=true;close.textContent='Saving…';
+    const saving=update(s,{messages:s.messages.map(m=>m.id===id?edited:m),settings:{...s.settings,reactionOrder:tagOrder,deletedEmojis:(s.settings.deletedEmojis||[]).filter(tag=>!d.tags.has(tag))}});
     s.intents.add({revision:s.revision,finish:()=>{
-      const stored=unfinishedEdits.get(editKey(s.note.uuid,id));
-      if(stored?.text===submitted&&JSON.stringify(stored.tags)===JSON.stringify(submittedTags))unfinishedEdits.delete(editKey(s.note.uuid,id));
+      const stored=unfinishedEdits.get(editKey(s.note.uuid,id));if(stored?.text===submitted&&JSON.stringify(stored.tags)===JSON.stringify(submittedTags))unfinishedEdits.delete(editKey(s.note.uuid,id));
       if(modalState!==d)return;
-      d.sending=false;d.busy=false;submit.disabled=false;
-      submit.textContent='Save changes';submit.setAttribute('aria-label',submit.textContent);submit.title=submit.textContent;
+      d.sending=false;d.busy=false;close.disabled=false;close.textContent='Close';close.setAttribute('aria-label','Close');
       if(d.error){d.error.remove();d.error=null;}
-      if(d.fieldRevision===revision){closeModal(true);notify('Card updated.');}
-      else{d.original=submitted;d.originalTags=submittedTags;notify('Card saved. Your newer typing is still here.');}
+      d.original=submitted;d.originalTags=submittedTags;
+      if(d.wantClose&&d.fieldRevision===revision){closeModal(true);notify('Card updated.');}
+      else{d.wantClose=false;refreshEditorMetadata();}
     }});
-    try{await saving;}catch{
-      d.busy=false;submit.disabled=false;submit.textContent='Retry save';
-      submit.setAttribute('aria-label','Retry save');submit.title='Retry save';
-      dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');
+    try{await saving;return d.fieldRevision===revision;}catch{
+      d.busy=false;close.disabled=false;close.textContent='Retry save';close.setAttribute('aria-label','Retry save');
+      dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
     }
   }
-  submit.disabled=!d.currentText.trim();setTimeout(()=>title.focus(),0);
+  refreshEditorMetadata();setTimeout(()=>body.focus(),0);
 }
 function editCard(id){editorDialog(id);}
 function readCard(id) {
@@ -621,7 +683,7 @@ function aboutDialog() {
   const d=openModal('about','Mosaic · '+MOSAIC_VERSION);
   d.root.append(el('p','about-copy','Each card is the same message your IM-style editor reads: first line as the title, everything below as the body. There is no separate copy of your notes.'));
   d.root.append(el('p','about-copy','Your note content is saved through Standard Notes. Mosaic has no analytics, independent cloud service, or browser-storage copy. Saving still submits a complete note; very large active notes can reach Standard Notes’ sync limits.'));
-  d.root.append(el('p','about-copy','New-card drafts save as you type. For an existing card edit, choose Save changes before switching editors. Unfinished edits remain available while this editor stays open.'));
+  d.root.append(el('p','about-copy','New-card drafts save as you type. Click a card to edit. Enter adds a line; Close saves. Use Close before switching editors. Unfinished edits remain available while this editor stays open.'));
   const p=el('p','about-copy'),a=el('a','','Source, installation & privacy details');a.href='https://github.com/joshuazang/IM-style-editor/tree/main/mosaic';a.target='_blank';a.rel='noopener noreferrer';p.append(a);d.root.append(p);
 }
 function demo() {
@@ -648,7 +710,10 @@ function demo() {
   active.demo=true;renderAll();
 }
 
-$('search-icon').append(mosaicIcon('search'));$('pin-filter-icon').append(mosaicIcon('pin'));$('more-button').append(mosaicIcon('more'));
+$('search-icon').append(mosaicIcon('search'));$('pin-filter-icon').append(mosaicIcon('pin'));$('more-button').append(mosaicIcon('toolbarMore'));
+$('search-button').append(mosaicIcon('searchTags'));$('clear-filter').append(mosaicIcon('close'));
+$('search-button').addEventListener('click',toggleSearch);$('change-filter').addEventListener('click',toggleSearch);
+$('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';searchOpen=false;renderAll();});
 $('more-button').addEventListener('click',mainMenu);
 $('capture-input').addEventListener('input',inputCapture);
 $('capture-input').addEventListener('compositionstart',()=>{if(active)active.composing=true;});
@@ -675,18 +740,23 @@ document.addEventListener('click',event=>{
   if(pending?.session===active)safeRun(()=>submitCapture(pending.session,pending.tag));
   else if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice'))safeRun(()=>submitCapture());
 },true);
-$('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;renderAll();}});
+$('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;searchOpen=false;renderAll();}});
 $('search').addEventListener('input',event=>{if(active){active.view.query=event.target.value;viewport.scrollTop=0;renderAll();}});
+$('search').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing){event.preventDefault();searchOpen=false;renderSearchControls();viewport.focus();}});
 $('empty-action').addEventListener('click',()=>{if(!active)return;if(active.view.query||active.view.tag||active.view.pinned){Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';renderAll();}else editorDialog();});
 $('preview-button').addEventListener('click',demo);
 viewport.addEventListener('scroll',scheduleWindow,{passive:true});
-let lastWidth=0;new ResizeObserver(()=>{if(board.clientWidth!==lastWidth){lastWidth=board.clientWidth;rebuildLayout();}}).observe(viewport);
+let lastWidth=0;new ResizeObserver(()=>{if(board.clientWidth!==lastWidth){lastWidth=board.clientWidth;rebuildLayout();}if(searchOpen)renderSearchControls();}).observe(viewport);
 dark.addEventListener('change',()=>rebuildLayout());
-document.addEventListener('pointerdown',event=>{if(!menu.hidden&&!menu.contains(event.target)&&!event.target.closest('#more-button,.more-card,.palette-card'))hideMenu();});
+document.addEventListener('pointerdown',event=>{
+  if(!menu.hidden&&!menu.contains(event.target)&&!event.target.closest('#more-button,.more-card,.palette-card,.detail-more'))hideMenu();
+  if(searchOpen&&!event.target.closest('#search-tags-panel,.board-toolbar')){searchOpen=false;renderSearchControls();}
+});
 document.addEventListener('keydown',event=>{
   if(event.key==='Escape'){
     if(!menu.hidden){event.preventDefault();hideMenu();return;}
     if(modal.open)return;
+    if(searchOpen){event.preventDefault();searchOpen=false;renderSearchControls();return;}
     if(active?.view.selecting){event.preventDefault();cancelSelection();}
   }
   if(!menu.hidden&&['ArrowDown','ArrowUp','Home','End'].includes(event.key)){

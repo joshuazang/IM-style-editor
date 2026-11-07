@@ -5,7 +5,7 @@ import re
 import sys
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
-from shared_core import core_source, core_digest, release_config
+from shared_core import core_source, core_digest, release_config, ui_script, ui_styles, ui_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = sys.argv[1] if len(sys.argv)>1 else release_config()['im_version']
@@ -16,7 +16,7 @@ TARGET = ROOT / 'next'
 ASSETS = TARGET / 'assets'
 ASSETS.mkdir(exist_ok=True)
 helpers = []
-for name in ['message-spacing.js', 'menu-layout.js',
+for name in ['message-spacing.js', 'menu-layout.js', 'context-menu.js',
              'transfer-ui.js', 'editor-interactions.js',
              'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js']:
     path = TARGET / 'src' / name
@@ -37,7 +37,7 @@ prefix = prefix.replace('onReady:()=>pf.streamContextItem(Md)', 'onReady:()=>{im
 def private_fields(source):
     return re.sub(r'''x\.(jsx|jsxs)\((["'])(textarea|input)\2\s*,''',
                   lambda match:'x.'+match[1]+'('+( 'ImPrivateTextarea' if match[3]=='textarea' else 'ImPrivateInput')+',',source)
-script = (core_source() + private_fields('\n'.join(helpers)) + '\n' + prefix +
+script = (core_source() + ui_script() + private_fields('\n'.join(helpers)) + '\n' + prefix +
           (TARGET / 'src/private-fields.js').read_text() + '\n' +
           private_fields((TARGET / 'src/editor-runtime.js').read_text()))
 old_html = (ROOT / 'index.html').read_text()
@@ -85,6 +85,7 @@ styles = (ROOT / css_path).read_text() + '''
  .selection-more-menu,.day-divider .day-select{background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent);backdrop-filter:blur(var(--frost-blur));-webkit-backdrop-filter:blur(var(--frost-blur))}
 }
 '''
+styles += '\n' + ui_styles()
 files = {}
 for data, suffix in [(script.encode(), '.js'), (styles.encode(), '.css')]:
     name = 'assets/index-' + hashlib.sha256(data).hexdigest()[:12] + suffix
@@ -105,7 +106,7 @@ for name in ['occult-field-journal-v2.svg']:
 html = re.sub(r'src="\./assets/[^"?]+\.js"', f'src="./{js_name}"', old_html)
 html = re.sub(r'href="\./assets/[^"?]+\.css"', f'href="./{css_name}"', html)
 html = re.sub(r'name="im-style-editor-version" content="[^"]+"', f'name="im-style-editor-version" content="{VERSION}"', html)
-html = html.replace('</head>', f'<meta name="im-shared-core" content="{core_digest()}">\n  </head>')
+html = html.replace('</head>', f'<meta name="im-shared-core" content="{core_digest()}">\n<meta name="im-shared-ui" content="{ui_digest()}">\n  </head>')
 html = html.replace('<title>IM-style-editor Archive</title>', '<title>IM-style-editor</title>')
 (TARGET / 'index.html').write_text(html)
 files['index.html'] = html.encode()

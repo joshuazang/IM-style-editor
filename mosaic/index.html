@@ -4,27 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="mosaic-version" content="1.0.2">
+  <meta name="mosaic-version" content="1.0.3">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; img-src 'self' data:; font-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'">
   <title>Mosaic — a board for Standard Notes</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/mosaic-7ea02ed3a5c6.css">
-  <script defer src="./assets/mosaic-08eb06a51231.js"></script>
+  <link rel="stylesheet" href="./assets/mosaic-2c1923fab90c.css">
+  <script defer src="./assets/mosaic-dce34df0f5f5.js"></script>
 <meta name="im-shared-core" content="4f813d7242d7ab7d76dea706c2b70fe279a8b016f77dd475bacbdaf87c6f9778">
+<meta name="im-shared-ui" content="dc58d9814e0b818372a08ddde0b14028973e717c2be3cc67089064ddf0bb2880">
 </head>
 <body>
   <div id="app">
     <div id="notice" role="alert" hidden></div>
-    <header class="toolbar"><div class="search-bar">
+    <header class="board-toolbar ui-toolbar">
+      <button id="search-button" class="ui-toolbar-button" aria-label="Search and tags" aria-expanded="false" aria-controls="search-tags-panel"></button>
+      <button id="more-button" class="ui-toolbar-button ui-toolbar-more" aria-label="More options" aria-haspopup="menu"></button>
+      <div id="filter-pill" class="board-filter-pill" role="group" aria-label="Card filter" hidden>
+        <button id="change-filter" aria-label="Change filters" aria-expanded="false"></button>
+        <button id="clear-filter" aria-label="Clear all filters"></button>
+      </div>
+    </header>
+    <section id="search-tags-panel" class="board-search-panel frost" aria-label="Search and tags" hidden>
       <label class="search-field"><span id="search-icon"></span><input id="search" type="search" placeholder="Search" aria-label="Search cards" autocomplete="off"></label>
-      <button id="pinned-filter" class="icon-button" aria-label="Pinned cards" aria-pressed="false"><span id="pin-filter-icon"></span></button>
-      <button id="more-button" class="icon-button" aria-label="More options" aria-haspopup="menu"></button>
-    </div></header>
-    <nav id="tag-filters" class="tag-filters" aria-label="Filter by emoji tag"></nav>
-    <section id="capture-composer" class="inline-composer" aria-label="New card">
-      <div id="capture-reply" hidden></div>
-      <textarea id="capture-input" rows="1" placeholder="Take a note…" aria-label="Take a note" enterkeyhint="send" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" writingsuggestions="false"></textarea>
-      <span id="save-status" role="status" hidden></span>
+      <nav id="tag-filters" class="tag-filters" aria-label="Filter by emoji tag"></nav>
+      <button id="pinned-filter" class="text-button" aria-label="Pinned cards" aria-pressed="false"><span id="pin-filter-icon"></span> Pinned cards</button>
     </section>
     <main id="viewport" tabindex="-1">
       <div class="board-content">
@@ -33,6 +36,11 @@
         <div id="welcome" class="welcome" hidden><a href="./mosaic.ext.json">Install in Standard Notes</a><button id="preview-button" class="text-button">Preview</button></div>
       </div>
     </main>
+    <section id="capture-composer" class="inline-composer" aria-label="New card">
+      <div id="capture-reply" hidden></div>
+      <textarea id="capture-input" rows="1" placeholder="Take a note…" aria-label="Take a note" enterkeyhint="send" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" writingsuggestions="false"></textarea>
+      <span id="save-status" role="status" hidden></span>
+    </section>
     <div id="selection-bar" class="selection-bar frost" hidden></div>
     <div id="toast" class="toast" role="status" hidden></div>
     <div id="menu" class="menu" role="menu" hidden></div>

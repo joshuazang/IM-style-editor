@@ -3,6 +3,7 @@ import functools,http.server,json,re,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 from browser_engine import chromium_options
+from mosaic_helpers import fill_search,click_outside_capture,choose_tag,open_more
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
@@ -50,7 +51,7 @@ try:
    expect(field).to_have_value('中文输入');assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==202
    field.fill('');page.wait_for_function('!notes.a.content.text.includes("中文输入")')
    # Color and label actions are independent from text and status changes.
-   e.locator('#search').fill('Thought 192');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
+   fill_search(e,'Thought 192');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
    expect(card).to_be_visible();card.get_by_role('button',name='Background options',exact=True).click()
    palette=e.get_by_role('group',name='Card background colors',exact=True);expect(palette).to_be_visible()
    bounds=palette.bounding_box();assert bounds['x']>=0 and bounds['x']+bounds['width']<=width+1,bounds
@@ -58,7 +59,7 @@ try:
    page.wait_for_function('notes.a.content.text.includes("cardColor")');saved=parse(page.evaluate('notes.a.content.text'))
    source=saved['messages'][192];assert source['cardColor']=='iris' and source['text']==small['messages'][192]['text'] and not source.get('edited')
    assert card.evaluate('n=>getComputedStyle(n).color')=='rgb(255, 255, 255)'
-   card.get_by_role('button',name='Card options',exact=True).click();e.get_by_role('menuitem',name='Add label',exact=True).click()
+   card.get_by_role('button',name='Card options',exact=True).click();e.get_by_role('button',name='Add label',exact=True).click()
    e.get_by_role('checkbox',name='📍',exact=True).check()
    e.get_by_role('textbox',name='New label',exact=True).fill('Seminar');e.get_by_role('textbox',name='New label',exact=True).press('Enter')
    expect(e.get_by_role('checkbox',name='Seminar',exact=True)).to_be_checked();e.get_by_role('button',name='Done',exact=True).click()
@@ -69,8 +70,8 @@ try:
    card.click(button='right');e.get_by_role('menuitem',name='Edit',exact=True).click()
    title=e.get_by_role('textbox',name='Card title',exact=True);body=e.get_by_role('textbox',name='Card body',exact=True)
    title.fill('Changed title');title.press('End');title.press('Shift+Enter');expect(body).to_be_focused()
-   body.fill('Body');body.press('Shift+Enter');body.type('New line');body.press('Enter');expect(e.locator('dialog')).not_to_be_visible()
-   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['text']=='Changed title\nBody\nNew line' and saved['messages'][192]['cardColor']=='iris'
+   body.fill('Body');body.press('Shift+Enter');body.type('New line');body.press('Enter');expect(body).to_have_value('Body\nNew line\n');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
+   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['text']=='Changed title\nBody\nNew line\n' and saved['messages'][192]['cardColor']=='iris'
    # Colors survive editor round trips, including writes performed by IM.
    page.evaluate('openEditor("a","/next/index.html")');im=page.frame_locator('#editor').get_by_role('textbox',name='Message',exact=True)
    im.fill('Draft from IM');page.wait_for_function('notes.a.content.text.includes("Draft from IM")');page.evaluate('openEditor("a")')
@@ -82,22 +83,22 @@ try:
    page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(e.locator('#capture-input')).to_have_value('')
    assert sum(m['text']=='Keep rejected Enter' for m in parse(page.evaluate('notes.a.content.text'))['messages'])==1
    # Tapping a card tool still works when click-outside captures a draft first.
-   e.locator('#search').fill('Changed title');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
+   fill_search(e,'Changed title');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
    e.locator('#capture-input').fill('Touch outside still sends')
    if width<600:card.get_by_role('button',name='Card options',exact=True).tap()
    else:card.get_by_role('button',name='Card options',exact=True).click()
-   expect(e.get_by_role('menuitem',name='Add label',exact=True)).to_be_visible()
-   e.get_by_role('menuitem',name='Add label',exact=True).click();expect(e.get_by_role('checkbox',name='Seminar',exact=True)).to_be_checked()
+   expect(e.get_by_role('button',name='Add label',exact=True)).to_be_visible()
+   e.get_by_role('button',name='Add label',exact=True).click();expect(e.get_by_role('checkbox',name='Seminar',exact=True)).to_be_checked()
    e.get_by_role('button',name='Done',exact=True).click()
    assert sum(m['text']=='Touch outside still sends' for m in parse(page.evaluate('notes.a.content.text'))['messages'])==1
-   e.locator('#search').fill('Changed title');card.get_by_role('button',name='Background options',exact=True).click()
+   fill_search(e,'Changed title');card.get_by_role('button',name='Background options',exact=True).click()
    e.get_by_role('group',name='Card background colors',exact=True).get_by_role('button',name='Default',exact=True).click()
    page.wait_for_function('!notes.a.content.text.includes("cardColor")')
    assert 'cardColor' not in parse(page.evaluate('notes.a.content.text'))['messages'][192]
    assert not errors,errors;assert not external,external
    print(f'PASS {width}px: compact columns, Enter/Shift+Enter and soft-keyboard send, IME, reveal/focus, saved labels/colors, IM interchange and failed-send retry',flush=True)
    if width==390:
-    e.locator('#search').fill('');e.locator('#viewport').evaluate('n=>n.scrollTop=0');page.screenshot(path='/tmp/mosaic-mobile-new.png')
+    fill_search(e,'');e.locator('#viewport').evaluate('n=>n.scrollTop=0');page.screenshot(path='/tmp/mosaic-mobile-new.png')
    context.close()
   browser.close()
 finally:server.shutdown()

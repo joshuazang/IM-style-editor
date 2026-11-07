@@ -45,7 +45,8 @@ clearing empties the current clipboard, not every historical clipboard copy.
 ## Content handling and persistence
 
 - User text enters text nodes or textarea values, never evaluated HTML/scripts.
-  Mosaic's fixed SVG icon dictionary contains no user content.
+  The shared fixed SVG icon dictionary contains no user content. The DOM SVG
+  factory and React SVG wrapper interpret only those static strings as markup.
 - Format validation, escaped reserved lines, import preview and malformed-note
   read-only behavior are retained. Format 2 is intentionally incompatible.
 - Save snapshots are immutable and ordered per note, with one in flight and at
@@ -70,6 +71,10 @@ clearing empties the current clipboard, not every historical clipboard copy.
 - Mosaic card colors resolve preset IDs to fixed local CSS colors; arbitrary
   metadata cannot supply CSS or URLs. Labels are text in the existing reaction
   array, rendered as text nodes. Neither feature introduces storage/network APIs.
+- Opened Mosaic cards use normal multiline typing and save through the same
+  acknowledged queue on Close. Failed Close leaves the fields available; a late
+  acknowledgment cannot discard newer typing. Note switches can retain an
+  unfinished editor in RAM, but do not create an additional durable text copy.
 
 Neither the code review nor synthetic tests can establish that nobody or no
 machine can ever read a note. The renderer and trusted Standard Notes client

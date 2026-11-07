@@ -1,0 +1,13 @@
+{
+  "identifier": "com.joshuazang.mosaic",
+  "name": "Mosaic",
+  "content_type": "SN|Component",
+  "area": "editor-editor",
+  "version": "1.0.3",
+  "description": "A private plain-text card board sharing the same format-3 core as IM-style-editor.",
+  "url": "https://joshuazang.github.io/IM-style-editor/mosaic/index.html?v=1.0.3",
+  "download_url": "https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.3.zip",
+  "latest_url": "https://joshuazang.github.io/IM-style-editor/mosaic.ext.json",
+  "marketing_url": "https://github.com/joshuazang/IM-style-editor/tree/main/mosaic",
+  "thumbnail_url": "https://joshuazang.github.io/IM-style-editor/mosaic/icon.svg"
+}

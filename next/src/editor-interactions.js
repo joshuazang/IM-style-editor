@@ -231,13 +231,8 @@ function imCaptureSelectionHeight(composer){
 
 /* Outlined menu icons share a fixed column; labels remain the accessible names. */
 function ImContextLabel({kind,label}) {
-  const shared=['reply','copy','delete'].includes(kind);
-  const paths={edit:'m15 4 5 5M4 16 16 4a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L8 20l-5 1 1-5Z',select:'m7 12 4 4 6-9'};
   return x.jsxs(x.Fragment,{children:[
-    shared?x.jsx('span',{className:`context-action-icon${kind==='reply'?' context-reply-icon':''}`,'aria-hidden':true,
-      children:x.jsx(ImSelectionIcon,{kind:kind==='reply'?'export':kind})})
-      :x.jsxs('svg',{className:'context-action-icon',width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,focusable:'false',children:[
-        kind==='select'&&x.jsx('circle',{cx:12,cy:12,r:10}),x.jsx('path',{d:paths[kind]})]}),
+    x.jsx(ImUiIcon,{name:kind==='delete'?'trash':kind}),
     x.jsx('span',{children:label})
   ]});
 }
