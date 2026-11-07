@@ -64,6 +64,7 @@ const sizedMessage={id:f.newId(),text:'A longer title to wrap\n'+ 'Readable text
 m.measure(sizedMessage,170,false,false,111,'medium');
 const medium=m.layout([sizedMessage],{mosaicFontSize:'medium'},350).items[0];
 assert.equal(medium.width,170);assert.equal(medium.height,111);
+assert.equal(m.layout([sizedMessage],{mosaicFontSize:'medium'},350,'','',false,true).items[0].height,111,'Selection reuses the same measured height instead of estimating a different layout');
 assert.notEqual(m.layout([sizedMessage],{mosaicFontSize:'extra-large'},350).items[0].height,111,'Font changes must not reuse measured heights from another size');
 const appearanceSettings={...settings,mosaicPalette:'sand',mosaicFontSize:'extra-large'};
 assert.deepEqual(plain(other.inspect(f.portable(messages,appearanceSettings,draft,reply)).settings),appearanceSettings);

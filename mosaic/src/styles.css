@@ -59,11 +59,9 @@ input,textarea{min-width:0;color:var(--ink)}
 .card-meta .meta-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-meta .meta-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.5;flex:none}
 .card-reply{font-size:11px;border-left:2px solid var(--accent);background:#ffffff45;padding:7px 9px;margin:12px 0 0;border-radius:3px 8px 8px 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
-.selection-check{position:absolute;top:10px;left:9px;width:25px;height:25px;border:2px solid var(--accent);background:var(--surface);border-radius:50%;display:grid;place-items:center;z-index:2}
+.selection-check{position:absolute;top:-9px;left:-9px;width:22px;height:22px;border:1.5px solid #52606d;background:var(--surface);color:transparent;border-radius:50%;display:grid;place-items:center;z-index:2;box-shadow:none}
 .selection-check svg{width:16px;height:16px}
-.selection-mode .card-title{margin-left:23px}
-.card.selected{border:2px solid var(--accent);padding:19px 19px 14px;background:color-mix(in srgb,var(--card-color) 85%,var(--accent) 15%)}
-.card.selected .selection-check{background:var(--accent);color:white}
+.card.selected .selection-check{background:#202124;border-color:#202124;color:#fff}
 .card.located{animation:locate 2s ease-out}
 .empty-state{padding:45px 15px 35px;text-align:center;color:var(--muted)}
 .empty-state>span{display:grid;place-items:center;width:66px;height:66px;border:1px dashed #becdba;border-radius:22px;margin:0 auto 20px;color:#6f8a72}
@@ -85,7 +83,6 @@ input,textarea{min-width:0;color:var(--ink)}
 .selection-controls{display:flex;gap:6px}
 .selection-controls button{width:38px;height:38px}
 .selection-bar .select-all{border:0;border-radius:10px;background:var(--accent-soft);padding:10px 12px;color:var(--accent);white-space:nowrap;font-size:12px}
-.selection-mode .board-content{padding-bottom:100px}
 .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:100;background:var(--ink);color:var(--surface);box-shadow:var(--shadow);padding:12px 20px;border-radius:13px;font-size:12px;max-width:calc(100vw - 28px);text-align:center;pointer-events:none}
 #notice{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 25px;background:#fff2df;color:#784624;font-size:12px;line-height:1.6;flex-wrap:wrap}
 #notice button{padding:6px 10px;border-radius:8px;background:#ffffffbb;color:inherit;font-size:12px}
@@ -141,7 +138,6 @@ dialog::backdrop{background:#20382955;backdrop-filter:blur(4px);-webkit-backdrop
 .selection-controls{grid-column:1 / 3;justify-content:space-between}
 .selection-bar .select-all{grid-column:2;grid-row:1;padding:7px 9px;font-size:11px}
 .selection-controls button{width:43px;height:36px}
-.selection-mode .board-content{padding-bottom:145px}
 #modal-content{padding:22px}
 .editor-title{font-size:22px}
 .editor-body{font-size:16px;min-height:180px}
@@ -189,10 +185,8 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 }
 /* Compact two-column phone cards, with dedicated tools below the content. */
 .card{padding:18px 18px 14px;color:var(--card-ink,var(--ink))}
-.card.selected{padding:17px 17px 13px}
 .card-title{margin:0;letter-spacing:-.2px}
 .card.is-pinned .card-title{margin-right:26px}
-.selection-mode .card-title{margin-left:23px}
 .card .card-body{margin-top:10px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 88%,transparent)}
 .card .card-meta{margin-top:10px;padding-top:0;min-height:12px;line-height:12px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 72%,transparent)}
 .card .card-reply{margin-top:8px;color:inherit;border-left-color:currentColor}
@@ -204,7 +198,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-tools .icon-button svg{width:19px;height:19px}
 .card-tools .icon-button:hover{background:color-mix(in srgb,var(--card-ink,var(--ink)) 10%,transparent)}
 .card.is-compact{padding:12px 12px 10px}
-.card.is-compact.selected{padding:11px 11px 9px}
 .card.is-compact .card-title{font-size:16px;line-height:22px;font-weight:600}
 .card.is-compact .card-body{font-size:13px;line-height:20px}
 .card.is-compact .card-meta{font-size:9px;line-height:12px}
@@ -262,7 +255,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .board-toolbar .ui-selection-toolbar,.board-toolbar .ui-selection-actions{pointer-events:none}
 .board-toolbar button{pointer-events:auto}
 .board-content{padding-top:64px;padding-bottom:var(--capture-clearance,100px)}
-.selection-mode .board-content{padding-bottom:var(--capture-clearance,100px)}
 .inline-composer{position:absolute;z-index:20;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);margin:0}
 #selection-bar{position:absolute;z-index:20;left:36px;right:36px;bottom:max(24px,env(safe-area-inset-bottom));width:auto;transform:none}
 @media(max-width:650px){#selection-bar{left:16px;right:16px}.board-content{padding-top:64px}}
@@ -272,9 +264,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 :root[data-mosaic-palette=sand]{--canvas:#faf1e7;--surface:#fffcf8;--ink:#3d332c;--muted:#776657;--line:#dfd2c4;--accent:#77522e;--accent-soft:#f0dfc8;--frost:#fffcf8c7}
 #menu.ui-context-menu{--menu-surface:var(--surface);--menu-ink:var(--ink);--menu-line:var(--line);--menu-hover:var(--accent-soft);--menu-danger:var(--danger)}
 .card{padding:14px 14px 12px;border-color:var(--line)}
-.card.selected{padding:13px 13px 11px}
 .card.is-compact{padding:11px 11px 9px}
-.card.is-compact.selected{padding:10px 10px 8px}
 .card .card-body{margin-top:8px}
 .card-detail-tags .card-tag{display:inline-flex;align-items:center;justify-content:center;min-width:29px;min-height:26px;padding:2px 5px;border-radius:9px;border:1px solid color-mix(in srgb,var(--card-ink,var(--ink)) 30%,transparent);background:color-mix(in srgb,var(--card-color,var(--surface)) 44%,transparent);font-size:15px;line-height:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .card-tools{padding-top:2px;margin-top:0}
@@ -317,8 +307,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card .card-body{margin:0}
 .card .card-title+.card-body,.card .card-title+.card-reply,.card .card-reply+.card-body{margin-top:8px}
 .card.is-pinned .card-title{margin-right:0}
-.selection-mode .card-title,.selection-mode .card:not(:has(.card-title))>.card-body{margin-left:23px}
-.selection-mode .card{min-height:44px}
 .card-edit-dialog .detail-title{white-space:pre-wrap;font-size:var(--type-edit-title,26px);line-height:1.45;font-weight:650;margin:8px 46px 8px 0;overflow-wrap:anywhere;flex:none}
 .card-edit-dialog .editor-title{resize:none;line-height:1.45;min-height:48px;max-height:35dvh;overflow:auto;flex:none}
 .card-edit-dialog .editor-body{padding-right:32px}
@@ -345,3 +333,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card .card-tag:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 #search:focus{outline:none!important}
 #search:focus::placeholder{opacity:0!important}
+
+/* Selection is an overlay: text, padding, colors and masonry positions stay put. */
+.card.selected{border-color:#202124;background:var(--card-color,var(--surface));box-shadow:inset 0 0 0 1px #202124}

@@ -36,7 +36,7 @@ try:
    page.goto(BASE+'/tests/mosaic-host.html');page.evaluate('(note)=>{notes.a=note;notes.b={...structuredClone(note),uuid:"b"};openEditor("a","/next/index.html",'+str(width<600).lower()+')}',data['note'])
    im=page.frame_locator('#editor');capture=im.get_by_role('textbox',name='Message',exact=True);expect(capture).to_be_visible()
    ids=[m['id'] for m in data['messages']]
-   im.locator('.messages').evaluate('n=>n.scrollTop=0');first=im.locator('[data-message-id="'+ids[1]+'"]');first.click(button='right');im.get_by_role('menuitem',name='Select',exact=True).click()
+   im.locator('.messages').evaluate('(n,id)=>new Promise(resolve=>{n.imScroll?.cancel();n.imVirtual.reveal(id,resolve)})',ids[5]);first=im.locator('[data-message-id="'+ids[1]+'"]');first.click(button='right');im.get_by_role('menuitem',name='Select',exact=True).click()
    expected={ids[1]}
    def selected():return set(im.locator('.message-wrap.selected').evaluate_all('ns=>ns.map(n=>n.dataset.messageId)'))
    assert selected()==expected
@@ -85,15 +85,15 @@ try:
     # The two notes intentionally share message IDs. A pending touch from A
     # must not select a message after B has become the active note.
     page.evaluate('switchNote("b")');expect(im.locator('.selected')).to_have_count(0)
-    im.locator('.messages').evaluate('n=>n.scrollTop=0');im.locator('[data-message-id="'+ids[1]+'"]').click(button='right');im.get_by_role('menuitem',name='Select',exact=True).click();expect(im.locator('.message-wrap.selected')).to_have_count(1)
-    page.evaluate('switchNote("a")');expect(im.locator('.selection-status')).to_contain_text(str(len(expected))+' / 80 selected');im.locator('.messages').evaluate('n=>n.scrollTop=0');expect(im.locator('.message-wrap.selected')).to_have_count(len(expected))
+    im.locator('.messages').evaluate('(n,id)=>new Promise(resolve=>{n.imScroll?.cancel();n.imVirtual.reveal(id,resolve)})',ids[5]);im.locator('[data-message-id="'+ids[1]+'"]').click(button='right');im.get_by_role('menuitem',name='Select',exact=True).click();expect(im.locator('.message-wrap.selected')).to_have_count(1)
+    page.evaluate('switchNote("a")');expect(im.locator('.selection-status')).to_contain_text(str(len(expected))+' / 80 selected');im.locator('.messages').evaluate('(n,id)=>new Promise(resolve=>{n.imScroll?.cancel();n.imVirtual.reveal(id,resolve)})',ids[5]);expect(im.locator('.message-wrap.selected')).to_have_count(len(expected))
     pending=im.locator('[data-selection-row="'+ids[7]+'"] .message-body');r=pending.bounding_box();point={'pointerType':'touch','isPrimary':True,'pointerId':913,'clientX':r['x']+r['width']/2,'clientY':r['y']+r['height']/2,'bubbles':True}
     pending.dispatch_event('pointerdown',point);pending.dispatch_event('pointerup',point)
-    page.evaluate('switchNote("b")');expect(im.locator('.selection-status')).to_contain_text('1 / 80 selected');im.locator('.messages').evaluate('n=>n.scrollTop=0');expect(im.locator('.message-wrap.selected')).to_have_count(1)
+    page.evaluate('switchNote("b")');expect(im.locator('.selection-status')).to_contain_text('1 / 80 selected');im.locator('.messages').evaluate('(n,id)=>new Promise(resolve=>{n.imScroll?.cancel();n.imVirtual.reveal(id,resolve)})',ids[5]);expect(im.locator('.message-wrap.selected')).to_have_count(1)
     im.locator('[data-selection-row="'+ids[7]+'"] .message-body').dispatch_event('click',{'bubbles':True,'cancelable':True,'detail':0})
     assert selected()=={ids[1]},'Pending touches must not cross note switches'
     im.get_by_role('button',name='Cancel',exact=True).click();expect(im.locator('.selection-status')).to_have_count(0)
-    page.evaluate('switchNote("a")');expect(im.locator('.selection-status')).to_contain_text(str(len(expected))+' / 80 selected');im.locator('.messages').evaluate('n=>n.scrollTop=0');expect(im.locator('.message-wrap.selected')).to_have_count(len(expected));assert selected()==expected
+    page.evaluate('switchNote("a")');expect(im.locator('.selection-status')).to_contain_text(str(len(expected))+' / 80 selected');im.locator('.messages').evaluate('(n,id)=>new Promise(resolve=>{n.imScroll?.cancel();n.imVirtual.reveal(id,resolve)})',ids[5]);expect(im.locator('.message-wrap.selected')).to_have_count(len(expected));assert selected()==expected
    im.get_by_role('button',name='Cancel',exact=True).click();expect(capture).to_be_visible()
    print(f'PASS {width}px: separate 44px IM row targets, exact rapid bubble/checkbox taps, stable geometry, keyboard selection and cancelled-scroll gestures',flush=True)
 

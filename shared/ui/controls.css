@@ -14,3 +14,18 @@
 .board-search-panel .tag-chip.untagged{color:var(--danger)}
 .board-search-panel .tag-chip.untagged[aria-pressed=true]{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,var(--surface))}
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.board-search-panel .tag-chip:not([aria-pressed=true]){background:color-mix(in srgb,var(--surface) var(--frost-tint,22%),transparent);backdrop-filter:blur(var(--frost-blur,10px));-webkit-backdrop-filter:blur(var(--frost-blur,10px))}}
+
+/* Both top control surfaces and focus rings are governed here, independent of palette. */
+.ui-toolbar .ui-toolbar-button,.editor-shell .ui-toolbar .ui-toolbar-button{color:#172033!important;background:rgba(32,32,35,.22)!important;border-color:rgba(255,255,255,.28);box-shadow:0 1px 3px #0000001f;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;outline:none}
+.ui-toolbar .ui-toolbar-button[aria-expanded=true],.editor-shell .ui-toolbar .ui-toolbar-button[aria-expanded=true]{border-color:rgba(255,255,255,.65)}
+.ui-toolbar .ui-toolbar-button:focus-visible,.editor-shell .ui-toolbar .ui-toolbar-button:focus-visible{outline:2px solid #285b89!important;outline-offset:2px}
+.ui-filter-pill,.editor-shell .message-tools .ui-filter-pill{display:flex;align-items:center;flex:0 0 auto;gap:0;order:0;width:90px;max-width:100%;height:38px;min-height:38px;padding:0;margin-left:auto;border:1px solid #657761aa;border-radius:999px;background:rgba(255,255,255,.22)!important;color:#233c1b;font-size:13px;font-weight:750;outline:3px solid #237313;outline-offset:1px;box-shadow:0 0 0 5px #68b73a52,0 0 12px 3px #49a02266;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important}
+.ui-filter-pill .ui-filter-change,.editor-shell .ui-filter-pill .ui-filter-change{display:grid;place-items:center;flex:1 1 auto;width:auto;min-width:0;height:36px;min-height:36px;margin:0;padding:0;border:1px solid #65776166;border-radius:999px;background:transparent!important;color:#233c1b;box-shadow:none;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.ui-filter-pill .ui-filter-clear,.editor-shell .ui-filter-pill .ui-filter-clear{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;min-height:36px;margin:0;padding:6px;border:1px solid #65776166;border-radius:999px;background:transparent!important;color:#233c1b;box-shadow:none;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.ui-filter-pill .ui-filter-clear>svg{width:22px;height:22px}
+.ui-filter-pill .ui-filter-symbol{position:relative;display:grid;place-items:center;width:28px;height:28px;overflow:visible;pointer-events:none;font-size:18px;line-height:1.2}
+.ui-filter-pill .ui-filter-symbol>svg{width:28px;height:28px;max-width:none;flex:none}
+.ui-filter-pill .ui-filter-symbol .ui-filter-check{position:absolute;left:-7px;right:auto;top:-7px;display:grid;place-items:center;width:19px;height:19px;border:2px solid #fff;border-radius:50%;background:#276b17;color:#fff;box-shadow:0 0 0 1px #ffffffbb;overflow:visible;pointer-events:none}
+.ui-filter-pill .ui-filter-check>svg{display:block;width:11px;height:11px;pointer-events:none}
+.ui-filter-pill button:focus-visible,.editor-shell .ui-filter-pill button:focus-visible{outline:2px solid #237313!important;outline-offset:-3px}
+@media(hover:hover) and (pointer:fine){.ui-toolbar .ui-toolbar-button:hover,.editor-shell .ui-toolbar .ui-toolbar-button:hover{background:rgba(32,32,35,.3)!important}}

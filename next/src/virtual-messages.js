@@ -14,7 +14,7 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1,selecting=
   const frame=dt.useRef(0),observer=dt.useRef(null),renderRef=dt.useRef(render);
   renderRef.current=render;
   const [view,setView]=dt.useState({top:0,height:800,width:390}),[measured,setMeasured]=dt.useState(0);
-  const layout=`${view.width}:${scale}:${selecting}`;
+  const layout=`${view.width}:${scale}`;
   const model=dt.useMemo(()=>{
     const offsets=[0],indices=new Map();
     const chars=Math.max(12,Math.floor((view.width*.82-32)/(8.5*scale)));
@@ -26,7 +26,7 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1,selecting=
       else {
         const lines=message.text.split('\n').reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/chars)),0);
         const day=!previous||Ed(previous.createdAt)!==Ed(message.createdAt);
-        height=Math.max(selecting?50:42,lines*23*scale+28+(message.reactions.length?18:0)+(message.replyTo?55:0)+(message.forwarding?18:0)+(day?(previous?66:49):0));
+        height=Math.max(44,lines*23*scale+28+(message.reactions.length?18:0)+(message.replyTo?55:0)+(message.forwarding?18:0)+(day?(previous?66:49):0));
       }
       offsets.push(offsets[index]+height);
     });

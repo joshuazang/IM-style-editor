@@ -128,7 +128,7 @@ const MosaicModel = (() => {
     }
     return lines;
   }
-  const heightKey=(width,pinned,selecting,fontSize)=>width+':'+pinned+':'+selecting+':'+fontSize;
+  const heightKey=(width,pinned,selecting,fontSize)=>width+':'+pinned+':'+fontSize;
   function measure(message,width,pinned,selecting,height,fontSize='large') {
     const key=heightKey(width,pinned,selecting,fontSize),previous=measured.get(message);
     if(previous?.key===key&&previous.height===height)return false;
@@ -141,7 +141,7 @@ const MosaicModel = (() => {
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
     const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,3):0,bodyLines=parts.body?previewLines(parts.body,columns,7):0;
     const tagRows=Math.ceil(Math.min(10,message.reactions.length)/Math.max(1,Math.floor((width-padding+6)/37)));
-    const height=Math.max(selecting?44:0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0));
+    const height=Math.max(0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0));
     heights.set(message,{key,height});return height;
   }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {

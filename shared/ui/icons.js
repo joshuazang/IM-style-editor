@@ -4,7 +4,6 @@ const imUiIcons = {
   mosaic:'<rect x="3" y="3" width="7" height="11" rx="2"/><rect x="14" y="3" width="7" height="6" rx="2"/><rect x="3" y="18" width="7" height="3" rx="1.5"/><rect x="14" y="13" width="7" height="8" rx="2"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   search:'<circle cx="10.8" cy="10.8" r="7.3"/><path d="m16 16 4.5 4.5"/>',
-  searchTags:'<g transform="scale(.75)"><circle cx="18" cy="11" r="7.5"/><path d="m23.5 16.5 6 6M5 21h7q1.5 0 2.5 1.5L17 25q1 1 0 2l-2.5 2.5Q13.5 31 12 31H5q-3 0-3-3v-4q0-3 3-3Z"/><circle cx="12" cy="26" r="1.2" fill="currentColor" stroke="none"/></g>',
   close:'<path d="m6 6 12 12M18 6 6 18"/>',
   more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   toolbarMore:'<g fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></g>',
@@ -37,4 +36,14 @@ const imSelectionIcons={
   cancel:'<path d="m6 6 14 14M20 6 6 20"/>',
   delete:'<path d="M4 7h18M10 7V4h6v3M6 7l1.5 17h11L20 7M11 11v9M15 11v9"/>',
   more:'<g fill="currentColor" stroke="none"><circle cx="6" cy="14" r="1.8"/><circle cx="14" cy="14" r="1.8"/><circle cx="22" cy="14" r="1.8"/></g>'
+};
+
+/* Canonical top-control vectors: both adapters use these exact sizes and paths. */
+const imToolbarIcons={
+ searchTags:{size:28,viewBox:'0 0 32 32',stroke:1.8,markup:'<circle cx="18" cy="11" r="7.5"/><path d="m23.5 16.5 6 6"/><path d="M5 21h7q1.5 0 2.5 1.5L17 25q1 1 0 2l-2.5 2.5Q13.5 31 12 31H5q-3 0-3-3v-4q0-3 3-3Z"/><circle cx="12" cy="26" r="1.2" fill="currentColor" stroke="none"/>'},
+ untagged:{size:28,viewBox:'0 0 24 24',stroke:1.8,markup:'<path d="M4 9V5a2 2 0 0 1 2-2h8l7 7a2 2 0 0 1 0 3l-7 7a2 2 0 0 1-3 0l-4-4M3 3l18 18"/><circle cx="10" cy="7" r="1"/>'},
+ searchOnly:{size:28,viewBox:'0 0 32 32',stroke:1.8,markup:'<circle cx="18" cy="11" r="7.5"/><path d="m23.5 16.5 6 6"/>'},
+ more:{size:20,viewBox:'0 0 24 24',stroke:1.8,markup:imUiIcons.toolbarMore},
+ check:{size:11,viewBox:'0 0 16 16',stroke:2.3,markup:'<path d="m3 8 3 3 7-7"/>'},
+ cancel:{size:22,viewBox:'0 0 28 28',stroke:1.8,markup:imSelectionIcons.cancel}
 };

@@ -1,7 +1,7 @@
 /* Visible focus and separate finger targets, without painting full-width strips. */
 :root{--focus-ring:#285b89}
 .ui-context-menu button:focus-visible,.selection-more-menu button:focus-visible,.tag-arrange-row button:focus-visible,.appearance-choice:focus-visible{outline:2px solid var(--focus-ring,#285b89)!important;outline-offset:-2px}
-.ui-context-menu .ui-tag-grid{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;max-height:100px}
+.ui-context-menu .ui-tag-grid{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;max-height:none;overflow:visible}
 .ui-context-menu .ui-tag-choice{min-height:44px;height:44px}
 .board-search-panel .tag-chip,.editor-shell .search-tags-panel .chip{min-height:44px;height:44px;min-width:44px}
 .editor-shell .tag-control span button{min-width:44px;min-height:44px}

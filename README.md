@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.2.3](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.1.5](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.2.4](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.1.6](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -176,3 +176,17 @@ scroll gestures and touches from a previous note, while retaining keyboard and
 mouse selection. Mosaic 1.1.5 limits card/tag hover to mouse-capable devices and
 suppresses it during scrolling until the mouse deliberately moves again.
 No note format, saving, storage or encryption changes are involved.
+
+IM 4.2.4 and Mosaic 1.1.6 keep identical text widths, wrapping and message/card
+positions when entering or leaving selection mode. IM uses the same row spacing
+and measured layout in both modes, with a 20px visible circle farther left in a
+transparent 44px tap area. Mosaic places compact black selection badges over the
+top-left edge and adds a thin black outline without moving text or changing
+card padding, colors or height. Selection retains its touch/keyboard behavior.
+
+The two top-right Search/Tags and More buttons now share canonical SVG geometry,
+sizes, frost, borders and keyboard-focus styles. Search-only filters retain the
+same magnifying-glass size with no tag drawing; their shared green check sits on
+the left. Both search buttons focus their search field when opening. The context
+menu's **Emoji picker** expands to show all rows without its own scrollbar, and
+Mosaic no longer automatically focuses the first emoji when opening the menu.

@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.5](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.5.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.6](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.6.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -207,3 +207,13 @@ remain light. The search prompt hides on focus without a rectangular focus box.
 Touch scrolling does not show card or tag hover feedback. On desktop, scrolling
 also suppresses hover under a stationary cursor; deliberate mouse movement
 after scrolling restores it. Keyboard focus and selected-card indicators remain.
+
+Selection places its indicator over the top-left card edge. Selected cards use
+a compact black check and thin black emphasis. Card text, padding, wrapping,
+height and masonry position remain the same in normal and selection modes.
+
+The **Emoji picker** is the tag grid at the top of a card's context menu. It
+expands to display all rows without a separate scrollbar. Opening the menu
+focuses the menu itself, rather than making its first tag appear selected.
+Search/Tags and More use the same shared icons and focus styling as IM; active
+filters put the green check on the left and preserve the full search icon size.

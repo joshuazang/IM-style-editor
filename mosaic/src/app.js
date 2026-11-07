@@ -323,7 +323,7 @@ function renderWindow() {
     let node=mounted.get(item.message.id);
     if(!node){node=cardNode(item.message);mounted.set(item.message.id,node);board.append(node);}
     node.classList.toggle('is-compact',item.width<230);
-    const geometry=item.width+':'+!!active?.view.selecting+':'+fontSize;
+    const geometry=item.width+':'+fontSize;
     Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
     if(node.dataset.geometry!==geometry){node.dataset.geometry=geometry;measurements.push({node,item});}
   }
@@ -360,10 +360,10 @@ function renderSearchControls() {
   if(searchOpen){const header=document.querySelector('.board-toolbar');$('search-tags-panel').style.top=(header.offsetTop+header.offsetHeight+6)+'px';}
   $('search-button').hidden=!!filtered||selecting;$('more-button').hidden=!!filtered||selecting;$('filter-pill').hidden=!filtered||selecting;
   const change=$('change-filter');change.replaceChildren();
-  const symbol=el('span','filter-symbol');
+  const symbol=el('span','filter-symbol ui-filter-symbol');
   if(s?.view.tag&&s.view.tag!=='__untagged__')symbol.textContent=s.view.tag;
-  else symbol.append(mosaicIcon(s?.view.tag==='__untagged__'?'untagged':s?.view.pinned?'pin':'searchTags'));
-  const check=el('span','filter-check');check.append(mosaicIcon('check'));symbol.append(check);change.append(symbol);
+  else symbol.append(s?.view.tag==='__untagged__'?mosaicToolbarIcon('untagged'):s?.view.pinned?mosaicIcon('pin'):mosaicToolbarIcon('searchOnly'));
+  const check=el('span','filter-check ui-filter-check');check.append(mosaicToolbarIcon('check'));symbol.append(check);change.append(symbol);
 }
 function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
 function cardNode(message) {
@@ -448,7 +448,7 @@ function togglePin(s,id) {
 function showMenu(items,event,{message,toggleTag}={}) {
   hideMenu();menu.replaceChildren();menu.className='menu ui-context-menu';menu.setAttribute('role','menu');menu.removeAttribute('aria-label');
   if(message){
-    const panel=el('section','ui-tag-panel'),grid=el('div','ui-tag-grid');grid.setAttribute('role','group');grid.setAttribute('aria-label','Tags');
+    const panel=el('section','ui-tag-panel'),grid=el('div','ui-tag-grid');grid.setAttribute('role','group');grid.setAttribute('aria-label','Emoji picker');
     for(const tag of new Set([...MosaicModel.tags(active.messages,active.settings),...message.reactions])){
       const choice=button('Tag '+tag,null,()=>{hideMenu();toggleTag(tag);},'ui-tag-choice');choice.textContent=tag;choice.setAttribute('aria-pressed',String(message.reactions.includes(tag)));grid.append(choice);
     }
@@ -462,7 +462,7 @@ function showMenu(items,event,{message,toggleTag}={}) {
 function placeMenu(event) {
   (modal.open?$('modal-content'):document.body).append(menu);
   menu.style.maxHeight='';menu.style.maxWidth='';menuFromTouch=event?.touch===true;menuPress=false;
-  menu.hidden=false;
+  menu.hidden=false;$('more-button').setAttribute('aria-expanded',String(event?.currentTarget===$('more-button')));
   const anchor=(event?.currentTarget||$('more-button')).getBoundingClientRect();
   const x=event?.clientX||anchor.right,y=event?.clientY||anchor.bottom;
   const rect=menu.getBoundingClientRect();menu.style.left=Math.max(10,Math.min(x-rect.width+20,innerWidth-rect.width-10))+'px';menu.style.top=Math.max(10,Math.min(y+7,innerHeight-rect.height-10))+'px';
@@ -470,9 +470,9 @@ function placeMenu(event) {
     const visual=window.visualViewport,position=imMenuPosition({anchor:event.anchor,point:{x,y},width:rect.width,height:menu.scrollHeight+menu.offsetHeight-menu.clientHeight,viewport:{left:visual?.offsetLeft||0,top:visual?.offsetTop||0,width:visual?.width||innerWidth,height:visual?.height||innerHeight},touch:true});
     Object.assign(menu.style,{left:position.x+'px',top:position.y+'px',maxWidth:position.maxWidth+'px',maxHeight:position.maxHeight+'px'});
   }
-  menu.querySelector('button')?.focus({preventScroll:true});
+  menu.tabIndex=-1;if(event?.currentTarget!==$('more-button'))menu.focus({preventScroll:true});
 }
-function hideMenu(){menu.hidden=true;menuFromTouch=false;menuPress=false;if(menu.parentNode!==document.body)document.body.append(menu);}
+function hideMenu(){menu.hidden=true;$('more-button').setAttribute('aria-expanded','false');menuFromTouch=false;menuPress=false;if(menu.parentNode!==document.body)document.body.append(menu);}
 function colorMenu(id,event) {
   const s=active,message=s?.messages.find(m=>m.id===id);if(!message||!writable(s))return;
   hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Card background colors');
@@ -505,6 +505,7 @@ function cardMenu(message,event) {
   });
 }
 function mainMenu(event) {
+  if(!menu.hidden&&$('more-button').getAttribute('aria-expanded')==='true'){hideMenu();return;}
   if(!active)return;const s=active;searchOpen=false;renderSearchControls();
   showMenu([['Import from clipboard','import',()=>importDialog()],['Export all cards','export',()=>exportRecords(s,s.messages)],['Select cards','select',()=>startSelection()],
     ['Clear message statuses','select',()=>statusDialog(null)],['Clear clipboard','trash',()=>clearClipboardDialog()],null,
@@ -859,8 +860,8 @@ function demo() {
   active.demo=true;renderAll();
 }
 
-$('search-icon').append(mosaicIcon('search'));$('pin-filter-icon').append(mosaicIcon('pin'));$('more-button').append(mosaicIcon('toolbarMore'));
-$('search-button').append(mosaicIcon('searchTags'));$('clear-filter').append(mosaicIcon('close'));
+$('search-icon').append(mosaicIcon('search'));$('pin-filter-icon').append(mosaicIcon('pin'));$('more-button').append(mosaicToolbarIcon('more'));
+$('search-button').append(mosaicToolbarIcon('searchTags'));$('clear-filter').append(mosaicToolbarIcon('cancel'));
 $('search-button').addEventListener('click',toggleSearch);$('change-filter').addEventListener('click',toggleSearch);
 $('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';searchOpen=false;renderAll();});
 $('more-button').addEventListener('click',mainMenu);
