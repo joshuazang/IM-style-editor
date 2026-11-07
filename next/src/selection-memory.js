@@ -34,9 +34,9 @@ function imSaveSelectionPreferences(){
       const data={...state.bridge.component.data,[imSelectionPreferenceKey]:{version:1,notes}};
       state.bridge.component.data=data;
       state.error='';
-      state.bridge.postMessage('set-component-data',{componentData:data},reply=>{
+      state.bridge.postMessage('set-component-data',{componentData:data},imPreferenceReply('selection',reply=>{
         if(reply?.error&&state.revision===revision)imSelectionFailure();
-      });
+      }));
       imSelectionNotify();
     }catch{imSelectionFailure();}
   });

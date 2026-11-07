@@ -1,17 +1,39 @@
-/* The SDK needs reply callbacks, not historical copies of outgoing note content.
- * Origin/session checks and the actual message transport remain in the SDK.
- */
+/* The SDK needs reply callbacks, not historical copies of outgoing note content. */
+function imPreferenceReply(key,callback){callback.imPreferenceKey=key;return callback;}
 function imReleaseHostReply(bridge,callback){
   if(bridge.sentMessages)bridge.sentMessages=bridge.sentMessages.filter(record=>record.sourceCallback!==callback);
 }
 function imTrackHostReply(bridge,message,callback){
   if(typeof callback!=='function')return;
+  const preferenceKey=message.action==='set-component-data'?(callback.imPreferenceKey||'component-data'):null;
+  if(preferenceKey)bridge.sentMessages=bridge.sentMessages.filter(record=>record.preferenceKey!==preferenceKey);
   const persistent=message.action==='stream-context-item'||message.action==='stream-items';
-  const record={messageId:message.messageId,sourceCallback:callback,callback:reply=>{
+  const record={messageId:message.messageId,...(preferenceKey?{preferenceKey}:{}),sourceCallback:callback,callback:reply=>{
     if(!persistent)bridge.sentMessages=bridge.sentMessages.filter(entry=>entry!==record);
     callback(reply);
   }};
   bridge.sentMessages.push(record);
+}
+/* Guard the bundled receiver before its legacy parser/theme dispatch. Native
+ * mobile messages may have no source window; when supplied it must be parent. */
+function imAcceptHostMessage(bridge,event){
+  const target=bridge.contentWindow;
+  if(!target||!event||typeof event.origin!=='string'||(event.source&&event.source!==target.parent))return false;
+  let message=event.data;
+  if(typeof message==='string')try{message=JSON.parse(message);}catch{return false;}
+  if(!message||typeof message!=='object'||Array.isArray(message))return false;
+  if(target.document.referrer)try{
+    if(new URL(target.document.referrer).origin!==new URL(event.origin).origin)return false;
+  }catch{return false;}
+  const component=bridge.component;
+  if(component.origin!==undefined&&event.origin!==component.origin)return false;
+  if(message.action==='component-registered')return typeof message.sessionKey==='string'&&!!message.sessionKey&&
+    typeof message.data?.uuid==='string'&&!!message.data.uuid&&message.sessionKey!==component.sessionKey;
+  if(!component.sessionKey)return false;
+  if(message.action==='themes')return false; // Both editors supply their own appearance.
+  if(typeof message.original?.messageId!=='string')return false;
+  if(message.original.sessionKey&&message.original.sessionKey!==component.sessionKey)return false;
+  return bridge.sentMessages.some(record=>record.messageId===message.original.messageId);
 }
 /* Sync status carries a content snapshot too, but it is not a content change.
  * Preserve the editor's current content/clientData and accept only host dates.

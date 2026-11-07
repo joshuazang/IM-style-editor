@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const source=fs.readFileSync('next/src/silent-timer.js','utf8');
+const source=fs.readFileSync('shared/core/host-bridge.js','utf8')+'\n'+fs.readFileSync('next/src/silent-timer.js','utf8');
 let saved={unrelated:{keep:true},imStyleSelectionV1:{version:1,notes:{a:{ids:['id']}}}},writes=0,fail=false,denied=false;
 function client(){
  const api=vm.runInNewContext(source+';({init:imInitializeSilentTimer,start:imStartSilentTimer,cancel:imCancelSilentTimer,extend:imExtendSilentTimer,remaining:imTimerRemaining,label:imTimerLabel,state:imTimerState,retry:imSaveSilentTimer})');

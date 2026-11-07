@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.1.10](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.0.6](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.1.11](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.0.7](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -112,3 +112,12 @@ pin hover feedback. Its More menu offers Sage, Paper and Sand palettes and four
 font sizes: Small, Medium (the previous typography), Large (the default), and
 Extra large. These are note settings; card text, statuses, pins and custom colors
 remain intact. See [release validation](docs/release-4.1.10-mosaic-1.0.6.md).
+
+IM 4.1.11 retains unconfirmed edits and other changes across note switches. Edit
+fields close after acknowledgment and preserve newer typing. A genuinely different
+host version pauses waiting saves and offers both texts for explicit review.
+Its receiver now checks the parent sender and session/request correlation, ignores
+unused theme loading, and bounds preference callbacks independently for selections
+and the timer. Mosaic 1.0.7 fixes dark header contrast while retaining frost and
+transparent surrounding strips. Format 3 and the storage/encryption channel are
+unchanged. See [release validation](docs/release-4.1.11-mosaic-1.0.7.md).

@@ -18,7 +18,7 @@ ASSETS.mkdir(exist_ok=True)
 helpers = []
 for name in ['message-spacing.js', 'context-menu.js',
              'transfer-ui.js', 'editor-interactions.js',
-             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js']:
+             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js', 'note-sessions.js']:
     path = TARGET / 'src' / name
     helpers.append((path if path.exists() else ROOT / 'src' / name).read_text())
 # Reuse the immutable React/SDK build prefix; only the application runtime is forked.
@@ -30,6 +30,12 @@ prefix = seed[:seed.index('function lv(')]
 history = '},E=JSON.parse(JSON.stringify(o));let N;E.callback=U,this.sentMessages.push(E),N='
 assert prefix.count(history) == 1, 'SDK message-history patch no longer matches'
 prefix = prefix.replace(history, '};let N;imTrackHostReply(this,o,U),N=')
+receiver = 'registerMessageHandler(){this.messageHandler=b=>{'
+assert prefix.count(receiver) == 1, 'SDK receiver guard anchor changed'
+prefix = prefix.replace(receiver, receiver+'if(!imAcceptHostMessage(this,b))return;')
+appearance = 'options:{coallesedSaving:!1}'
+assert prefix.count(appearance) == 1, 'SDK options anchor changed'
+prefix = prefix.replace(appearance,'options:{coallesedSaving:!1,acceptsThemes:!1}')
 context = 'Md=M=>{if(!M)return;const Z='
 assert prefix.count(context) == 1, 'SDK context-stream patch no longer matches'
 prefix = prefix.replace(context, 'Md=M=>{if(!M)return;if(M.isMetadataUpdate===true){if(yf?.uuid!==M.uuid)return;imApplyNoteMetadata(yf,M);for(const q of gf)q(M);return}const Z=')

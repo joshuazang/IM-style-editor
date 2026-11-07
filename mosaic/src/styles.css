@@ -321,7 +321,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 #capture-input{font-size:var(--type-capture,18px);line-height:1.5}
 @media(max-width:650px){.card-edit-dialog .editor-title,.reader-title{font-size:var(--type-compact-edit-title,24px)}#capture-input{font-size:max(16px,var(--type-capture,18px))}}
 @media(prefers-color-scheme:dark){
- :root{--muted:#a2b0a3}
+ :root{--muted:#a2b0a3;--toolbar-ink:var(--ink);--toolbar-frost:color-mix(in srgb,var(--surface) 68%,transparent);--toolbar-border:color-mix(in srgb,var(--ink) 35%,transparent)}
  :root[data-mosaic-palette=paper]{--canvas:#1c1d1f;--surface:#27292c;--ink:#edf0f2;--muted:#b0b4b9;--line:#44474c;--accent:#ebd277;--accent-soft:#443e27;--frost:#27292ccc}
  :root[data-mosaic-palette=sand]{--canvas:#24201c;--surface:#302a24;--ink:#f2e9df;--muted:#c3b3a3;--line:#51463a;--accent:#e5c19c;--accent-soft:#4e3b2a;--frost:#302a24cc}
  .board-search-panel .tag-chip{border-color:var(--line)}

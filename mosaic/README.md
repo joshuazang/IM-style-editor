@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.6](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.6.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.7](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.7.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -27,6 +27,8 @@ This is the current note's board, rather than an account-wide dashboard.
   pins and selection. Filtering replaces the controls with a change/clear pill.
   These frosted controls float above the board; the surrounding strip is
   transparent and does not intercept touches on cards underneath.
+  In night appearance, their foreground and frosted surface follow the palette
+  and remain legible over both bright and dark cards.
 - A constant bottom “Take a note…” field. Enter adds a card and reveals it while keeping
   focus; Shift+Enter inserts a newline. Clicking outside also adds the card.
   IME confirmation keys finish composition rather than sending early.

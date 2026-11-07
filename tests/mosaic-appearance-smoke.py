@@ -19,6 +19,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Handler,directory=str(ROOT)))
 threading.Thread(target=server.serve_forever,daemon=True).start();BASE='http://127.0.0.1:'+str(server.server_port)
 contrast="""n=>{const s=getComputedStyle(n),c=document.createElement('canvas');c.width=c.height=1;const ctx=c.getContext('2d');const rgba=color=>{ctx.clearRect(0,0,1,1);ctx.fillStyle=color;ctx.fillRect(0,0,1,1);return [...ctx.getImageData(0,0,1,1).data]};const bg=rgba(getComputedStyle(n.closest('.card')||document.documentElement).backgroundColor),fg=rgba(s.color);const lum=rgb=>rgb.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);const composed=fg.slice(0,3).map((v,i)=>v*fg[3]/255+bg[i]*(1-fg[3]/255));const a=lum(composed),b=lum(bg);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)}"""
+control_contrast="""n=>{const c=document.createElement('canvas');c.width=c.height=1;const ctx=c.getContext('2d');const rgba=color=>{ctx.clearRect(0,0,1,1);ctx.fillStyle=color;ctx.fillRect(0,0,1,1);return [...ctx.getImageData(0,0,1,1).data]};const s=getComputedStyle(n),fg=rgba(s.color),bg=rgba(s.backgroundColor);const lum=rgb=>rgb.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);return [getComputedStyle(document.documentElement).backgroundColor,'#fff','#000','#4e5cf0'].map(color=>{const base=rgba(color),under=bg.slice(0,3).map((v,i)=>v*bg[3]/255+base[i]*(1-bg[3]/255)),ink=fg.slice(0,3).map((v,i)=>v*fg[3]/255+under[i]*(1-fg[3]/255)),a=lum(ink),b=lum(under);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)})}"""
 try:
  with sync_playwright() as p:
   browser=p.chromium.launch(**chromium_options())
@@ -69,6 +70,11 @@ try:
     for name in ['Sage','Paper','Sand']:
      choose('Color palette',name);assert e.locator('.card-title').first.evaluate(contrast)>=4.5
      assert e.locator('.card-body').first.evaluate(contrast)>=4.5
+     if scheme=='dark':
+      for control in ['#search-button','#more-button']:assert min(e.locator(control).evaluate(control_contrast))>=3,(name,control,e.locator(control).evaluate(control_contrast))
+      assert e.locator('.board-toolbar').evaluate('n=>getComputedStyle(n).backgroundColor')=='rgba(0, 0, 0, 0)'
+      assert e.locator('#search-button').evaluate('n=>getComputedStyle(n).backdropFilter')=='blur(10px)'
+      if width==390 and name=='Sand':page.screenshot(path='/tmp/mosaic-dark-header-fixed.png')
    page.emulate_media(color_scheme='light')
    saved=parse(page.evaluate('notes.a.content.text'))
    assert saved['messages']==data['messages'],[(i,a,b) for i,(a,b) in enumerate(zip(saved['messages'],data['messages'])) if a!=b]

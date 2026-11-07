@@ -23,9 +23,9 @@ function imSaveSilentTimer(){
   try{
     const data={...state.bridge.component.data,[imTimerPreferenceKey]:state.timer};
     state.bridge.component.data=data;state.error='';
-    state.bridge.postMessage('set-component-data',{componentData:data},reply=>{
+    state.bridge.postMessage('set-component-data',{componentData:data},imPreferenceReply('timer',reply=>{
       if(reply?.error&&state.revision===revision){state.error='The timer could not be saved. It continues here; retry saving before leaving the editor.';imTimerNotify();}
-    });
+    }));
     imTimerNotify();return true;
   }catch{state.error='The timer could not be saved. Retry saving before leaving the editor.';imTimerNotify();return false;}
 }

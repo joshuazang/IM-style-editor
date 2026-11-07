@@ -9,7 +9,11 @@ Both modern editors receive the current note through Standard Notes' component
 host. Saves use `save-items`; preferences use `set-component-data`. They do not
 send note text to an independent service. Mosaic requests no account-wide note
 stream. Its relay checks the parent window, binds origin/session and tracks
-random request IDs. IM retains its existing official relay integration.
+random request IDs. IM retains its SDK transport with a guard before the older
+receiver: supplied source windows must be parent, malformed/referrer/origin input
+is rejected, replies require a known request and a matching session when supplied,
+and duplicate registrations/unused theme messages are ignored. Source-less native
+JSON/document messages remain supported. External SDK theme activation is disabled.
 
 Both shipped pages have `connect-src 'none'`. Mosaic has no fetch/XHR/WebSocket,
 analytics, remote font, service worker or runtime package dependency. Its UI is
@@ -52,11 +56,18 @@ clearing empties the current clipboard, not every historical clipboard copy.
 - Save snapshots are immutable and ordered per note, with one in flight and at
   most one newest waiting snapshot. Acknowledgment is not proof of server sync;
   Standard Notes reports server failures separately.
-- Failed submissions keep text for retry. Mosaic additionally retains unconfirmed
-  sessions across note switches while its iframe remains alive. Conflicting host
-  text pauses waiting writes; no automatic conflict overwrite is attempted.
+- Failed submissions keep text for retry. Both interfaces retain unconfirmed
+  sessions across note switches while their iframe remains alive. IM edit fields
+  remain open until acknowledgment; late acknowledgments preserve newer edits.
+  Conflicting host text pauses waiting writes; no automatic conflict overwrite is attempted.
   A request already sent cannot be recalled. Destroying the frame can lose
   unacknowledged RAM-only work.
+- Conflict review exposes both raw texts and any unfinished IM edit. Choosing a
+  version requires explicit confirmation and waits for already-sent writes to
+  finish. Saving a local choice retains its comparison source until success.
+- Preference callbacks are bounded per operation. IM keeps independent latest
+  selection and timer error callbacks, so the lack of successful preference
+  acknowledgments cannot grow an unbounded callback history.
 - Late clipboard completion marks only unchanged current source text. Switching
   notes defers the mark until its note returns; it does not save an old full note.
 - Ordinary native field changes survive later Mosaic saves; metadata-only
@@ -82,4 +93,4 @@ necessarily process readable content; malicious hosts/updates or compromised
 devices can access it. No telemetry or independent note-upload path was found in
 the reviewed application source. No actual account notes were used in tests.
 
-See [release validation](release-4.1.6-mosaic-1.0.1.md) for checks and limits.
+See [release validation](release-4.1.11-mosaic-1.0.7.md) for current checks and limits.

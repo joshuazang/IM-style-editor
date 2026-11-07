@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const source=fs.readFileSync('next/src/selection-memory.js','utf8');
+const source=fs.readFileSync('shared/core/host-bridge.js','utf8')+'\n'+fs.readFileSync('next/src/selection-memory.js','utf8');
 const id='AAAAAAAAAAAAAAAAAAAAAA',other='BBBBBBBBBBBBBBBBBBBBBA',prefix='im-style-editor.next.selection.v1:';
 const legacy=new Map([[prefix+'a',JSON.stringify({ids:[id],height:70})]]);let host={},fail=false,silent=false,callbacksFail=false,writes=0;
 function client(){
