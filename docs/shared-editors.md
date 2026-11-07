@@ -30,18 +30,24 @@ This release keeps format 3; opening a note in either view does not convert it.
    checks the packaged core and rebuilds both applications to detect stale output.
 6. Publish the main branch to its existing GitHub Pages configuration. Verify
    both manifests, HTML, assets and ZIPs against the reviewed local bytes.
-7. Run `python3 tools/sync-mosaic-distribution.py /path/to/Mosaic` and publish
-   that compatibility repository. The old install link returns the canonical
-   manifest and retains the same plugin ID. Its root preview also receives the
-   fixed bundled app; it does not redirect an embedded frame and lose its host.
+7. Publish future source changes and releases only from this repository. The
+   retired standalone Mosaic repository is frozen; it has no separate build,
+   synchronization or release step. Existing Mosaic installations retain their
+   plugin ID and use this repository's `mosaic.ext.json` as their update URL.
 
 A shared-source change updates both builds. Installed plugins receive those
 updates through Standard Notes' normal update mechanism, rather than hot-loading
 unreviewed code while a note is open. The workflow tests releases; it does not
 silently rewrite files or grant itself publishing credentials.
 
-Mosaic's former repository remains a compatibility distribution, with its old
-tags/releases intact. New source development and issue tracking belong here.
+Mosaic's former repository is retained for history and old links, with its tags,
+releases, Pages site and final static files intact. Its frozen 1.0.3 manifest
+points its app, download and `latest_url` to this repository. That old manifest
+does not change on later releases; new installations should use the current
+canonical manifest, and subsequent update checks use the canonical `latest_url`.
+The old standalone preview and download snapshots are historical. Do not push
+new builds or releases to the former repository. All source development, builds,
+releases and issue tracking for both interfaces belong here.
 
 ## Recovery boundaries
 

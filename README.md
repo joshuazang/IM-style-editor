@@ -6,10 +6,13 @@ one shared format-3 core:
 - **[IM-style-editor 4.1.7](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
 - **[Mosaic 1.0.3](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
-Both can open the same format-3 note without conversion. The original
-[Mosaic install link](https://joshuazang.github.io/Mosaic/mosaic.ext.json)
-continues to work. Each interface bundles the shared code; neither downloads
-code from the other at runtime. Archive remains separate and unchanged.
+Both can open the same format-3 note without conversion. All development and
+releases for both interfaces happen here. The standalone
+[Mosaic repository](https://github.com/joshuazang/Mosaic) is retired, retaining
+its history and frozen install files. Its installer points to this repository
+for subsequent updates; use the current Mosaic install link above for new
+installations. Each interface bundles the shared code; neither downloads code
+from the other at runtime. IM-style-editor Archive remains separate and unchanged.
 
 Build both with `python3 tools/package-editors.py`; validate with
 `python3 tools/check-editors.py`. A shared-code change is checked against both

@@ -6,8 +6,11 @@ A plain-text card board for Standard Notes, built from scratch.
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
-conversion or duplicate note is required. The original Mosaic installer at
-`https://joshuazang.github.io/Mosaic/mosaic.ext.json` still works.
+conversion or duplicate note is required. Development, issues and releases for
+both interfaces happen in this repository. The former standalone Mosaic
+repository is retired and retains its history and frozen installation files.
+Its old installer still points here for subsequent updates; use the current
+install link above for a new installation.
 
 Archive format-2 notes remain separate. Export their messages from Archive and
 import them into a new format-3 note; keep the source until checked.
