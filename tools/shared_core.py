@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CORE_FILES = ['note-format.js', 'host-bridge.js', 'note-storage.js', 'message-transfer.js',
               'privacy.js', 'clipboard.js', 'reply-record.js', 'emoji-tags.js']
-UI_FILES = ['icons.js', 'menu-position.js', 'menu.css', 'controls.css', 'selection.css', 'save-feedback.js', 'accessibility.css']
+UI_FILES = ['icons.js', 'menu-position.js', 'menu.css', 'controls.css', 'selection.css', 'save-feedback.js', 'accessibility.css', 'im-dark.css']
 
 def ui_digest():
     return hashlib.sha256(b''.join(name.encode()+b'\0'+(ROOT/'shared/ui'/name).read_bytes() for name in UI_FILES)).hexdigest()
@@ -14,8 +14,8 @@ def ui_digest():
 def ui_script():
     return '/* IM_SHARED_UI_BEGIN '+ui_digest()+' */\n'+'\n'.join((ROOT/'shared/ui'/name).read_text() for name in UI_FILES if name.endswith('.js'))+'\n/* IM_SHARED_UI_END */\n'
 
-def ui_styles():
-    return '/* Shared UI '+ui_digest()+' */\n'+'\n'.join((ROOT/'shared/ui'/name).read_text() for name in UI_FILES if name.endswith('.css'))
+def ui_styles(editor='im'):
+    return '/* Shared UI '+ui_digest()+' */\n'+'\n'.join((ROOT/'shared/ui'/name).read_text() for name in UI_FILES if name.endswith('.css') and (editor=='im' or name!='im-dark.css'))
 
 def release_config():
     return json.loads((ROOT / 'shared/release.json').read_text())

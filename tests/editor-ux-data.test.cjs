@@ -39,7 +39,7 @@ const big=Array.from({length:10000},(_,i)=>({id:f.newId(),text:`Title ${i}\nFind
 const grid=m.layout(big,{pinnedMessageIds:[big[2].id,big[9999].id]},1100);
 assert.equal(stats.bodyPreparations,10000);
 for(const [low,high] of [[0,900],[900,1900],[40000,41000],[grid.height-1000,grid.height],[grid.height+1,grid.height+900]]){
- const expected=grid.items.filter(item=>item.y+item.height+item.overhang>=low&&item.y<=high).map(item=>item.message.id);
+ const expected=grid.items.filter(item=>item.y+item.height>=low&&item.y<=high).map(item=>item.message.id);
  assert.deepEqual(plain(m.visible(grid,low,high).map(item=>item.message.id)),plain(expected));
 }
 let reads=0;const fast={columns:grid.columns.map(column=>new Proxy(column,{get(target,key){if(/^\d+$/.test(String(key)))reads++;return target[key];}})),get items(){throw Error('Full scan forbidden');}};

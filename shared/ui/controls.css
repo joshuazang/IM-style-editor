@@ -14,4 +14,3 @@
 .board-search-panel .tag-chip.untagged{color:var(--danger)}
 .board-search-panel .tag-chip.untagged[aria-pressed=true]{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,var(--surface))}
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.board-search-panel .tag-chip:not([aria-pressed=true]){background:color-mix(in srgb,var(--surface) var(--frost-tint,22%),transparent);backdrop-filter:blur(var(--frost-blur,10px));-webkit-backdrop-filter:blur(var(--frost-blur,10px))}}
-@media(prefers-color-scheme:dark){.board-search-panel .tag-chip{border-color:color-mix(in srgb,var(--ink) 35%,transparent)}}

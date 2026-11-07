@@ -24,4 +24,3 @@ input:focus-visible,textarea:focus-visible{outline:2px solid currentColor!import
  .ui-toolbar .ui-toolbar-button:before,.ui-selection-action:before{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%}
  .card-tools{min-height:44px;padding-top:0}.card-tools .icon-button{width:44px;height:44px}
 }
-@media(prefers-color-scheme:dark){:root{--focus-ring:#b7dcff;--danger:#f18c88}.editor-shell{--focus-ring:#285b89}.board-toolbar .selection-delete{color:#ffb4ad}}

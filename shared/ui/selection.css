@@ -17,4 +17,3 @@
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
  .ui-selection-actions>.ui-selection-action,.ui-selection-status>.selection-all,.ui-selection-status>.selection-cancel,.ui-selection-status>span{background:color-mix(in srgb,var(--surface,#fff) var(--frost-tint,22%),transparent)!important;backdrop-filter:blur(var(--frost-blur,10px))!important;-webkit-backdrop-filter:blur(var(--frost-blur,10px))!important}
 }
-@media(prefers-color-scheme:dark){.ui-selection-toolbar,.ui-selection-status{--selection-ink:#e1e9df}.ui-selection-status>span,.editor-shell .ui-selection-status>span{text-shadow:none}}

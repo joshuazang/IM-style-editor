@@ -63,6 +63,7 @@ try:
    e.get_by_role('button',name='Close',exact=True).click();page.set_viewport_size({'width':width,'height':844})
    fill_search(e,'Thought 2');card=e.locator('[data-id="'+data['messages'][2]['id']+'"]');card.click(button='right')
    menu=e.locator('#menu');expect(menu.locator('.ui-tag-panel')).to_be_visible();expect(menu.locator('.ui-action-panel')).to_be_visible()
+   assert menu.get_by_role('menuitem',name='Copy',exact=True).evaluate('n=>getComputedStyle(n).fontWeight')=='500'
    assert menu.get_by_role('menuitem').all_text_contents()==['Edit','Add title','Reply','Pin','Copy','Select','Delete']
    assert menu.get_by_role('button',name='Add label',exact=True).count()==0
    positions=menu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')
@@ -93,6 +94,7 @@ try:
    page.evaluate('openEditor("a","/next/index.html",true)');im=page.frame_locator('#editor');expect(im.get_by_role('textbox',name='Message',exact=True)).to_be_visible()
    im.locator('.message-wrap').last.click(button='right');imenu=im.locator('.context-menu')
    expect(imenu.locator('.ui-tag-panel')).to_be_visible();expect(imenu.locator('.ui-action-panel')).to_be_visible()
+   assert imenu.get_by_role('menuitem',name='Copy',exact=True).evaluate('n=>getComputedStyle(n).fontWeight')=='500'
    assert imenu.get_by_role('menuitem').all_text_contents()==['Edit','Add title','Reply','Pin','Copy','Select','Delete']
    assert imenu.get_by_role('button',name='Add label',exact=True).count()==0
    positions=imenu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')

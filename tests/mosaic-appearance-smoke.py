@@ -35,7 +35,7 @@ try:
    assert e.locator('.card-meta').count()==0
    def choose(kind,name):
     open_more(e);e.get_by_role('menuitem',name=kind,exact=True).click()
-    choice=e.get_by_role('button',name=name,exact=kind=='Font size');choice.click();expect(choice).to_have_attribute('aria-pressed','true')
+    choice=e.get_by_role('dialog').get_by_role('button',name=name,exact=True);choice.click();expect(choice).to_have_attribute('aria-pressed','true')
     expect(choice).to_be_enabled();e.get_by_role('button',name='Done',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
    # Medium retains the previous typography; all four choices remeasure previews.
    for name,pixels in [('Medium','13px'),('Small','12px'),('Extra large','18px'),('Large','15px')]:
@@ -44,10 +44,10 @@ try:
    choose('Font size','Medium')
    a=e.locator('[data-id="'+data['messages'][78]['id']+'"]');b=e.locator('[data-id="'+data['messages'][79]['id']+'"]')
    a.scroll_into_view_if_needed();page.wait_for_timeout(100)
-   gap=b.bounding_box()['height']-a.bounding_box()['height'];assert abs(gap)<=1,gap
+   gap=b.bounding_box()['height']-a.bounding_box()['height'];assert 28<=gap<=32,gap
    assert a.evaluate('n=>parseFloat(getComputedStyle(n).paddingTop)')<=14
-   tag=b.locator('.card-tag');assert tag.evaluate('n=>getComputedStyle(n).borderTopStyle')=='solid'
-   assert tag.evaluate('n=>getComputedStyle(n).backdropFilter')=='blur(10px)'
+   tag=b.locator('.card-tag');assert tag.locator('svg').count()==2
+   assert tag.locator('.emoji-tag-tip').get_attribute('viewBox')=='0 0 20 40'
    # Filter chip hover is visible, bordered and frosted; selection still filters.
    open_search(e);chip=e.get_by_role('button',name='Filter by 📚',exact=True);before=chip.evaluate('n=>getComputedStyle(n).backgroundColor')
    chip.hover();hover=chip.evaluate('n=>getComputedStyle(n).backgroundColor');assert hover!=before
@@ -68,7 +68,8 @@ try:
      choose('Color palette',name);assert e.locator('.card-body').first.evaluate(contrast)>=4.5
      assert e.locator('.card-body').first.evaluate(contrast)>=4.5
      if scheme=='dark':
-      for control in ['#search-button','#more-button']:assert min(e.locator(control).evaluate(control_contrast))>=3,(name,control,e.locator(control).evaluate(control_contrast))
+      assert e.locator('html').evaluate('n=>getComputedStyle(n).colorScheme')=='light'
+      assert e.locator('html').evaluate('n=>getComputedStyle(n).backgroundColor')=={'Sage':'rgb(248, 249, 245)','Paper':'rgb(247, 248, 250)','Sand':'rgb(250, 241, 231)'}[name]
       assert e.locator('.board-toolbar').evaluate('n=>getComputedStyle(n).backgroundColor')=='rgba(0, 0, 0, 0)'
       assert e.locator('#search-button').evaluate('n=>getComputedStyle(n).backdropFilter')=='blur(10px)'
       if width==390 and name=='Sand':page.screenshot(path='/tmp/mosaic-dark-header-fixed.png')
@@ -82,7 +83,7 @@ try:
    page.evaluate('switchNote("a")');expect(e.locator('html')).to_have_attribute('data-mosaic-palette','sand')
    page.evaluate('openEditor("a","/mosaic/index.html",true)');e=page.frame_locator('#editor');expect(e.locator('html')).to_have_attribute('data-mosaic-font-size','medium')
    # Failed appearance saves use the existing retained queue and visible retry.
-   page.evaluate('rejectSaves=true');open_more(e);e.get_by_role('menuitem',name='Color palette',exact=True).click();e.get_by_role('button',name='Paper',exact=False).click()
+   page.evaluate('rejectSaves=true');open_more(e);e.get_by_role('menuitem',name='Color palette',exact=True).click();e.get_by_role('dialog').get_by_role('button',name='Paper',exact=True).click()
    expect(e.locator('.dialog-error')).to_contain_text('Saving was not confirmed');assert parse(page.evaluate('notes.a.content.text'))['settings']['mosaicPalette']=='sand'
    e.get_by_role('button',name='Done',exact=True).click();page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click();expect(e.locator('#notice')).not_to_be_visible()
    assert parse(page.evaluate('notes.a.content.text'))['settings']['mosaicPalette']=='paper'

@@ -17,22 +17,22 @@ const MosaicModel = (() => {
   // Preset IDs are the only saved color values; unknown metadata is preserved.
   const colors=[
     {id:'default',name:'Default'},
-    {id:'coral',name:'Coral',light:'#f7b2ae',dark:'#663e3e'},
-    {id:'peach',name:'Peach',light:'#f6b18a',dark:'#67452f'},
-    {id:'lemon',name:'Lemon',light:'#fff6b3',dark:'#5a512e'},
-    {id:'sage',name:'Sage',light:'#e2f3ce',dark:'#3b5138'},
-    {id:'seafoam',name:'Seafoam',light:'#b9ded5',dark:'#304f49'},
-    {id:'ice',name:'Ice',light:'#d4e5ed',dark:'#354d59'},
-    {id:'blue',name:'Blue',light:'#aecfdf',dark:'#304d65'},
-    {id:'lavender',name:'Lavender',light:'#d7c2df',dark:'#51405e'},
-    {id:'rose',name:'Rose',light:'#f5dfd9',dark:'#5b4148'},
-    {id:'sand',name:'Sand',light:'#e9e3d1',dark:'#514b3b'},
-    {id:'stone',name:'Stone',light:'#eeeef0',dark:'#44484d'},
-    {id:'iris',name:'Iris blue',light:'#4e5cf0',dark:'#4e5cf0',ink:'#ffffff'}
+    {id:'coral',name:'Coral',light:'#f7b2ae'},
+    {id:'peach',name:'Peach',light:'#f6b18a'},
+    {id:'lemon',name:'Lemon',light:'#fff6b3'},
+    {id:'sage',name:'Sage',light:'#e2f3ce'},
+    {id:'seafoam',name:'Seafoam',light:'#b9ded5'},
+    {id:'ice',name:'Ice',light:'#d4e5ed'},
+    {id:'blue',name:'Blue',light:'#aecfdf'},
+    {id:'lavender',name:'Lavender',light:'#d7c2df'},
+    {id:'rose',name:'Rose',light:'#f5dfd9'},
+    {id:'sand',name:'Sand',light:'#e9e3d1'},
+    {id:'stone',name:'Stone',light:'#eeeef0'},
+    {id:'iris',name:'Iris blue',light:'#4e5cf0',ink:'#ffffff'}
   ];
-  const color = (message,dark=false) => {
+  const color = (message) => {
     const preset=colors.find(item=>item.id===message.cardColor)||colors[0];
-    return {id:preset.id,background:preset[dark?'dark':'light']||'var(--surface)',ink:preset.ink||(preset.id==='default'?'var(--ink)':dark?'#f3f5f1':'#27332f')};
+    return {id:preset.id,background:preset.light||'var(--surface)',ink:preset.ink||(preset.id==='default'?'var(--ink)':'#27332f')};
   };
   const normalized = text => text.replace(/\r\n?/g, '\n');
   function split(text) {
@@ -129,10 +129,10 @@ const MosaicModel = (() => {
     return lines;
   }
   const heightKey=(width,pinned,selecting,fontSize)=>width+':'+pinned+':'+selecting+':'+fontSize;
-  function measure(message,width,pinned,selecting,height,fontSize='large',overhang=0) {
+  function measure(message,width,pinned,selecting,height,fontSize='large') {
     const key=heightKey(width,pinned,selecting,fontSize),previous=measured.get(message);
-    if(previous?.key===key&&previous.height===height&&previous.overhang===overhang)return false;
-    measured.set(message,{key,height,overhang});return true;
+    if(previous?.key===key&&previous.height===height)return false;
+    measured.set(message,{key,height});return true;
   }
   function cardHeight(message,width,pinned,selecting,fontSize) {
     const compact=width<230,font=fontSizes[fontSize],key=heightKey(width,pinned,selecting,fontSize),actual=measured.get(message),cached=heights.get(message);
@@ -140,15 +140,9 @@ const MosaicModel = (() => {
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
     const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,3):0,bodyLines=parts.body?previewLines(parts.body,columns,7):0;
-    const height=Math.max(selecting?44:0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0));
+    const tagRows=Math.ceil(Math.min(10,message.reactions.length)/Math.max(1,Math.floor((width-padding+6)/37)));
+    const height=Math.max(selecting?44:0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0));
     heights.set(message,{key,height});return height;
-  }
-  function cardOverhang(message,width,pinned,selecting,fontSize){
-    if(!message.reactions.length)return 0;
-    const actual=measured.get(message),key=heightKey(width,pinned,selecting,fontSize);
-    if(actual?.key===key)return actual.overhang;
-    const columns=Math.max(1,Math.floor((width-16+6)/35)),rows=Math.ceil(Math.min(10,message.reactions.length)/columns);
-    return rows*26+(rows-1)*6-13;
   }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
@@ -161,11 +155,11 @@ const MosaicModel = (() => {
       if(name==='Pinned'||headings.length){headings.push({label:name,y:base});base+=36;}
       const heights=Array(columns).fill(base);
       for(const message of group){
-        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize),overhang=cardOverhang(message,cardWidth,pinIds.has(message.id),selecting,fontSize);
+        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize);
         const column=heights.indexOf(Math.min(...heights));
-        const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,overhang,order:items.length};
+        const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,order:items.length};
         items.push(item);columnItems[column].push(item);byId.set(message.id,item);
-        heights[column]+=height+overhang+gap;
+        heights[column]+=height+gap;
       }
       base=Math.max(...heights)+12;
     }
@@ -175,7 +169,7 @@ const MosaicModel = (() => {
     const result=[];
     for(const column of layout.columns||[]){
       let a=0,b=column.length;
-      while(a<b){const middle=(a+b)>>1,item=column[middle];if(item.y+item.height+(item.overhang||0)<low)a=middle+1;else b=middle;}
+      while(a<b){const middle=(a+b)>>1,item=column[middle];if(item.y+item.height<low)a=middle+1;else b=middle;}
       for(let i=a;i<column.length&&column[i].y<=high;i++)result.push(column[i]);
     }
     return result.sort((a,b)=>a.order-b.order);

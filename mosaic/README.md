@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.3](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.3.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.4](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.4.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -83,7 +83,7 @@ This is the current note's board, rather than an account-wide dashboard.
   bottom Select all/count/Cancel controls. Select all follows the current filter.
 - Copy, Export, Import, merge, status clearing and confirmed deletion.
 - Manual clipboard clearing and Import and clear clipboard, with confirmation.
-- Light/dark themes, reduced motion, keyboard menus and Escape to exit selection.
+- Three light palettes unaffected by system dark mode, reduced motion, keyboard menus and Escape to exit selection.
 
 No reminders, photos, checkboxes, Markdown rendering or rich-text editing.
 HTML-looking text is displayed literally. OpenKeep was a layout reference;
@@ -193,9 +193,13 @@ unfinished text. Title-only changes do not mark the body Edited. Search includes
 titles, Export/Import preserves them, and Merge keeps the first title while
 including later titles in the combined body so their words remain visible.
 
-Board and opened cards show separate emoji pills hanging from the bottom edge.
-These badges do not occupy an internal tag row. Multiple tags have visible gaps
-and wrap when needed; the layout reserves clearance to prevent overlap or clipping.
-Opened-card badges remain read-only.
-Clicking a badge does nothing; the context menu still adds/removes tags, and
-its changes appear immediately in the badges. Untagged cards have no tag row.
+**Board view** is the card overview. Its compact emoji tags sit inside each
+card's bottom-left corner, using the IM vector shape and hover feedback. Click
+a tag to filter the board without opening a card or sending the capture draft.
+In selection mode, tapping a tag selects its card like tapping the card body.
+
+**Card view** is an opened note. Its separate emoji pills hang from the
+bottom-left edge and remain read-only. Context-menu tag changes appear
+immediately; multiple badges wrap with viewport clearance. Untagged cards
+reserve no tag row. Mosaic has no automatic dark mode; Sage, Paper and Sand
+remain light. The search prompt hides on focus without a rectangular focus box.

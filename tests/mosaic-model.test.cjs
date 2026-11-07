@@ -68,8 +68,8 @@ assert.notEqual(m.layout([sizedMessage],{mosaicFontSize:'extra-large'},350).item
 const appearanceSettings={...settings,mosaicPalette:'sand',mosaicFontSize:'extra-large'};
 assert.deepEqual(plain(other.inspect(f.portable(messages,appearanceSettings,draft,reply)).settings),appearanceSettings);
 assert.equal(m.color({cardColor:'url(https://example.invalid)'}).id,'default','Only preset IDs can become CSS colors');
-for(const preset of m.colors)for(const dark of [false,true]){
-  const result=m.color({cardColor:preset.id},dark);assert.ok(result.id===preset.id&&result.background&&result.ink);
+for(const preset of m.colors){
+  const result=m.color({cardColor:preset.id});assert.ok(result.id===preset.id&&result.background&&result.ink);
 }
 const damaged={content:{text:initial.replace('@@IM:CONTENT','@@BROKEN')}};
 assert.throws(()=>f.write(damaged,[],{}),/Malformed/);assert.equal(damaged.content.text,initial.replace('@@IM:CONTENT','@@BROKEN'));
@@ -77,9 +77,8 @@ assert.throws(()=>f.write(damaged,[],{}),/Malformed/);assert.equal(damaged.conte
 console.log('PASS: transfer/duplicate detection, selective statuses, merge navigation, nonmutating 5,000-card layout, malformed-note refusal and shared-core checksums');
 
 const untagged={id:f.newId(),text:'Same body',reactions:[]},tagged={...untagged,id:f.newId(),reactions:['📍']};
-const pair=m.layout([untagged,tagged],{},350);assert.equal(pair.items[0].height,pair.items[1].height,'Hanging tags do not add an internal row');assert.equal(pair.byId.get(tagged.id).overhang,13);
-m.measure(tagged,170,false,false,90,'large',45);const hanging=m.layout([tagged],{},350).items[0];assert.equal(hanging.height,90);assert.equal(hanging.overhang,45);
-assert.equal(m.visible({columns:[[hanging]]},hanging.y+100,hanging.y+110)[0],hanging,'Keep a card mounted when only its hanging badges are visible');
+const pair=m.layout([untagged,tagged],{},350);assert.equal(pair.byId.get(tagged.id).height-pair.byId.get(untagged.id).height,30,'Board tags use a compact internal row');
+m.measure(tagged,170,false,false,90,'large');assert.equal(m.layout([tagged],{},350).items[0].height,90);
 const packed=Array.from({length:80},(_,i)=>({...untagged,id:f.newId(),reactions:i%2?Array(8).fill('📍'):[]}));
-for(const width of [280,350,1100])for(const column of m.layout(packed,{},width).columns)for(let i=1;i<column.length;i++)assert.ok(column[i].y>=column[i-1].y+column[i-1].height+column[i-1].overhang+8,'Wrapped pills clear the next card');
-console.log('PASS: hanging-tag body heights, measured/wrapped clearance and indexed visibility through badge-only viewport intersections');
+for(const width of [280,350,1100])for(const column of m.layout(packed,{},width).columns)for(let i=1;i<column.length;i++)assert.ok(column[i].y>=column[i-1].y+column[i-1].height+8,'Wrapped tags clear the next card');
+console.log('PASS: compact internal Board tags, measured wrapped heights and indexed visibility');

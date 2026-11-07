@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.2.1](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.1.3](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.2.2](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.1.4](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -160,3 +160,12 @@ Mosaic 1.1.3 places emoji tags in separate pills that straddle the bottom edge
 of board and opened cards. Tags no longer take an internal row. Wrapped badge
 clearance is included in masonry positioning and visible-card lookup; opened
 cards reserve viewport clearance and retain read-only badge clicks. IM is unchanged.
+
+IM 4.2.2 / Mosaic 1.1.4 slightly strengthen context-menu action labels. Mosaic
+uses **Board view** for the overview and **Card view** for an opened note. Board
+tags sit inside the bottom-left corner, with IM-shaped vector tags and hover
+feedback; clicking filters without opening the card. Only Card-view badges hang
+from the bottom-left edge and stay read-only. Mosaic keeps Sage, Paper and Sand
+light palettes regardless of system appearance, and search hides its placeholder
+while focused without an extra rectangular outline. IM appearance is unchanged
+apart from the requested menu label weight.

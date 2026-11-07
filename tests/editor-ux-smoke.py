@@ -108,7 +108,7 @@ try:
     for scheme in ['light','dark']:
      page.emulate_media(color_scheme=scheme)
      for palette in ['Sage','Paper','Sand']:
-      open_more(e);e.get_by_role('menuitem',name='Color palette',exact=True).click();choice=e.get_by_role('button',name=palette,exact=False);choice.click();expect(choice).to_be_enabled()
+      open_more(e);e.get_by_role('menuitem',name='Color palette',exact=True).click();choice=e.get_by_role('dialog').get_by_role('button',name=palette,exact=True);choice.click();expect(choice).to_be_enabled()
       for node in e.locator('dialog .appearance-choice-label,dialog .appearance-choice-label small').all():assert node.evaluate(contrast)>=4.5,(scheme,palette,'palette text',node.evaluate(contrast))
       e.get_by_role('button',name='Done',exact=True).click();open_more(e);e.get_by_role('menuitem',name='Arrange tags',exact=True).click()
       for node in e.locator('dialog h2,dialog .tag-arrange-untagged .tag-arrange-symbol,dialog .secondary-button').all():assert node.evaluate(contrast)>=4.5,(scheme,palette,node.inner_text(),node.evaluate(contrast))

@@ -11,7 +11,7 @@ VERSION = release_config()['mosaic_version']
 BASE = 'https://joshuazang.github.io/IM-style-editor/'
 script = ('"use strict";\nconst MOSAIC_VERSION=' + json.dumps(VERSION) + ';\n' + core_source() + ui_script() + '\n' +
           '\n'.join((TARGET / 'src' / name).read_text() for name in ['relay.js','model.js','icons.js','app.js'])).encode()
-style = ((TARGET / 'src/styles.css').read_text()+'\n'+ui_styles()).encode()
+style = ((TARGET / 'src/styles.css').read_text()+'\n'+ui_styles('mosaic')).encode()
 files = {}
 for data, suffix in [(script,'.js'),(style,'.css')]:
     name = 'assets/mosaic-' + hashlib.sha256(data).hexdigest()[:12] + suffix

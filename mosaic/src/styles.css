@@ -54,7 +54,6 @@ input,textarea{min-width:0;color:var(--ink)}
 .card-actions svg{width:16px;height:16px}
 .card:hover .card-actions,.card:focus-within .card-actions,.card.is-pinned .card-actions{opacity:1}
 .card.is-pinned .pin-card{color:var(--accent)}
-.card .card-tags{display:flex;align-items:center;gap:4px;margin-top:auto;padding-top:12px;min-height:34px;flex:none;overflow:hidden}
 .card-tag{font-size:15px;padding:3px 5px;border-radius:7px;background:#ffffff55;border:1px solid #ffffff66;line-height:20px;flex:none}
 .card-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9px;color:color-mix(in srgb,var(--ink) 53%,transparent);padding-top:15px;min-height:26px;margin-top:auto;flex:none}
 .card-meta .meta-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -152,22 +151,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .reader-body{font-size:16px}
 .dialog-actions{gap:8px}
 .dialog-actions .primary-button,.dialog-actions .secondary-button{font-size:12px;padding:11px 13px}}
-@media(prefers-color-scheme:dark){:root{color-scheme:dark;--canvas:#171d1b;--surface:#202925;--ink:#e1e9df;--muted:#95a396;--line:#364238;--accent:#9bc8ab;--accent-soft:#2b4033;--frost:rgba(34,45,38,.8);--shadow:0 10px 35px #0002}
-.primary-button,.tag-chip[aria-pressed=true]{background:#a6d5b2;color:#193225}
-.card{border-color:#3b493d}
-.card-tags .card-tag{background:#ffffff0a;border-color:#ffffff12}
-.card-reply{background:#ffffff08}
-.card-body{color:#c3cdc1}
-.card-meta{color:#9daa9b}
-.card.selected{border-color:var(--accent)}
-.frost{border-color:#3b493d}
-.secondary-button.danger,.danger{color:#f18c88!important}
-#notice{background:#493825;color:#f1cc9e}
-#notice button{background:#ffffff12}
-.tag-chip.untagged{color:#ee9692}
-.selection-check{color:#193225}
-.selection-check svg{color:inherit}
-.selection-check:not(:has(svg)){color:var(--ink)}}
+
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 /* The same minimal capture surface on desktop and phone. */
 .toolbar{width:100%;max-width:1440px;margin:0 auto;padding:22px 36px 14px}
@@ -188,7 +172,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card{--card-color:var(--surface);border-radius:12px}
 .search-bar{background:#f1f3f4}
 .inline-composer{max-width:780px}
-@media(prefers-color-scheme:dark){.search-bar{background:var(--surface)}}
+
 .empty-state{padding:25px 15px}
 .empty-state p{margin:0 0 6px}
 .welcome{font-size:13px}
@@ -211,7 +195,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .selection-mode .card-title{margin-left:23px}
 .card .card-body{margin-top:10px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 88%,transparent)}
 .card .card-meta{margin-top:10px;padding-top:0;min-height:12px;line-height:12px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 72%,transparent)}
-.card .card-tags{margin-top:10px;padding-top:0;min-height:24px}
 .card .card-reply{margin-top:8px;color:inherit;border-left-color:currentColor}
 .card>.pin-card{position:absolute;right:6px;top:6px;width:30px;height:30px;border-radius:9px;opacity:0;pointer-events:none;background:var(--card-color)}
 .card>.pin-card svg{width:18px;height:18px}
@@ -226,7 +209,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card.is-compact .card-body{font-size:13px;line-height:20px}
 .card.is-compact .card-meta{font-size:9px;line-height:12px}
 .card.is-compact .card-reply{font-size:11px;padding:6px 7px}
-.card.is-compact .card-tag{font-size:14px;padding:2px 4px;line-height:20px}
 @media(hover:none){.card:not(.is-pinned)>.pin-card{display:none}}
 .color-menu{min-width:0;padding:12px}
 .color-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(40px,1fr));gap:7px;width:min(628px,calc(100vw - 50px))}
@@ -294,8 +276,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card.is-compact{padding:11px 11px 9px}
 .card.is-compact.selected{padding:10px 10px 8px}
 .card .card-body{margin-top:8px}
-.card .card-tags{margin-top:8px;min-height:0}
-.card .card-tag,.card-detail-tags .card-tag{display:inline-flex;align-items:center;justify-content:center;min-width:29px;min-height:26px;padding:2px 5px;border-radius:9px;border:1px solid color-mix(in srgb,var(--card-ink,var(--ink)) 30%,transparent);background:color-mix(in srgb,var(--card-color,var(--surface)) 44%,transparent);font-size:15px;line-height:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.card-detail-tags .card-tag{display:inline-flex;align-items:center;justify-content:center;min-width:29px;min-height:26px;padding:2px 5px;border-radius:9px;border:1px solid color-mix(in srgb,var(--card-ink,var(--ink)) 30%,transparent);background:color-mix(in srgb,var(--card-color,var(--surface)) 44%,transparent);font-size:15px;line-height:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .card-tools{padding-top:2px;margin-top:0}
 .card-tools .icon-button{height:28px}
 .card>.pin-card,.detail-pin{border-radius:50%;background:transparent}
@@ -320,12 +301,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog .editor-body,.reader-body{font-size:var(--type-edit-body,18px)}
 #capture-input{font-size:var(--type-capture,18px);line-height:1.5}
 @media(max-width:650px){.card-edit-dialog .editor-title,.reader-title{font-size:var(--type-compact-edit-title,24px)}#capture-input{font-size:max(16px,var(--type-capture,18px))}}
-@media(prefers-color-scheme:dark){
- :root{--muted:#a2b0a3;--toolbar-ink:var(--ink);--toolbar-frost:color-mix(in srgb,var(--surface) 68%,transparent);--toolbar-border:color-mix(in srgb,var(--ink) 35%,transparent)}
- :root[data-mosaic-palette=paper]{--canvas:#1c1d1f;--surface:#27292c;--ink:#edf0f2;--muted:#b0b4b9;--line:#44474c;--accent:#ebd277;--accent-soft:#443e27;--frost:#27292ccc}
- :root[data-mosaic-palette=sand]{--canvas:#24201c;--surface:#302a24;--ink:#f2e9df;--muted:#c3b3a3;--line:#51463a;--accent:#e5c19c;--accent-soft:#4e3b2a;--frost:#302a24cc}
- .board-search-panel .tag-chip{border-color:var(--line)}
-}
+
 .tag-arrange-list{display:flex;flex-direction:column;gap:6px;max-height:50dvh;overflow:auto;padding:3px}
 .tag-arrange-row{display:grid;grid-template-columns:minmax(36px,1fr) repeat(4,44px);align-items:center;gap:4px;border-bottom:1px solid var(--line);padding:3px 0}
 .tag-arrange-row.tag-arrange-untagged{grid-template-columns:minmax(0,1fr) repeat(2,44px)}
@@ -340,7 +316,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card .card-title{margin:0;white-space:pre-wrap}
 .card .card-body{margin:0}
 .card .card-title+.card-body,.card .card-title+.card-reply,.card .card-reply+.card-body{margin-top:8px}
-.card .card-tags{margin:8px 0 0;padding:0;min-height:0}
 .card.is-pinned .card-title{margin-right:0}
 .selection-mode .card-title,.selection-mode .card:not(:has(.card-title))>.card-body{margin-left:23px}
 .selection-mode .card{min-height:44px}
@@ -350,11 +325,22 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog:has(.detail-title:not([hidden]),.editor-title:not([hidden])) .editor-body{padding-right:0}
 .card-detail-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;flex:none;max-height:20dvh;overflow:auto;--card-ink:var(--edit-card-ink,var(--ink));--card-color:var(--edit-card-color,var(--surface));color:var(--card-ink)}
 .card-detail-tags .card-tag{cursor:default;max-width:100%;overflow-wrap:anywhere}
-/* Separate reaction pills straddle the surface edge, outside the text layout. */
-.card{overflow:visible;--card-edge-width:1px}
-.card.selected{--card-edge-width:2px}
-.card .card-tags{position:absolute;top:calc(100% - 13px + var(--card-edge-width));left:calc(8px - var(--card-edge-width));right:calc(8px - var(--card-edge-width));display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start;gap:6px;margin:0;padding:0;min-height:0;overflow:visible}
-.card .card-tag,.card-detail-tags .card-tag{border-radius:999px;background:var(--surface);color:var(--ink);border-color:color-mix(in srgb,var(--ink) 20%,transparent);box-shadow:0 1px 3px #00000014;max-width:100%;overflow-wrap:anywhere}
-.card-detail-tags{position:absolute;top:calc(100% - 13px);left:20px;right:20px;margin:0;justify-content:flex-end;align-items:flex-start;z-index:2}
+/* Only Card-view badges straddle the edge; Board tags stay in the text layout. */
+.card{overflow:visible}
+.card .card-tags{position:static;display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:6px;margin:8px 0 0;padding:0;min-height:0;overflow:visible}
+.card-detail-tags .card-tag{border-radius:999px;background:var(--surface);color:var(--ink);border-color:color-mix(in srgb,var(--ink) 20%,transparent);box-shadow:0 1px 3px #00000014;max-width:100%;overflow-wrap:anywhere}
+.card-detail-tags{position:absolute;top:calc(100% - 13px);left:20px;right:20px;margin:0;justify-content:flex-start;align-items:flex-start;z-index:2}
 .card-edit-dialog[open]{overflow:visible;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
 .card-edit-dialog #modal-content{border-radius:inherit;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
+
+/* Board-view tags share IM's compact vector silhouette and hover lift. */
+.card .card-tag,.card.is-compact .card-tag{position:relative;display:inline-flex;justify-content:flex-start;min-width:0;min-height:0;margin:0;padding:0 11px 0 0;border:0;border-radius:0;background:transparent;color:var(--card-ink);box-shadow:none;line-height:1;cursor:pointer;backdrop-filter:none;-webkit-backdrop-filter:none}
+.card .emoji-tag-body,.card .emoji-tag-tip{position:absolute;top:0;height:100%;fill:var(--accent-soft);pointer-events:none}
+.card .emoji-tag-body{left:0;width:calc(100% - 11px)}
+.card .emoji-tag-tip{right:0;width:11px}
+.card .emoji-tag-emoji{position:relative;display:grid;place-items:center;min-width:20px;min-height:22px;padding:2px;font-size:14px;line-height:1;white-space:nowrap;pointer-events:none}
+.card .card-tag:hover{transform:translateY(-1px) scale(1.04)}
+.card .card-tag:hover svg,.card .card-tag:focus-visible svg{fill:color-mix(in srgb,var(--accent) 18%,var(--accent-soft))}
+.card .card-tag:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+#search:focus{outline:none!important}
+#search:focus::placeholder{opacity:0!important}
