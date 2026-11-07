@@ -4,19 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="mosaic-version" content="1.0.4">
+  <meta name="mosaic-version" content="1.0.5">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; img-src 'self' data:; font-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'">
   <title>Mosaic — a board for Standard Notes</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/mosaic-0e9e68e77042.css">
-  <script defer src="./assets/mosaic-1b5a98255be4.js"></script>
+  <link rel="stylesheet" href="./assets/mosaic-3de019c19fe2.css">
+  <script defer src="./assets/mosaic-a79c81af32e7.js"></script>
 <meta name="im-shared-core" content="4f813d7242d7ab7d76dea706c2b70fe279a8b016f77dd475bacbdaf87c6f9778">
-<meta name="im-shared-ui" content="b4f7429046cd187fee7d96efc3ebaec1c7840a79dea10cfc79d10f49f3bbf5dd">
+<meta name="im-shared-ui" content="d7ec668927cd638df2993640faf20fcc768a870043ed6e5ef7dcd5a045350dd0">
 </head>
 <body>
   <div id="app">
     <div id="notice" role="alert" hidden></div>
     <header class="board-toolbar ui-toolbar">
+      <div id="selection-toolbar" class="ui-selection-toolbar" hidden></div>
       <button id="search-button" class="ui-toolbar-button" aria-label="Search and tags" aria-expanded="false" aria-controls="search-tags-panel"></button>
       <button id="more-button" class="ui-toolbar-button ui-toolbar-more" aria-label="More options" aria-haspopup="menu"></button>
       <div id="filter-pill" class="board-filter-pill" role="group" aria-label="Card filter" hidden>
@@ -41,7 +42,7 @@
       <textarea id="capture-input" rows="1" placeholder="Take a note…" aria-label="Take a note" enterkeyhint="send" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" writingsuggestions="false"></textarea>
       <span id="save-status" role="status" hidden></span>
     </section>
-    <div id="selection-bar" class="selection-bar frost" hidden></div>
+    <div id="selection-bar" class="ui-selection-status" hidden></div>
     <div id="toast" class="toast" role="status" hidden></div>
     <div id="menu" class="menu" role="menu" hidden></div>
     <dialog id="modal" aria-labelledby="dialog-title"><div id="modal-content"></div></dialog>

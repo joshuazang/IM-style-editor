@@ -31,7 +31,7 @@ try:
    controls=e.locator('.board-toolbar');assert len(controls.locator('button:visible').all())==2
    assert round(e.locator('#search-button').bounding_box()['width'])==46 and round(e.locator('#more-button').bounding_box()['width'])==38
    capture=e.locator('#capture-composer').bounding_box();view=e.locator('#viewport').bounding_box()
-   assert capture['y']>=view['y']+view['height'] and capture['y']+capture['height']<=844,capture
+   assert view['y']<=capture['y']<view['y']+view['height'] and capture['y']+capture['height']<=view['y']+view['height'],capture
    assert not e.locator('.card-timestamp').count()
    assert e.get_by_role('button',name='Background options',exact=True).count()==0
    assert not any('Nov' in text for text in e.locator('.card-meta').all_text_contents())

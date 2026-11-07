@@ -275,3 +275,12 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog .editor-title,.card-detail-meta,.card-detail-tools{flex:none}
 .card-edit-dialog .editor-body{flex:1 1 240px;min-height:90px;overflow:auto;resize:none}
 @media(max-height:520px){.card-edit-dialog #modal-content{padding:12px}.card-edit-dialog .editor-title{font-size:20px;line-height:28px;padding:6px 0}.card-edit-dialog .editor-body{min-height:45px;flex-basis:130px;padding:4px 0}.card-detail-meta{margin-top:6px;font-size:10px}.card-detail-tools{margin-top:6px}.card-detail-tools .icon-button{height:36px;width:36px}.detail-close{padding:8px 12px}.detail-pin{top:11px;right:10px}}
+/* Cards scroll behind these floating controls; only the controls paint a surface. */
+.board-toolbar{position:absolute;left:10px;right:10px;top:calc(var(--notice-height,0px) + 6px);z-index:25;min-height:38px;padding:0;background:transparent;pointer-events:none}
+.board-toolbar .ui-selection-toolbar,.board-toolbar .ui-selection-actions{pointer-events:none}
+.board-toolbar button{pointer-events:auto}
+.board-content{padding-top:64px;padding-bottom:var(--capture-clearance,100px)}
+.selection-mode .board-content{padding-bottom:var(--capture-clearance,100px)}
+.inline-composer{position:absolute;z-index:20;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);margin:0}
+#selection-bar{position:absolute;z-index:20;left:36px;right:36px;bottom:max(24px,env(safe-area-inset-bottom));width:auto;transform:none}
+@media(max-width:650px){#selection-bar{left:16px;right:16px}.board-content{padding-top:64px}}

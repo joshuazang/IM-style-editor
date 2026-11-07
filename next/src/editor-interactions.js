@@ -146,16 +146,8 @@ function ImEditPreview({message,cancel}) {
 
 /* SVG controls use local paths only. Batch tagging adds without removing existing tags. */
 function ImSelectionIcon({kind}) {
-  const paths = {
-    tag: 'M4 12V6a3 3 0 0 1 3-3h9l6 7a2 2 0 0 1 0 3l-6 6H10M5 16v8M1 20h8',
-    copy: 'M9 6V4a2 2 0 0 1 2-2h6l6 6v12a2 2 0 0 1-2 2h-2M17 2v6h6M5 9h9a2 2 0 0 1 2 2v13H3V11a2 2 0 0 1 2-2Z',
-    export: 'M3 22c0-10 4-15 12-15V2l10 10-10 9v-6c-5 0-9 2-12 7Z',
-    cancel: 'm6 6 14 14M20 6 6 20',
-    delete: 'M4 7h18M10 7V4h6v3M6 7l1.5 17h11L20 7M11 11v9M15 11v9'
-  };
   return x.jsx('svg',{width:26,height:26,viewBox:'0 0 28 28',fill:'none',stroke:'currentColor',strokeWidth:1.8,
-    strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[
-      kind==='more'?x.jsx('g',{fill:'currentColor',stroke:'none',children:[6,14,22].map(cx=>x.jsx('circle',{cx,cy:14,r:1.8},cx))}):x.jsx('path',{d:paths[kind]}),kind==='tag'&&x.jsx('circle',{cx:17,cy:10,r:1.4,fill:'currentColor',stroke:'none'})]});
+    strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,dangerouslySetInnerHTML:{__html:imSelectionIcons[kind]||''}});
 }
 function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessages,remove,notice,more,merge}) {
   const [open,setOpen]=dt.useState(false);
@@ -175,11 +167,11 @@ function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessa
     if(next.some((message,i)=>message!==messages[i]))save(next);
     setOpen(false);
   };
-  return x.jsxs('div',{className:'selection-toolbar',ref:panel,children:[
-    x.jsxs('div',{className:'selection-tools selection-actions','aria-label':'Selected messages',children:[
+  return x.jsxs('div',{className:'selection-toolbar ui-selection-toolbar',ref:panel,children:[
+    x.jsxs('div',{className:'selection-tools selection-actions ui-selection-actions','aria-label':'Selected messages',children:[
       ...[['tag','Add tags to selected messages',()=>{setOptions(false);setOpen(!open)}],['copy','Copy',copy],
         ['export','Export',exportMessages],['more','More selection options',()=>{setOpen(false);setOptions(!options)}],['delete','Delete selected messages',remove]].map(([kind,label,action])=>
-        x.jsx('button',{type:'button',className:`selection-action${kind==='delete'?' selection-delete':''}`,'aria-label':label,title:label,
+        x.jsx('button',{type:'button',className:`selection-action ui-selection-action${kind==='delete'?' selection-delete':''}`,'aria-label':label,title:label,
           'aria-expanded':kind==='tag'?open:kind==='more'?options:undefined,'aria-haspopup':kind==='more'?'menu':undefined,onClick:action,children:x.jsx(ImSelectionIcon,{kind})},kind))
     ]}),
     options&&x.jsxs('div',{className:'selection-more-menu',role:'menu','aria-label':'More selection options',onKeyDown:event=>{
@@ -189,8 +181,8 @@ function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessa
         const next=event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowUp'?-1:1)+items.length)%items.length;items[next]?.focus();
       }
     },children:[
-      x.jsx('button',{type:'button',role:'menuitem',disabled:count<2,onClick:()=>{setOptions(false);merge()},children:'Merge selected'}),
-      x.jsx('button',{type:'button',role:'menuitem',onClick:()=>{setOptions(false);more()},children:'Clear message statuses…'})]}),
+      x.jsxs('button',{type:'button',role:'menuitem',disabled:count<2,onClick:()=>{setOptions(false);merge()},children:[x.jsx(ImUiIcon,{name:'merge'}),x.jsx('span',{children:'Merge selected'})]}),
+      x.jsxs('button',{type:'button',role:'menuitem',onClick:()=>{setOptions(false);more()},children:[x.jsx(ImUiIcon,{name:'select'}),x.jsx('span',{children:'Clear message statuses…'})]})]}),
     open&&x.jsxs('section',{className:'selection-tag-panel','aria-label':'Batch add emoji tag',children:[
       x.jsx('p',{children:`Add a tag to ${count} selected message${count===1?'':'s'}`}),
       x.jsx('div',{className:'reaction-filter',children:order.map(tag=>x.jsx('button',{type:'button',className:'chip',
@@ -201,7 +193,7 @@ function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessa
   ]});
 }
 function ImSelectionStatus({count,total,cancel,selectAll}) {
-  return x.jsxs('div',{className:'selection-status',children:[
+  return x.jsxs('div',{className:'selection-status ui-selection-status',children:[
     x.jsx('button',{type:'button',className:'selection-all','aria-label':'Select all visible messages',title:'Select all visible messages',onClick:selectAll,
       children:x.jsxs('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[x.jsx('rect',{x:3,y:3,width:18,height:18,rx:5}),x.jsx('path',{d:'m7 12 3 3 7-7M7 18h10'})]})}),
     x.jsx('span',{role:'status',children:`${count} / ${total} selected`}),

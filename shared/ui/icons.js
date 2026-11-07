@@ -14,6 +14,7 @@ const imUiIcons = {
   reply:'<path d="M21 19c-1-8-5-11-11-11V3l-7 8 7 7v-5c5 0 8 2 11 6Z"/>',
   edit:'<path d="m15 4 5 5M4 20l5-1L21 7a2.1 2.1 0 0 0-5-3L4 16l-1 5Z"/>',
   select:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  selectAll:'<rect x="3" y="3" width="18" height="18" rx="5"/><path d="m7 12 3 3 7-7M7 18h10"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
   trash:'<path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/>',
   import:'<path d="M4 15v5h16v-5M12 3v12m-5-5 5 5 5-5"/>',
@@ -26,4 +27,13 @@ const imUiIcons = {
   merge:'<path d="M5 3v4c0 4 7 3 7 7v7M19 3v4c0 4-7 3-7 7m-4 3 4 4 4-4"/>',
   shield:'<path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.1"/>'
+};
+/* Selection controls keep IM's established viewBox and paths in both apps. */
+const imSelectionIcons={
+  tag:'<path d="M4 12V6a3 3 0 0 1 3-3h9l6 7a2 2 0 0 1 0 3l-6 6H10M5 16v8M1 20h8"/><circle cx="17" cy="10" r="1.4" fill="currentColor" stroke="none"/>',
+  copy:'<path d="M9 6V4a2 2 0 0 1 2-2h6l6 6v12a2 2 0 0 1-2 2h-2M17 2v6h6M5 9h9a2 2 0 0 1 2 2v13H3V11a2 2 0 0 1 2-2Z"/>',
+  export:'<path d="M3 22c0-10 4-15 12-15V2l10 10-10 9v-6c-5 0-9 2-12 7Z"/>',
+  cancel:'<path d="m6 6 14 14M20 6 6 20"/>',
+  delete:'<path d="M4 7h18M10 7V4h6v3M6 7l1.5 17h11L20 7M11 11v9M15 11v9"/>',
+  more:'<g fill="currentColor" stroke="none"><circle cx="6" cy="14" r="1.8"/><circle cx="14" cy="14" r="1.8"/><circle cx="22" cy="14" r="1.8"/></g>'
 };

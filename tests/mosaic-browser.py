@@ -116,7 +116,7 @@ readText:async()=>window.__incomingClipboard||''}});
         payload=json.loads(copied.split('\n',1)[1]);assert len(payload['messages'])==7
         assert all(m['reactions']==['📓'] for m in payload['messages'])
         assert 'Thought' not in json.dumps(page.evaluate('preferences'))
-        page.evaluate('switchNote("b")');expect(e.locator('.selection-bar')).not_to_be_visible()
+        page.evaluate('switchNote("b")');expect(e.locator('#selection-bar')).not_to_be_visible()
         page.evaluate('switchNote("a")');expect(e.locator('.selection-description')).to_have_text('7 / 22 selected')
         e.get_by_role('button',name='Cancel selection',exact=True).click()
         choose_tag(e,'All tags')
@@ -199,8 +199,10 @@ readText:async()=>window.__incomingClipboard||''}});
     expect(e.locator('#capture-input')).to_have_value('')
     parsed=parse(page.evaluate('notes.a.content.text'));assert parsed['messages'][-1]['replyTo']['id']==small['messages'][2]['id'] and not parsed['reply']
 
-    find_card(4).click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
-    find_card(5).click();e.get_by_role('button',name='Selection options',exact=True).click();e.get_by_role('menuitem',name='Merge selected',exact=True).click()
+    # IM-style selection hides search controls; choose the broad filter first.
+    fill_search(e,'Thought')
+    e.locator('[data-id="'+small['messages'][4]['id']+'"]').click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
+    e.locator('[data-id="'+small['messages'][5]['id']+'"]').click();e.get_by_role('button',name='Selection options',exact=True).click();e.get_by_role('menuitem',name='Merge selected',exact=True).click()
     expect(e.get_by_role('textbox',name='Merged card preview',exact=True)).to_have_value(small['messages'][4]['text']+'\n\n'+small['messages'][5]['text'])
     e.get_by_role('button',name='Merge selected',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     parsed=parse(page.evaluate('notes.a.content.text'));combined=next(m for m in parsed['messages'] if m['id']==small['messages'][4]['id'])

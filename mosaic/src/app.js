@@ -9,7 +9,7 @@ function button(label, icon, handler, className='icon-button') {
   if(handler)node.addEventListener('click',event=>{event.stopPropagation();handler(event);});return node;
 }
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
-let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, layout={items:[],headings:[],height:0,count:0};
+let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null);
 const viewMemory=new Map(), unfinishedEdits=new Map();
 // Only unconfirmed sessions and deferred status intents survive note switches.
@@ -31,6 +31,35 @@ function notify(text) {
   toastTimer=setTimeout(()=>$('toast').hidden=true,5000);
 }
 function safeRun(action) {try{Promise.resolve(action()).catch(error=>notify(error.message||'The action could not be completed.'));}catch(error){notify(error.message);}}
+/* A hold only arms the menu. Release opens it; movement/cancellation never does. */
+function bindContextMenu(node,open,canHold=()=>true) {
+  let gesture=null,timer=0,suppressUntil=0;
+  const cancel=()=>{clearTimeout(timer);timer=0;gesture=null;};
+  node.addEventListener('pointerdown',event=>{
+    if(event.pointerType!=='touch'||event.isPrimary===false||event.target.closest('button,input,textarea,select,#menu')||!canHold())return;
+    cancel();gesture={id:event.pointerId,x:event.clientX,y:event.clientY,scroll:viewport.scrollTop,ready:false};const current=gesture;
+    timer=setTimeout(()=>{
+      if(gesture!==current||!node.isConnected||!canHold()){cancel();return;}
+      window.getSelection()?.removeAllRanges();current.ready=true;outsideCapture=null;timer=0;
+    },520);
+  });
+  node.addEventListener('pointermove',event=>{if(gesture&&event.pointerId===gesture.id&&Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>10)cancel();});
+  node.addEventListener('pointerup',event=>{
+    const held=gesture;
+    if(!held||held.id!==event.pointerId)return;
+    cancel();if(!held.ready||!canHold()||Math.abs(viewport.scrollTop-held.scroll)>2)return;
+    suppressUntil=performance.now()+800;outsideCapture=null;
+    open({clientX:held.x,clientY:held.y,currentTarget:node,anchor:node.getBoundingClientRect(),touch:true});
+  });
+  for(const name of ['pointercancel','pointerleave'])node.addEventListener(name,cancel);
+  node.addEventListener('click',event=>{if(performance.now()<suppressUntil&&event.detail!==0&&!event.target.closest('#menu')){event.preventDefault();event.stopImmediatePropagation();}},true);
+  node.addEventListener('contextmenu',event=>{
+    if(event.target.closest('#menu'))return;
+    const touch=!!gesture||event.pointerType==='touch'||(matchMedia('(pointer:coarse) and (hover:none)').matches&&event.pointerType!=='mouse');
+    if(touch&&event.target.closest('input,textarea,select'))return;
+    event.preventDefault();if(!touch)open(event);
+  });
+}
 // iOS keyboards may issue beforeinput without a useful keydown. Shift+Enter
 // remains a native line break; neither path submits an IME confirmation key.
 function bindSubmitField(field,submit,{composing=()=>false,newline}={}) {
@@ -208,7 +237,8 @@ function submitCapture(s=active,tag=s?.view.tag){
   catch(error){s.submission=null;throw error;}
   const placed=layout.items.find(item=>item.message.id===message.id);
   if(placed){
-    viewport.scrollTo({top:Math.max(0,placed.y-10),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    const origin=board.getBoundingClientRect().top-viewport.getBoundingClientRect().top+viewport.scrollTop;
+    viewport.scrollTo({top:Math.max(0,origin+placed.y-64),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
     scheduleWindow();requestAnimationFrame(()=>mounted.get(message.id)?.classList.add('located'));
   }
   s.intents.add({revision:s.revision,finish:()=>{
@@ -297,10 +327,10 @@ function statusText(message) {
   return [message.copied&&'Copied',message.exported&&'Exported',MosaicModel.isImported(message)&&'Imported',message.edited&&'edited'].filter(Boolean).join(' · ');
 }
 function renderSearchControls() {
-  const s=active,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned);
-  $('search-tags-panel').hidden=!searchOpen;$('search-button').setAttribute('aria-expanded',String(searchOpen));$('change-filter').setAttribute('aria-expanded',String(searchOpen));
+  const s=active,selecting=!!s?.view.selecting,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned);
+  $('search-tags-panel').hidden=!searchOpen||selecting;$('search-button').setAttribute('aria-expanded',String(searchOpen&&!selecting));$('change-filter').setAttribute('aria-expanded',String(searchOpen&&!selecting));
   if(searchOpen){const header=document.querySelector('.board-toolbar');$('search-tags-panel').style.top=(header.offsetTop+header.offsetHeight+6)+'px';}
-  $('search-button').hidden=!!filtered;$('more-button').hidden=!!filtered;$('filter-pill').hidden=!filtered;
+  $('search-button').hidden=!!filtered||selecting;$('more-button').hidden=!!filtered||selecting;$('filter-pill').hidden=!filtered||selecting;
   const change=$('change-filter');change.replaceChildren();
   const symbol=el('span','filter-symbol');
   if(s?.view.tag&&s.view.tag!=='__untagged__')symbol.textContent=s.view.tag;
@@ -324,29 +354,49 @@ function cardNode(message) {
   const tools=el('div','card-tools');tools.append(
     button('Card options','more',event=>cardMenu(message,event),'icon-button more-card'));
   node.append(tools);
-  let longPressed=false;
-  node.addEventListener('click',()=>{if(longPressed){longPressed=false;return;}if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);});
+  node.addEventListener('click',()=>{if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);});
   node.addEventListener('keydown',event=>{if(event.target!==node)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
-  node.addEventListener('contextmenu',event=>{event.preventDefault();cardMenu(message,event);});
-  let press=0,start;
-  node.addEventListener('pointerdown',event=>{if(event.pointerType!=='touch'||event.target.closest('button'))return;longPressed=false;start={x:event.clientX,y:event.clientY};press=setTimeout(()=>{press=0;longPressed=true;cardMenu(message,{clientX:start.x,clientY:start.y});},550);});
-  node.addEventListener('pointermove',event=>{if(start&&Math.hypot(event.clientX-start.x,event.clientY-start.y)>9){clearTimeout(press);press=0;}});
-  for(const type of ['pointerup','pointercancel','pointerleave'])node.addEventListener(type,()=>{clearTimeout(press);press=0;start=null;});
+  bindContextMenu(node,event=>{const current=s.messages.find(m=>m.id===message.id);if(current)cardMenu(current,event);},()=>active===s&&!s.view.selecting);
   return node;
 }
-function toggleSelection(id) {const v=active.view;v.selecting=true;v.selected.has(id)?v.selected.delete(id):v.selected.add(id);rememberSelection();renderAll();}
-function startSelection(id) {active.view.selecting=true;if(id)active.view.selected.add(id);rememberSelection();renderAll();}
+function toggleSelection(id) {const v=active.view;v.selecting=true;searchOpen=false;v.selected.has(id)?v.selected.delete(id):v.selected.add(id);rememberSelection();renderAll();}
+function startSelection(id) {active.view.selecting=true;searchOpen=false;if(id)active.view.selected.add(id);rememberSelection();renderAll();}
 function cancelSelection() {if(!active)return;active.view.selecting=false;active.view.selected.clear();rememberSelection();renderAll();}
 function selectedRecords() {return active.messages.filter(m=>active.view.selected.has(m.id));}
 function renderSelection() {
-  const bar=$('selection-bar'),s=active;bar.hidden=!s?.view.selecting;bar.replaceChildren();if(bar.hidden)return;
-  const count=s.view.selected.size;bar.append(el('span','selection-description',`${count} / ${s.messages.length} selected`));
-  bar.append(button('Select all',null,()=>{const ids=layout.items.map(p=>p.message.id);for(const id of ids)s.view.selected.add(id);rememberSelection();renderAll();},'select-all'));
-  const controls=el('div','selection-controls');
-  controls.append(button('Copy selected','copy',()=>safeRun(()=>copyRecords(s,selectedRecords()))),button('Export selected','export',()=>safeRun(()=>exportRecords(s,selectedRecords()))),
-    button('Selection options','more',event=>showMenu([['Clear message statuses','select',()=>statusDialog(new Set(s.view.selected))],['Merge selected','merge',()=>mergeDialog()]],event)),
-    button('Delete selected','trash',()=>deleteCards(s,new Set(s.view.selected)),'icon-button danger'),button('Cancel selection','close',cancelSelection));
-  for(const node of [...controls.children].slice(0,4))node.disabled=!count||!writable(s);bar.append(controls);
+  const bar=$('selection-bar'),toolbar=$('selection-toolbar'),s=active;bar.hidden=toolbar.hidden=!s?.view.selecting;bar.replaceChildren();toolbar.replaceChildren();if(bar.hidden)return;
+  const count=s.view.selected.size,controls=el('div','ui-selection-actions');controls.setAttribute('aria-label','Selected cards');
+  const choices=[['tag','Add tags to selected cards',event=>batchTagMenu(event)],['copy','Copy selected',()=>safeRun(()=>copyRecords(s,selectedRecords()))],
+    ['export','Export selected',()=>safeRun(()=>exportRecords(s,selectedRecords()))],['more','Selection options',event=>showMenu([['Merge selected','merge',()=>mergeDialog()],['Clear message statuses','select',()=>statusDialog(new Set(s.view.selected))]],event)],
+    ['delete','Delete selected',()=>deleteCards(s,new Set(s.view.selected))]];
+  for(const [kind,label,action] of choices){const control=button(label,null,action,'ui-selection-action'+(kind==='delete'?' selection-delete':''));control.replaceChildren(mosaicIcon(kind,true));control.disabled=!count||!writable(s);controls.append(control);}
+  toolbar.append(controls);
+  const all=button('Select all','selectAll',()=>{for(const item of layout.items)s.view.selected.add(item.message.id);rememberSelection();renderAll();},'selection-all');
+  const description=el('span','selection-description',`${count} / ${s.messages.length} selected`);description.setAttribute('role','status');
+  const cancel=button('Cancel selection',null,cancelSelection,'selection-cancel');cancel.replaceChildren(mosaicIcon('cancel',true));bar.append(all,description,cancel);
+  syncOverlayMetrics();
+}
+function syncOverlayMetrics() {
+  const app=$('app'),capture=$('capture-composer');if(!capture)return;
+  const height=Math.ceil(capture.getBoundingClientRect().height),bottom=parseFloat(getComputedStyle(capture).bottom)||24;
+  const set=(key,value)=>{if(app.style.getPropertyValue(key)!==value)app.style.setProperty(key,value);};
+  set('--notice-height',($('notice').hidden?0:$('notice').offsetHeight)+'px');
+  set('--capture-clearance',(height+bottom+16)+'px');
+  $('selection-bar').style.setProperty('--selection-row-height',Math.max(46,height)+'px');
+  if(searchOpen)renderSearchControls();
+}
+function batchTagMenu(event) {
+  const s=active,ids=new Set(s.view.selected);if(!ids.size||!writable(s))return;
+  const records=s.messages.filter(m=>ids.has(m.id));hideMenu();menu.replaceChildren();menu.className='menu ui-context-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Tags for selected cards');
+  const panel=el('section','ui-tag-panel'),grid=el('div','ui-tag-grid');
+  for(const tag of MosaicModel.tags(s.messages,s.settings)){
+    const choice=button('Add '+tag+' to selected cards',null,()=>{
+      hideMenu();if(active!==s||!writable(s))return;
+      const messages=s.messages.map(m=>ids.has(m.id)&&!m.reactions.includes(tag)?{...m,reactions:[...m.reactions,tag]}:m);
+      if(messages.some((m,i)=>m!==s.messages[i]))safeRun(()=>update(s,{messages}));
+    },'ui-tag-choice');choice.textContent=tag;choice.setAttribute('aria-pressed',String(records.every(m=>m.reactions.includes(tag))));grid.append(choice);
+  }
+  panel.append(grid);menu.append(panel);placeMenu(event);
 }
 function togglePin(s,id) {
   const ids=MosaicModel.pins(s.settings);const next=ids.includes(id)?ids.filter(value=>value!==id):[...ids,id];
@@ -368,13 +418,18 @@ function showMenu(items,event,{message,toggleTag}={}) {
 }
 function placeMenu(event) {
   (modal.open?$('modal-content'):document.body).append(menu);
+  menu.style.maxHeight='';menu.style.maxWidth='';menuFromTouch=event?.touch===true;menuPress=false;
   menu.hidden=false;
   const anchor=(event?.currentTarget||$('more-button')).getBoundingClientRect();
   const x=event?.clientX||anchor.right,y=event?.clientY||anchor.bottom;
   const rect=menu.getBoundingClientRect();menu.style.left=Math.max(10,Math.min(x-rect.width+20,innerWidth-rect.width-10))+'px';menu.style.top=Math.max(10,Math.min(y+7,innerHeight-rect.height-10))+'px';
+  if(menuFromTouch){
+    const visual=window.visualViewport,position=imMenuPosition({anchor:event.anchor,point:{x,y},width:rect.width,height:menu.scrollHeight+menu.offsetHeight-menu.clientHeight,viewport:{left:visual?.offsetLeft||0,top:visual?.offsetTop||0,width:visual?.width||innerWidth,height:visual?.height||innerHeight},touch:true});
+    Object.assign(menu.style,{left:position.x+'px',top:position.y+'px',maxWidth:position.maxWidth+'px',maxHeight:position.maxHeight+'px'});
+  }
   menu.querySelector('button')?.focus({preventScroll:true});
 }
-function hideMenu(){menu.hidden=true;if(menu.parentNode!==document.body)document.body.append(menu);}
+function hideMenu(){menu.hidden=true;menuFromTouch=false;menuPress=false;if(menu.parentNode!==document.body)document.body.append(menu);}
 function colorMenu(id,event) {
   const s=active,message=s?.messages.find(m=>m.id===id);if(!message||!writable(s))return;
   hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Card background colors');
@@ -486,7 +541,7 @@ function editorDialog(id=null) {
     event.preventDefault();const suffix=title.value.slice(title.selectionEnd);title.value=title.value.slice(0,title.selectionStart);
     body.value=suffix+(body.value?'\n'+body.value:'');change();body.focus();body.setSelectionRange(0,0);
   });
-  d.root.addEventListener('contextmenu',event=>{if(event.target.closest('#menu'))return;event.preventDefault();cardMenu(s.messages.find(m=>m.id===id),event);});
+  bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
   d.commit=saveEditor;
   async function saveEditor(closeAfter=true) {
     if(active!==s||modalState!==d)return false;
@@ -536,7 +591,8 @@ function jumpTo(reply) {
   s.view.query='';s.view.tag='';s.view.pinned=false;$('search').value='';renderAll();
   const item=layout.items.find(p=>p.message.id===target.id);if(!item)return;
   const origin=board.getBoundingClientRect().top-viewport.getBoundingClientRect().top+viewport.scrollTop;
-  viewport.scrollTop=origin+item.y-(viewport.clientHeight-item.height)/2;renderWindow();
+  const bounds=viewport.getBoundingClientRect(),top=Math.max(bounds.top,document.querySelector('.board-toolbar').getBoundingClientRect().bottom+12),bottom=Math.min(bounds.bottom,$(s.view.selecting?'selection-bar':'capture-composer').getBoundingClientRect().top-12);
+  viewport.scrollTop=origin+item.y-(top-bounds.top)-Math.max(0,(bottom-top-item.height)/2);renderWindow();
   const node=mounted.get(target.id);node?.classList.add('located');setTimeout(()=>node?.classList.remove('located'),2100);
 }
 function deleteCards(s,ids) {
@@ -708,7 +764,11 @@ $('search').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.is
 $('empty-action').addEventListener('click',()=>{if(!active)return;if(active.view.query||active.view.tag||active.view.pinned){Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';renderAll();}else editorDialog();});
 $('preview-button').addEventListener('click',demo);
 viewport.addEventListener('scroll',scheduleWindow,{passive:true});
-let lastWidth=0;new ResizeObserver(()=>{if(board.clientWidth!==lastWidth){lastWidth=board.clientWidth;rebuildLayout();}if(searchOpen)renderSearchControls();}).observe(viewport);
+let lastWidth=0;const overlayObserver=new ResizeObserver(()=>{if(board.clientWidth!==lastWidth){lastWidth=board.clientWidth;rebuildLayout();}syncOverlayMetrics();});
+for(const node of [viewport,$('capture-composer'),$('notice')])overlayObserver.observe(node);
+menu.addEventListener('pointerdown',event=>{event.stopPropagation();menuPress=true;});
+menu.addEventListener('click',event=>{if(menuFromTouch&&!menuPress&&event.detail!==0){event.preventDefault();event.stopImmediatePropagation();return;}menuPress=false;},true);
+document.addEventListener('contextmenu',event=>{if(matchMedia('(pointer:coarse)').matches&&event.target.closest('button,[role="button"],.ui-selection-status'))event.preventDefault();},true);
 dark.addEventListener('change',()=>rebuildLayout());
 document.addEventListener('pointerdown',event=>{
   if(!menu.hidden&&!menu.contains(event.target)&&!event.target.closest('#more-button,.more-card,.palette-card,.detail-more'))hideMenu();

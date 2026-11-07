@@ -1,0 +1,20 @@
+/* Shared floating selection controls; the surrounding areas stay transparent. */
+.ui-selection-toolbar{position:relative;pointer-events:auto;flex:1;min-width:0;width:100%}
+.ui-selection-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;width:100%;padding:0;margin:0;border:0;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+.ui-selection-actions>.ui-selection-action,.editor-shell .ui-selection-actions>.ui-selection-action{display:grid;place-items:center;flex:none;width:40px;height:40px;min-height:40px;padding:6px;border:1px solid #b7c2d288;border-radius:50%;color:var(--selection-ink,#172033);background:var(--surface,#fff);box-shadow:0 1px 3px #17203318}
+.ui-selection-action svg{width:26px;height:26px;pointer-events:none}
+.ui-selection-actions>.selection-delete,.editor-shell .ui-selection-actions>.selection-delete{color:#8b302b;border-color:#a1393488}
+.ui-selection-status{display:grid;grid-template-columns:46px minmax(0,1fr) 46px;gap:8px;align-items:end;min-height:var(--selection-row-height,46px);height:var(--selection-row-height,46px);padding:0;border:0;border-radius:0;background:transparent!important;box-shadow:none;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:auto;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.ui-selection-status>.selection-all,.ui-selection-status>.selection-cancel,.ui-selection-status>span{display:grid;place-items:center;align-self:end;min-height:46px;height:46px;border:1px solid #b7c2d288;border-radius:28px;background:var(--surface,#fff);color:var(--selection-ink,#172033)}
+.ui-selection-status>.selection-all,.ui-selection-status>.selection-cancel{width:46px;padding:10px;border-radius:50%}
+.ui-selection-status>.selection-cancel{padding:6px}
+.editor-shell .ui-selection-status>.selection-all,.editor-shell .ui-selection-status>.selection-cancel{color:var(--selection-ink,#172033)}
+.ui-selection-status>span,.editor-shell .ui-selection-status>span{font-size:13px;font-weight:750;line-height:1.15;text-align:center;padding:6px 4px;text-shadow:0 1px 2px #ffffffd9}
+.ui-selection-status .selection-all svg{width:24px;height:24px}
+.ui-selection-status .selection-cancel svg{width:26px;height:26px}
+.selection-more-menu button{display:flex;align-items:center;gap:16px}
+.selection-more-menu button svg{width:19px;height:19px;flex:none}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+ .ui-selection-actions>.ui-selection-action,.ui-selection-status>.selection-all,.ui-selection-status>.selection-cancel,.ui-selection-status>span{background:color-mix(in srgb,var(--surface,#fff) var(--frost-tint,22%),transparent)!important;backdrop-filter:blur(var(--frost-blur,10px))!important;-webkit-backdrop-filter:blur(var(--frost-blur,10px))!important}
+}
+@media(prefers-color-scheme:dark){.ui-selection-toolbar,.ui-selection-status{--selection-ink:#e1e9df}.ui-selection-status>span,.editor-shell .ui-selection-status>span{text-shadow:none}}

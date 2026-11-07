@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.4](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.4.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.5](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.5.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -25,9 +25,13 @@ This is the current note's board, rather than an account-wide dashboard.
 - Responsive masonry with two columns on phones and only nearby previews mounted.
 - Top-right Search/tags and More controls matching IM; search, untagged filtering,
   pins and selection. Filtering replaces the controls with a change/clear pill.
+  These frosted controls float above the board; the surrounding strip is
+  transparent and does not intercept touches on cards underneath.
 - A constant bottom “Take a note…” field. Enter adds a card and reveals it while keeping
   focus; Shift+Enter inserts a newline. Clicking outside also adds the card.
   IME confirmation keys finish composition rather than sending early.
+  The typing box retains its solid surface, with transparent space around it.
+  Scroll clearance keeps the last card accessible above the box.
 - Click a card to edit directly. Enter adds a body newline; **Close** at the
   bottom right saves. Pin is the only top-right button, with palette and More
   in the bottom toolbar. Creation timestamp and separate edited/status indicators
@@ -39,6 +43,10 @@ This is the current note's board, rather than an account-wide dashboard.
   or inline emoji selector in the opened card. Context-tag changes in an opened
   card are staged and saved on Close; board context-tag changes save immediately.
 - Plain-text card editing, quoted replies and navigation to the original.
+- Touch context menus wait for release after a hold; moving or cancelling the
+  gesture does not open them. The opening release cannot activate a menu action.
+- Selection matches IM: five top actions (tag, copy, export, more, delete) and
+  bottom Select all/count/Cancel controls. Select all follows the current filter.
 - Copy, Export, Import, merge, status clearing and confirmed deletion.
 - Manual clipboard clearing and Import and clear clipboard, with confirmation.
 - Light/dark themes, reduced motion, keyboard menus and Escape to exit selection.
@@ -81,8 +89,9 @@ format-3 extra metadata; IM preserves it through edits and editor switches.
 Unrecognized color IDs are never evaluated as CSS. Preview heights are measured
 only for nearby new/resized cards and reused during later layouts.
 
-The shared menu design and static SVG dictionary come from `shared/ui`, compiled
-into both editors. The tag group is a separate solid panel above Edit, Reply,
+The shared menu design, touch placement, selection controls and static SVG
+dictionary come from `shared/ui`, compiled into both editors. The tag group is
+a separate solid panel above Edit, Reply,
 Pin, Copy, Select and Delete; a divider separates red Delete. Export remains in
 selection mode and the main menu rather than the card's context menu.
 

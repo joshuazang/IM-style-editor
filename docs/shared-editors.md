@@ -6,8 +6,11 @@ text-field defaults and reply records. `next/src` contains the IM interface;
 `mosaic/src` contains the Mosaic interface. Root `src` and root `index.html`
 belong to the independent format-2 Archive, which is not migrated.
 
-`shared/ui` contains the common static SVG dictionary, solid message-menu panels
-and compact toolbar-control styles. It is compiled into both interfaces, with
+`shared/ui` contains the common static SVG dictionaries, solid message-menu panels,
+compact toolbar styles and selection controls. `menu-position.js` supplies the
+same touch clearance and viewport fitting to both interfaces; `selection.css`
+and the selection vectors keep their top actions and bottom fields aligned.
+These sources are compiled into both interfaces, with
 its own SHA-256 recorded in `editors-release.json` and generated page metadata.
 Interface action handlers remain in their respective source trees. A shared
 visual design does not require different interfaces to expose identical actions.
