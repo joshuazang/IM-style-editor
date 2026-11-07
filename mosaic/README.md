@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.3](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.3.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.4](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.4.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -32,11 +32,12 @@ This is the current note's board, rather than an account-wide dashboard.
   bottom right saves. Pin is the only top-right button, with palette and More
   in the bottom toolbar. Creation timestamp and separate edited/status indicators
   appear above that toolbar; board previews omit timestamps.
-- A vector palette on every card offers preset background colors, including
+- A vector palette inside an opened card offers preset background colors, including
   Iris blue with white text. Default removes the optional color field.
-- A separate quick-tag panel above the shared context actions. **Add label**
-  adds a label/emoji through the same tag array. In an opened card, tags are
-  staged with the edit and saved on Close. On the board they save immediately.
+- A separate quick-tag grid above the shared context actions. Emojis wrap across
+  rows, with scrolling for larger tag collections. There is no Add label button
+  or inline emoji selector in the opened card. Context-tag changes in an opened
+  card are staged and saved on Close; board context-tag changes save immediately.
 - Plain-text card editing, quoted replies and navigation to the original.
 - Copy, Export, Import, merge, status clearing and confirmed deletion.
 - Manual clipboard clearing and Import and clear clipboard, with confirmation.
@@ -82,7 +83,8 @@ only for nearby new/resized cards and reused during later layouts.
 
 The shared menu design and static SVG dictionary come from `shared/ui`, compiled
 into both editors. The tag group is a separate solid panel above Edit, Reply,
-Pin, Copy text, Export, Select and Delete; a divider separates Delete.
+Pin, Copy, Select and Delete; a divider separates red Delete. Export remains in
+selection mode and the main menu rather than the card's context menu.
 
 Each actual save still submits the whole note to Standard Notes. Caching and
 virtual previews reduce local work, but cannot eliminate large-note sync limits.

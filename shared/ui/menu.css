@@ -1,19 +1,14 @@
 /* The same solid action panels and vectors in both modern interfaces. */
 .ui-context-menu{--menu-surface:#fff;--menu-ink:#27382f;--menu-line:#dfe5dd;--menu-hover:#e5eee6;--menu-danger:#bf4547;position:fixed;z-index:40;display:flex;flex-direction:column;gap:8px;width:230px;max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px);padding:0;border:0;background:transparent;box-shadow:none;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;font:13px/1.4 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--menu-ink);border-radius:15px}
 .ui-action-panel,.ui-tag-panel{padding:7px;border:1px solid var(--menu-line,#dfe5dd);border-radius:15px;background:var(--menu-surface,#fff);box-shadow:0 10px 35px #293d3212;flex:none;color:var(--menu-ink,#27382f)}
-.ui-context-menu .ui-action-panel>button,.ui-context-menu .ui-tag-add{display:flex;align-items:center;gap:16px;width:100%;min-height:43px;padding:9px 12px;border:0;border-radius:9px;background:transparent;color:inherit;text-align:left;font:inherit;font-weight:400;cursor:pointer;white-space:normal}
+.ui-context-menu .ui-action-panel>button{display:flex;align-items:center;gap:16px;width:100%;min-height:43px;padding:9px 12px;border:0;border-radius:9px;background:transparent;color:inherit;text-align:left;font:inherit;font-weight:400;cursor:pointer;white-space:normal}
 .ui-context-menu svg{width:19px;height:19px;flex:none;pointer-events:none}
 .ui-context-menu button:hover,.ui-context-menu button:focus-visible{background:var(--menu-hover);outline:0}
 .ui-context-menu .ui-action-panel>button.danger{color:var(--menu-danger)!important;background:transparent}
 .ui-action-panel hr{border:0;border-top:1px solid var(--menu-line,#dfe5dd);margin:5px}
-.ui-tag-grid{display:flex;flex-wrap:wrap;align-items:center;gap:5px;max-height:125px;overflow:auto;padding:2px}
-.ui-context-menu .ui-tag-choice{display:grid;place-items:center;min-width:36px;height:36px;max-width:100%;padding:4px 7px;border:1px solid transparent;border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:18px;line-height:1.2;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
+.ui-tag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));align-items:start;gap:5px;max-height:84px;overflow-x:hidden;overflow-y:auto;padding:2px}
+.ui-context-menu .ui-tag-choice{display:grid;place-items:center;width:100%;min-width:0;min-height:36px;height:36px;max-width:100%;padding:4px;border:1px solid transparent;border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:18px;line-height:1.2;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
 .ui-context-menu .ui-tag-choice[aria-pressed=true]{border-color:#9cb5a4;background:var(--menu-hover)}
-.ui-context-menu .ui-tag-add{min-height:34px;padding:6px 8px;font-size:12px;color:var(--menu-ink)}
-.ui-context-menu .ui-tag-add svg{width:16px;height:16px}
-.ui-label-form input{display:block;width:100%;min-width:0;padding:10px;border:1px solid var(--menu-line);border-radius:9px;background:var(--menu-surface);color:inherit;font-size:16px}
-.ui-label-form>div{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
-.ui-label-form button{border:0;border-radius:8px;background:transparent;color:inherit;padding:9px;font:inherit}
 /* Override the old IM menu's solid outer box, retaining its placement and gesture handlers. */
 .editor-shell .context-menu.ui-context-menu{padding:0;border:0;width:230px;min-width:0;max-width:calc(100vw - 20px);background:transparent!important;box-shadow:none;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .editor-shell .context-menu.ui-context-menu button{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}

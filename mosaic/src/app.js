@@ -322,7 +322,6 @@ function cardNode(message) {
   if(message.reactions.length){const tags=el('div','card-tags');for(const tag of message.reactions.slice(0,10))tags.append(el('span','card-tag',tag));node.append(tags);}
   const statuses=statusText(message);if(statuses)node.append(el('div','card-meta',statuses));
   const tools=el('div','card-tools');tools.append(
-    button('Background options','palette',event=>colorMenu(message.id,event),'icon-button palette-card'),
     button('Card options','more',event=>cardMenu(message,event),'icon-button more-card'));
   node.append(tools);
   let longPressed=false;
@@ -353,14 +352,14 @@ function togglePin(s,id) {
   const ids=MosaicModel.pins(s.settings);const next=ids.includes(id)?ids.filter(value=>value!==id):[...ids,id];
   return update(s,{settings:{...s.settings,pinnedMessageIds:next}});
 }
-function showMenu(items,event,{message,addLabel,toggleTag}={}) {
+function showMenu(items,event,{message,toggleTag}={}) {
   hideMenu();menu.replaceChildren();menu.className='menu ui-context-menu';menu.setAttribute('role','menu');menu.removeAttribute('aria-label');
   if(message){
     const panel=el('section','ui-tag-panel'),grid=el('div','ui-tag-grid');grid.setAttribute('role','group');grid.setAttribute('aria-label','Tags');
     for(const tag of new Set([...MosaicModel.tags(active.messages,active.settings),...message.reactions])){
       const choice=button('Tag '+tag,null,()=>{hideMenu();toggleTag(tag);},'ui-tag-choice');choice.textContent=tag;choice.setAttribute('aria-pressed',String(message.reactions.includes(tag)));grid.append(choice);
     }
-    const add=button('Add label','plus',()=>{hideMenu();addLabel();},'ui-tag-add');add.append(el('span','','Add label'));panel.append(grid,add);menu.append(panel);
+    panel.append(grid);menu.append(panel);
   }
   const panel=el('div','ui-action-panel');
   for(const item of items){if(!item){panel.append(el('hr'));continue;}const [label,icon,action,danger]=item;const b=button(label,icon,()=>{hideMenu();safeRun(action);},danger?'danger':'');b.append(el('span','',label));b.setAttribute('role','menuitem');panel.append(b);}
@@ -393,41 +392,14 @@ function colorMenu(id,event) {
   }
   menu.append(grid);placeMenu(event);
 }
-function labelDialog(id) {
-  const s=active;if(!writable(s))return;
-  const message=s.messages.find(m=>m.id===id);if(!message)return;
-  const d=openModal('labels','Labels');
-  const options=el('div','label-options');d.root.append(options);
-  function changeLabel(tag,enabled){
-    if(active!==s||!writable(s))return;
-    const source=s.messages.find(m=>m.id===id);if(!source)return;
-    const reactions=enabled?[...new Set([...source.reactions,tag])]:source.reactions.filter(value=>value!==tag);
-    const settings={...s.settings,reactionOrder:[...new Set([...MosaicModel.tags(s.messages,s.settings),tag])],deletedEmojis:(s.settings.deletedEmojis||[]).filter(value=>value!==tag)};
-    safeRun(()=>update(s,{messages:s.messages.map(m=>m.id===id?{...m,reactions}:m),settings}));
-  }
-  function option(tag,checked){
-    const row=el('label','label-option'),check=el('input');check.type='checkbox';check.checked=checked;
-    check.addEventListener('change',()=>changeLabel(tag,check.checked));row.append(check,el('span','',tag));options.append(row);
-  }
-  for(const tag of new Set([...MosaicModel.tags(s.messages,s.settings),...message.reactions]))option(tag,message.reactions.includes(tag));
-  const create=el('form','new-label'),input=el('input');input.type='text';input.maxLength=32;input.placeholder='New label or emoji';input.setAttribute('aria-label','New label');
-  const add=button('Add label','plus',null,'secondary-button');add.type='submit';
-  create.append(input,add);create.addEventListener('submit',event=>{
-    event.preventDefault();const tag=input.value.trim();if(!tag)return;
-    const existing=[...options.querySelectorAll('label')].find(row=>row.textContent===tag);
-    if(existing)existing.querySelector('input').checked=true;else option(tag,true);
-    changeLabel(tag,true);input.value='';input.focus();
-  });d.root.append(create);actions(d,[button('Done',null,()=>closeModal(),'primary-button')]);
-}
 function cardMenu(message,event) {
   const s=active,pinned=MosaicModel.pins(s.settings).includes(message.id);
   const editing=modalState?.kind==='edit'&&modalState.uuid===s.note.uuid&&modalState.id===message.id?modalState:null;
   const current=()=>s.messages.find(m=>m.id===message.id);
   const saved=action=>async()=>{if(editing&&!(await editing.commit(false)))return;return action();};
   showMenu([['Edit','edit',()=>editCard(message.id)],['Reply','reply',saved(()=>replyTo(message.id))],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
-    ['Copy text','copy',saved(()=>copyRecords(s,[current()]))],['Export','export',saved(()=>exportRecords(s,[current()]))],['Select','select',saved(()=>{closeModal(true);startSelection(message.id);})],null,['Delete','trash',saved(()=>deleteCards(s,new Set([message.id]))),true]],event,{
+    ['Copy','copy',saved(()=>copyRecords(s,[current()]))],['Select','select',saved(()=>{closeModal(true);startSelection(message.id);})],null,['Delete','trash',saved(()=>deleteCards(s,new Set([message.id]))),true]],event,{
     message:editing?{...message,reactions:[...editing.tags]}:message,
-    addLabel:()=>editing?editing.custom.focus():labelDialog(message.id),
     toggleTag:tag=>{
       if(editing){editing.toggleTag(tag);return;}
       const source=current();if(source)safeRun(()=>update(s,{messages:s.messages.map(m=>m.id===source.id?{...m,reactions:m.reactions.includes(tag)?m.reactions.filter(value=>value!==tag):[...m.reactions,tag]}:m)}));
@@ -499,17 +471,7 @@ function editorDialog(id=null) {
   const body=el('textarea','editor-body');body.placeholder='Text';body.setAttribute('aria-label','Card body');body.value=parts.body;body.enterKeyHint='enter';d.body=body;
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
   d.root.append(title,pin,body);
-  const tags=el('div','editor-tags'),custom=el('input','new-tag');custom.placeholder='Add label';custom.setAttribute('aria-label','New label');custom.maxLength=32;d.custom=custom;
-  function renderEditorTags(){
-    tags.replaceChildren();
-    for(const tag of new Set([...MosaicModel.tags(s.messages,s.settings),...d.tags])){
-      const b=button('Tag '+tag,null,()=>d.toggleTag(tag),'editor-tag');b.textContent=tag;b.setAttribute('aria-pressed',String(d.tags.has(tag)));tags.append(b);
-    }
-    tags.append(custom);
-  }
-  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags();};
-  custom.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&custom.value.trim()){event.preventDefault();d.tags.add(custom.value.trim());d.fieldRevision++;custom.value='';renderEditorTags();custom.focus();}});
-  renderEditorTags();d.root.append(tags);
+  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;};
   d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');d.root.append(d.meta);
   const footer=el('div','card-detail-tools');
   const palette=button('Background options','palette',event=>colorMenu(id,event));
@@ -563,7 +525,7 @@ function readCard(id) {
   if(message.replyTo){const quote=button('Show quoted card',null,()=>{closeModal();jumpTo(message.replyTo);},'reply-preview');quote.textContent=message.replyTo.text||'Quoted message';d.root.append(quote);}
   d.root.append(el('h3','reader-title',parts.title),el('div','reader-body',parts.body),el('p','reader-meta',metaText(message)));
   const tags=el('div','reader-tags');for(const tag of message.reactions)tags.append(el('span','card-tag',tag));d.root.append(tags);
-  actions(d,[button('Copy text','copy',()=>safeRun(()=>copyRecords(s,[message])),'secondary-button'),button('Reply','reply',()=>replyTo(id),'secondary-button'),button('Edit','edit',()=>editCard(id),'primary-button')]);
+  actions(d,[button('Copy','copy',()=>safeRun(()=>copyRecords(s,[message])),'secondary-button'),button('Reply','reply',()=>replyTo(id),'secondary-button'),button('Edit','edit',()=>editCard(id),'primary-button')]);
 }
 function replyTo(id) {
   const s=active,message=s.messages.find(m=>m.id===id);if(!message||!writable(s))return;
@@ -619,7 +581,7 @@ async function exportRecords(s,records) {
 }
 function manualCopyDialog(s,records,text,flag) {
   if(active!==s)return;
-  const d=openModal('copy',flag==='exported'?'Export cards':'Copy text');d.root.append(el('p','dialog-help','Automatic copying was blocked. Select and copy the text below, or try the Copy button.'));
+  const d=openModal('copy',flag==='exported'?'Export cards':'Copy');d.root.append(el('p','dialog-help','Automatic copying was blocked. Select and copy the text below, or try the Copy button.'));
   const field=el('textarea','transfer-text');field.value=text;field.readOnly=true;field.setAttribute('aria-label','Text to copy');d.root.append(field);
   let marked=false;
   // Only a successful programmatic clipboard write marks status. A browser's

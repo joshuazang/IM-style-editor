@@ -33,9 +33,13 @@ try:
    capture=e.locator('#capture-composer').bounding_box();view=e.locator('#viewport').bounding_box()
    assert capture['y']>=view['y']+view['height'] and capture['y']+capture['height']<=844,capture
    assert not e.locator('.card-timestamp').count()
+   assert e.get_by_role('button',name='Background options',exact=True).count()==0
    assert not any('Nov' in text for text in e.locator('.card-meta').all_text_contents())
    fill_search(e,'A title');card=e.locator('[data-id="'+data['messages'][0]['id']+'"]');card.click()
    dialog=e.get_by_role('dialog',name='Edit card',exact=True);expect(dialog).to_be_visible()
+   assert dialog.locator('.editor-tags,.editor-tag,.new-tag').count()==0
+   assert dialog.get_by_role('textbox',name='New label',exact=True).count()==0
+   expect(dialog.get_by_role('button',name='Background options',exact=True)).to_be_visible()
    body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_focused()
    expect(e.locator('.card-timestamp')).to_have_text(re.compile('Nov'))
    expect(e.locator('.card-edited')).to_have_text('edited')
@@ -58,7 +62,11 @@ try:
    e.get_by_role('button',name='Close',exact=True).click();page.set_viewport_size({'width':width,'height':844})
    fill_search(e,'Thought 2');card=e.locator('[data-id="'+data['messages'][2]['id']+'"]');card.click(button='right')
    menu=e.locator('#menu');expect(menu.locator('.ui-tag-panel')).to_be_visible();expect(menu.locator('.ui-action-panel')).to_be_visible()
-   assert menu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy text','Export','Select','Delete']
+   assert menu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy','Select','Delete']
+   assert menu.get_by_role('button',name='Add label',exact=True).count()==0
+   positions=menu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')
+   assert len(set(point['x'] for point in positions))>1 and len(set(point['y'] for point in positions))<=2,positions
+   if width==390:page.screenshot(path='/tmp/mosaic-menu-simple.png')
    assert menu.locator('.ui-action-panel hr').count()==1
    vectors=menu.locator('.ui-action-panel svg').evaluate_all('nodes=>nodes.map(n=>n.innerHTML)')
    menu.get_by_role('button',name='Tag 📍',exact=True).click();expect(menu).not_to_be_visible()
@@ -83,7 +91,11 @@ try:
    page.evaluate('openEditor("a","/next/index.html",true)');im=page.frame_locator('#editor');expect(im.get_by_role('textbox',name='Message',exact=True)).to_be_visible()
    im.locator('.message-wrap').last.click(button='right');imenu=im.locator('.context-menu')
    expect(imenu.locator('.ui-tag-panel')).to_be_visible();expect(imenu.locator('.ui-action-panel')).to_be_visible()
-   assert imenu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy text','Export','Select','Delete']
+   assert imenu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy','Select','Delete']
+   assert imenu.get_by_role('button',name='Add label',exact=True).count()==0
+   positions=imenu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')
+   assert len(set(point['x'] for point in positions))>1 and len(set(point['y'] for point in positions))<=2,positions
+   if width==390:page.screenshot(path='/tmp/im-menu-simple.png')
    assert imenu.locator('.ui-action-panel svg').evaluate_all('nodes=>nodes.map(n=>n.innerHTML)')==vectors
    assert imenu.locator('.ui-action-panel hr').count()==1
    assert imenu.get_by_role('menuitem',name='Delete',exact=True).evaluate('n=>getComputedStyle(n).color')=='rgb(191, 69, 71)'
@@ -91,13 +103,11 @@ try:
    im.get_by_role('button',name='Cancel editing',exact=True).click()
    im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('button',name='Tag 📍',exact=True).click()
    assert '📍' in parse(page.evaluate('notes.a.content.text'))['messages'][-1]['reactions']
-   im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('button',name='Add label',exact=True).click()
-   imenu.get_by_role('textbox',name='New label',exact=True).fill('Evidence');imenu.get_by_role('button',name='Add label',exact=True).click()
-   assert 'Evidence' in parse(page.evaluate('notes.a.content.text'))['messages'][-1]['reactions']
-   im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('menuitem',name='Copy text',exact=True).click()
+   im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('menuitem',name='Copy',exact=True).click()
    page.wait_for_function('notes.a.content.text.includes("copied")')
    assert parse(page.evaluate('notes.a.content.text'))['messages'][-1]['copied']
-   im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('menuitem',name='Export',exact=True).click()
+   im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('menuitem',name='Select',exact=True).click()
+   im.get_by_role('button',name='Export',exact=True).click()
    page.wait_for_function('notes.a.content.text.includes("exported")')
    assert parse(page.evaluate('notes.a.content.text'))['messages'][-1]['exported']
    assert not errors,errors;assert not outside,outside

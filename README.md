@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.1.7](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.0.3](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.1.8](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.0.4](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -90,3 +90,11 @@ and separate edited/status indicators appear in that editor, with no timestamps
 on the board. Only Pin occupies the top-right corner; palette, More and Close
 are at the bottom. Capture moves to the bottom and retains Enter-to-send, while
 the top-right Search/tags and More controls match IM. See [release validation](docs/release-4.1.7-mosaic-1.0.3.md).
+
+IM 4.1.8 and Mosaic 1.0.4 simplify both message menus to Edit, Reply, Pin/Unpin,
+Copy, Select and separated red Delete. The shared emoji grid wraps across compact
+rows instead of full-width vertical buttons. Export and Add label are removed
+from these menus; export remains available through selection and existing main
+menu actions. Mosaic's palette appears only in opened cards, and the inline
+emoji selector is removed from the card editor. Existing tags/colors and the
+note format are unchanged. See [release validation](docs/release-4.1.8-mosaic-1.0.4.md).

@@ -94,9 +94,13 @@ try:
   finish(context,errors,outside);print('PASS: multiple unfinished card edits remain separate across note switches',flush=True)
 
   # A late Copy or Export result rebases its status against the newest same-note item.
-  for action,flag in [('Copy text','copied'),('Export','exported')]:
+  for action,flag in [('Copy','copied'),('Export','exported')]:
     context,page,e,errors,outside=start();f=frame(page);f.evaluate('window.__holdClipboard=true')
-    fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name=action,exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
+    fill_search(e,'Thought 2');e.locator('.card').click(button='right')
+    if action=='Copy':e.get_by_role('menuitem',name='Copy',exact=True).click()
+    else:
+      e.get_by_role('menuitem',name='Select',exact=True).click();e.get_by_role('button',name='Export selected',exact=True).click()
+    f.wait_for_function('typeof window.__finishClipboard==="function"')
     remote=changed(small['note']['content']['text'],"s.messages[19].text='New remote body';s.draft='New remote draft'")
     page.evaluate('(text)=>{notes.a.content.text=text;notes.a.content.title="New native title";stream(notes.a)}',remote)
     expect(e.locator('#capture-input')).to_have_value('New remote draft');f.evaluate('window.__finishClipboard()')
@@ -107,7 +111,7 @@ try:
 
   # Inactive notes are not written through the current-note-only host permission.
   context,page,e,errors,outside=start();f=frame(page);f.evaluate('window.__holdClipboard=true')
-  fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
+  fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
   page.evaluate('enforceContext=true;switchNote("b")');expect(e.locator('#capture-input')).to_have_value('')
   f.evaluate('window.__finishClipboard()');page.wait_for_timeout(80);assert page.evaluate('window.saveCount||0')==0
   page.evaluate('switchNote("a")');page.wait_for_function('(notes.a.content.text.match(/^copied$/gm)||[]).length===2')
@@ -116,7 +120,7 @@ try:
 
   # A real edit invalidates a delayed copy status for the earlier text.
   context,page,e,errors,outside=start();f=frame(page);f.evaluate('window.__holdClipboard=true')
-  fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
+  fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
   remote=changed(small['note']['content']['text'],"s.messages[2].text='Changed while copying'")
   page.evaluate('(text)=>{notes.a.content.text=text;stream(notes.a)}',remote);expect(e.locator('.card')).to_have_count(0)
   f.evaluate('window.__finishClipboard()');page.wait_for_timeout(80);result=parse(page.evaluate('notes.a.content.text'))

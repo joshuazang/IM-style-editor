@@ -186,11 +186,11 @@ readText:async()=>window.__incomingClipboard||''}});
     parsed=parse(page.evaluate('notes.a.content.text'));assert small['messages'][2]['id'] in parsed['settings']['pinnedMessageIds']
     find_card(2).click(button='right');e.get_by_role('menuitem',name='Unpin',exact=True).click()
     parsed=parse(page.evaluate('notes.a.content.text'));assert small['messages'][2]['id'] not in parsed['settings']['pinnedMessageIds']
-    find_card(2).click();pass
+    find_card(2).click();e.get_by_role('textbox',name='Card body',exact=True).click(button='right')
     e.get_by_role('button',name='Tag 📍',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
     expect(e.locator('dialog')).not_to_be_visible();parsed=parse(page.evaluate('notes.a.content.text'))
     assert parsed['messages'][2]['text']==small['messages'][2]['text'] and parsed['messages'][2]['reactions']==['📍'] and not parsed['messages'][2].get('edited')
-    find_card(2).click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click()
+    find_card(2).click(button='right');e.get_by_role('menuitem',name='Copy',exact=True).click()
     page.wait_for_function('notes.a.content.text.includes("copied")')
     assert frame(page).evaluate('window.__copied')==small['messages'][2]['text']
     assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['copied']
@@ -227,7 +227,7 @@ readText:async()=>window.__incomingClipboard||''}});
     open_more(e);e.get_by_role('menuitem',name='Clear clipboard',exact=True).click()
     e.get_by_role('button',name='Clear clipboard',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert frame(page).evaluate('window.__copied')==''
     frame(page).evaluate('window.__denyClipboard=true')
-    fill_search(e,'Thought 7');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy text',exact=True).click()
+    fill_search(e,'Thought 7');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy',exact=True).click()
     expect(e.get_by_role('textbox',name='Text to copy',exact=True)).to_be_visible()
     assert e.get_by_role('textbox',name='Text to copy',exact=True).evaluate('node=>getComputedStyle(node).backdropFilter')=='none'
     assert not next(m for m in parse(page.evaluate('notes.b.content.text'))['messages'] if m['id']==small['messages'][7]['id']).get('copied')

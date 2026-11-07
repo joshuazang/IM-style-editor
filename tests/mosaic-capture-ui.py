@@ -52,21 +52,20 @@ try:
    field.fill('');page.wait_for_function('!notes.a.content.text.includes("中文输入")')
    # Color and label actions are independent from text and status changes.
    fill_search(e,'Thought 192');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
-   expect(card).to_be_visible();card.get_by_role('button',name='Background options',exact=True).click()
+   expect(card).to_be_visible();assert card.get_by_role('button',name='Background options',exact=True).count()==0
+   card.click();e.locator('dialog').get_by_role('button',name='Background options',exact=True).click()
    palette=e.get_by_role('group',name='Card background colors',exact=True);expect(palette).to_be_visible()
    bounds=palette.bounding_box();assert bounds['x']>=0 and bounds['x']+bounds['width']<=width+1,bounds
-   palette.get_by_role('button',name='Iris blue',exact=True).click()
+   palette.get_by_role('button',name='Iris blue',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
    page.wait_for_function('notes.a.content.text.includes("cardColor")');saved=parse(page.evaluate('notes.a.content.text'))
    source=saved['messages'][192];assert source['cardColor']=='iris' and source['text']==small['messages'][192]['text'] and not source.get('edited')
    assert card.evaluate('n=>getComputedStyle(n).color')=='rgb(255, 255, 255)'
-   card.get_by_role('button',name='Card options',exact=True).click();e.get_by_role('button',name='Add label',exact=True).click()
-   e.get_by_role('checkbox',name='📍',exact=True).check()
-   e.get_by_role('textbox',name='New label',exact=True).fill('Seminar');e.get_by_role('textbox',name='New label',exact=True).press('Enter')
-   expect(e.get_by_role('checkbox',name='Seminar',exact=True)).to_be_checked();e.get_by_role('button',name='Done',exact=True).click()
-   page.wait_for_function('notes.a.content.text.includes("Seminar")');saved=parse(page.evaluate('notes.a.content.text'))
-   assert saved['messages'][192]['reactions']==['📓','📍','Seminar'] and saved['messages'][192]['cardColor']=='iris'
+   card.get_by_role('button',name='Card options',exact=True).click()
+   assert e.get_by_role('button',name='Add label',exact=True).count()==0
+   e.get_by_role('button',name='Tag 📍',exact=True).click();saved=parse(page.evaluate('notes.a.content.text'))
+   assert saved['messages'][192]['reactions']==['📓','📍'] and saved['messages'][192]['cardColor']=='iris'
    assert saved['messages'][192]['text']==small['messages'][192]['text'] and not saved['messages'][192].get('edited')
-   # Enter saves an existing card; Shift+Enter in its title starts the body.
+   # An opened card uses multiline Enter and saves with Close.
    card.click(button='right');e.get_by_role('menuitem',name='Edit',exact=True).click()
    title=e.get_by_role('textbox',name='Card title',exact=True);body=e.get_by_role('textbox',name='Card body',exact=True)
    title.fill('Changed title');title.press('End');title.press('Shift+Enter');expect(body).to_be_focused()
@@ -76,7 +75,7 @@ try:
    page.evaluate('openEditor("a","/next/index.html")');im=page.frame_locator('#editor').get_by_role('textbox',name='Message',exact=True)
    im.fill('Draft from IM');page.wait_for_function('notes.a.content.text.includes("Draft from IM")');page.evaluate('openEditor("a")')
    e=page.frame_locator('#editor');expect(e.locator('#capture-input')).to_have_value('Draft from IM')
-   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['cardColor']=='iris' and saved['messages'][192]['reactions']==['📓','📍','Seminar']
+   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['cardColor']=='iris' and saved['messages'][192]['reactions']==['📓','📍']
    # A deliberate failed send keeps text, and retry creates exactly one card.
    page.evaluate('rejectSaves=true');e.locator('#capture-input').fill('Keep rejected Enter');e.locator('#capture-input').press('Enter')
    expect(e.locator('#notice')).to_contain_text('Saving was not confirmed');expect(e.locator('#capture-input')).to_have_value('Keep rejected Enter')
@@ -87,12 +86,10 @@ try:
    e.locator('#capture-input').fill('Touch outside still sends')
    if width<600:card.get_by_role('button',name='Card options',exact=True).tap()
    else:card.get_by_role('button',name='Card options',exact=True).click()
-   expect(e.get_by_role('button',name='Add label',exact=True)).to_be_visible()
-   e.get_by_role('button',name='Add label',exact=True).click();expect(e.get_by_role('checkbox',name='Seminar',exact=True)).to_be_checked()
-   e.get_by_role('button',name='Done',exact=True).click()
+   expect(e.get_by_role('menuitem',name='Copy',exact=True)).to_be_visible();page.keyboard.press('Escape')
    assert sum(m['text']=='Touch outside still sends' for m in parse(page.evaluate('notes.a.content.text'))['messages'])==1
-   fill_search(e,'Changed title');card.get_by_role('button',name='Background options',exact=True).click()
-   e.get_by_role('group',name='Card background colors',exact=True).get_by_role('button',name='Default',exact=True).click()
+   fill_search(e,'Changed title');card.click();e.locator('dialog').get_by_role('button',name='Background options',exact=True).click()
+   e.get_by_role('group',name='Card background colors',exact=True).get_by_role('button',name='Default',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
    page.wait_for_function('!notes.a.content.text.includes("cardColor")')
    assert 'cardColor' not in parse(page.evaluate('notes.a.content.text'))['messages'][192]
    assert not errors,errors;assert not external,external
