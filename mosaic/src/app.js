@@ -9,7 +9,7 @@ function button(label, icon, handler, className='icon-button') {
   if(handler)node.addEventListener('click',event=>{event.stopPropagation();handler(event);});return node;
 }
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
-let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, layout={items:[],headings:[],height:0,count:0};
+let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null);
 const viewMemory=new Map(), unfinishedEdits=new Map();
 // Only unconfirmed sessions and deferred status intents survive note switches.
@@ -80,7 +80,7 @@ function bindSubmitField(field,submit,{composing=()=>false,newline}={}) {
 }
 function newView(uuid) {
   const old=viewMemory.get(uuid);
-  return old||{query:'',tag:'',pinned:false,selecting:false,selected:new Set(selectionPreferences[uuid]||[]),scroll:0};
+  return old||{query:'',tag:'',pinned:false,dateFilter:{preset:'all'},selecting:false,selected:new Set(selectionPreferences[uuid]||[]),scroll:0};
 }
 function rememberSelection() {
   if(!active)return;
@@ -126,7 +126,7 @@ function receive(note, force=false) {
   }
   const previous=active;if(previous?.titleEntry)retainedSessions.set(previous.note.uuid,previous);
   if(previous){previous.view.scroll=viewport.scrollTop;viewMemory.set(previous.note.uuid,previous.view);stashEdit();}
-  closeModal(true);hideMenu();
+  closeModal(true);hideMenu();dateOpen=false;$('date-panel').replaceChildren();
   if(force){
     const discarded=retainedSessions.get(note.uuid)||previous;
     if(discarded?.note.uuid===note.uuid){discarded.discarded=true;imCancelQueuedNoteSaves(note.uuid);retainedSessions.delete(note.uuid);}
@@ -149,7 +149,7 @@ function receive(note, force=false) {
     dirty:false,discarded:false,lastHostText:note.content?.text||'',lastAck:null,nativeRepair:false};
   const valid=new Set(s.messages.map(m=>m.id));s.view.selected=new Set([...s.view.selected].filter(id=>valid.has(id)));
   if(s.view.selected.size)s.view.selecting=true;
-  active=s;imNoteReceived(note);
+  active=s;dateOpen=false;$('date-panel').replaceChildren();imNoteReceived(note);
   $('search').value=s.view.query;viewport.scrollTop=0;
   renderAll();viewport.scrollTop=s.view.scroll||0;scheduleWindow();
   if(force&&writable(s)&&imNoteSavePending(note.uuid))safeRun(()=>persist(s));
@@ -238,6 +238,7 @@ function submitCapture(s=active,tag=s?.view.tag){
   // would otherwise hide it. Its active emoji filter still supplies the label.
   if(s.view.query&&!text.toLocaleLowerCase().includes(s.view.query.toLocaleLowerCase())){s.view.query='';$('search').value='';}
   s.view.pinned=false;
+  if(!imDateMatches(message,imDateRange(s.view.dateFilter)))s.view.dateFilter={preset:'all'};
   let saving;
   try{saving=update(s,{messages:[...s.messages,message],draft:'',reply:null});}
   catch(error){s.submission=null;throw error;}
@@ -301,10 +302,10 @@ function renderAppearance() {
 }
 function rebuildLayout() {
   const anchor=findAnchor();
-  layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned,active.view.selecting):{items:[],headings:[],height:0,count:0};
+  layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned,active.view.selecting,active.view.dateFilter):{items:[],headings:[],height:0,count:0};
   board.style.height=layout.height+'px';board.replaceChildren();mounted.clear();
   for(const heading of layout.headings){const node=el('div','section-heading',heading.label);node.style.top=heading.y+'px';board.append(node);}
-  const filtered=active&&(active.view.query||active.view.tag||active.view.pinned);
+  const filtered=active&&(active.view.query||active.view.tag||active.view.pinned||imDateRange(active.view.dateFilter).active);
   $('empty').hidden=!active||!!layout.count||active.damaged||!filtered;
   if(anchor){const next=layout.byId?.get(anchor.id);if(next)viewport.scrollTop+=next.y-anchor.y;}
   renderWindow();
@@ -338,7 +339,7 @@ function renderWindow() {
   }
   if(changed){
     const anchor=findAnchor(),s=active,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
-    layout=MosaicModel.layout(s.messages,s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting);
+    layout=MosaicModel.layout(s.messages,s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting,s.view.dateFilter);
     board.style.height=layout.height+'px';
     for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
     for(const [id,node] of mounted){const item=layout.byId.get(id);if(item)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
@@ -355,7 +356,8 @@ function metaText(message) {
   if(message.edited)bits.push('Edited');return bits.join(' · ');
 }
 function renderSearchControls() {
-  const s=active,selecting=!!s?.view.selecting,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned);
+  renderDateControls();
+  const s=active,selecting=!!s?.view.selecting,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned||imDateRange(s.view.dateFilter).active);
   $('search-tags-panel').hidden=!searchOpen||selecting;$('search-button').setAttribute('aria-expanded',String(searchOpen&&!selecting));$('change-filter').setAttribute('aria-expanded',String(searchOpen&&!selecting));
   if(searchOpen){const header=document.querySelector('.board-toolbar');$('search-tags-panel').style.top=(header.offsetTop+header.offsetHeight+6)+'px';}
   $('search-button').hidden=!!filtered||selecting;$('more-button').hidden=!!filtered||selecting;$('filter-pill').hidden=!filtered||selecting;
@@ -365,6 +367,16 @@ function renderSearchControls() {
   else symbol.append(s?.view.tag==='__untagged__'?mosaicToolbarIcon('untagged'):s?.view.pinned?mosaicIcon('pin'):mosaicToolbarIcon('searchOnly'));
   const check=el('span','filter-check ui-filter-check');check.append(mosaicToolbarIcon('check'));symbol.append(check);change.append(symbol);
 }
+function renderDateControls(){
+ const range=imDateRange(active?.view.dateFilter);$('date-filter-button').setAttribute('aria-pressed',String(range.active));
+ if(!searchOpen)dateOpen=false;
+ $('date-filter-button').setAttribute('aria-expanded',String(dateOpen));$('date-summary').hidden=!range.active;$('date-summary').textContent=range.active?range.label:'';
+ const holder=$('date-panel');holder.hidden=!dateOpen;
+ if(!dateOpen)holder.replaceChildren();
+ else if(!holder.firstChild){const session=active;holder.append(imCreateDateFilterPanel({value:session?.view.dateFilter,onApply:value=>{if(active!==session)return;session.view.dateFilter=value;viewport.scrollTop=0;renderAll();},onClose:()=>{dateOpen=false;renderDateControls();}}));}
+}
+$('date-filter-button').append(mosaicToolbarIcon('filters'));
+$('date-filter-button').addEventListener('click',()=>{dateOpen=!dateOpen;renderDateControls();});
 function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
 function cardNode(message) {
   const s=active,parts=MosaicModel.preview(message),pinned=MosaicModel.pins(s.settings).includes(message.id);
@@ -718,7 +730,7 @@ function replyTo(id) {
 }
 function jumpTo(reply) {
   const s=active,target=MosaicModel.target(s.messages,reply,s.note.uuid);if(!target){notify('The original message is not in this note. The quoted text is still preserved.');return;}
-  s.view.query='';s.view.tag='';s.view.pinned=false;$('search').value='';renderAll();
+  s.view.query='';s.view.tag='';s.view.pinned=false;s.view.dateFilter={preset:'all'};$('search').value='';renderAll();
   const item=layout.byId?.get(target.id);if(!item)return;
   const origin=board.getBoundingClientRect().top-viewport.getBoundingClientRect().top+viewport.scrollTop;
   const bounds=viewport.getBoundingClientRect(),top=Math.max(bounds.top,document.querySelector('.board-toolbar').getBoundingClientRect().bottom+12),bottom=Math.min(bounds.bottom,$(s.view.selecting?'selection-bar':'capture-composer').getBoundingClientRect().top-12);
@@ -860,10 +872,10 @@ function demo() {
   active.demo=true;renderAll();
 }
 
-$('search-icon').append(mosaicIcon('search'));$('pin-filter-icon').append(mosaicIcon('pin'));$('more-button').append(mosaicToolbarIcon('more'));
+$('pin-filter-icon').append(mosaicIcon('pin'));$('more-button').append(mosaicToolbarIcon('more'));
 $('search-button').append(mosaicToolbarIcon('searchTags'));$('clear-filter').append(mosaicToolbarIcon('cancel'));
 $('search-button').addEventListener('click',toggleSearch);$('change-filter').addEventListener('click',toggleSearch);
-$('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';searchOpen=false;renderAll();});
+$('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false,dateFilter:{preset:'all'}});$('search').value='';searchOpen=false;renderAll();});
 $('more-button').addEventListener('click',mainMenu);
 $('capture-input').addEventListener('input',inputCapture);
 $('capture-input').addEventListener('compositionstart',()=>{if(active)active.composing=true;});
@@ -894,7 +906,7 @@ document.addEventListener('click',event=>{
 $('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;searchOpen=false;renderAll();}});
 $('search').addEventListener('input',event=>{if(active){active.view.query=event.target.value;viewport.scrollTop=0;renderAll();}});
 $('search').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing){event.preventDefault();searchOpen=false;renderSearchControls();viewport.focus();}});
-$('empty-action').addEventListener('click',()=>{if(!active)return;if(active.view.query||active.view.tag||active.view.pinned){Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';renderAll();}else editorDialog();});
+$('empty-action').addEventListener('click',()=>{if(!active)return;if(active.view.query||active.view.tag||active.view.pinned||imDateRange(active.view.dateFilter).active){Object.assign(active.view,{query:'',tag:'',pinned:false,dateFilter:{preset:'all'}});$('search').value='';renderAll();}else editorDialog();});
 $('preview-button').addEventListener('click',demo);
 // Scrolling is navigation, not an intention to hover a card. A fresh mouse
 // movement restores hover after scrolling; a stationary cursor never lights up

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto');
 const metadata=JSON.parse(fs.readFileSync('editors-release.json'));
 const digest=crypto.createHash('sha256');
-for(const name of ['icons.js','menu-position.js','menu.css','controls.css','selection.css','save-feedback.js','accessibility.css','im-dark.css']){digest.update(name+'\0');digest.update(fs.readFileSync('shared/ui/'+name));}
+for(const name of ['icons.js','menu-position.js','menu.css','controls.css','selection.css','save-feedback.js','accessibility.css','im-dark.css','search-filters.js','search-filters.css']){digest.update(name+'\0');digest.update(fs.readFileSync('shared/ui/'+name));}
 assert.equal(metadata.shared_ui_sha256,digest.digest('hex'));
 let previous;
 for(const directory of ['next','mosaic']){

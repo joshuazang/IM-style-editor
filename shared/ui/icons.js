@@ -40,6 +40,7 @@ const imSelectionIcons={
 
 /* Canonical top-control vectors: both adapters use these exact sizes and paths. */
 const imToolbarIcons={
+ filters:{size:22,viewBox:'0 0 24 24',stroke:1.8,markup:'<path d="M2 7h1m6 0h13M2 17h13m6 0h1"/><circle cx="6" cy="7" r="3"/><circle cx="18" cy="17" r="3"/>'},
  searchTags:{size:28,viewBox:'0 0 32 32',stroke:1.8,markup:'<circle cx="18" cy="11" r="7.5"/><path d="m23.5 16.5 6 6"/><path d="M5 21h7q1.5 0 2.5 1.5L17 25q1 1 0 2l-2.5 2.5Q13.5 31 12 31H5q-3 0-3-3v-4q0-3 3-3Z"/><circle cx="12" cy="26" r="1.2" fill="currentColor" stroke="none"/>'},
  untagged:{size:28,viewBox:'0 0 24 24',stroke:1.8,markup:'<path d="M4 9V5a2 2 0 0 1 2-2h8l7 7a2 2 0 0 1 0 3l-7 7a2 2 0 0 1-3 0l-4-4M3 3l18 18"/><circle cx="10" cy="7" r="1"/>'},
  searchOnly:{size:28,viewBox:'0 0 32 32',stroke:1.8,markup:'<circle cx="18" cy="11" r="7.5"/><path d="m23.5 16.5 6 6"/>'},

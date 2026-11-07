@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-const source=['shared/core/note-format.js','shared/core/reply-record.js','shared/core/emoji-tags.js','mosaic/src/model.js','shared/ui/save-feedback.js'].map(file=>fs.readFileSync(file,'utf8')).join('\n');
+const source=['shared/core/note-format.js','shared/core/reply-record.js','shared/core/emoji-tags.js','shared/ui/search-filters.js','mosaic/src/model.js','shared/ui/save-feedback.js'].map(file=>fs.readFileSync(file,'utf8')).join('\n');
 const stats={bodyPreparations:0};
 const api=vm.runInNewContext('const lower=String.prototype.toLocaleLowerCase;String.prototype.toLocaleLowerCase=function(){if(this.includes("\\n"))stats.bodyPreparations++;return lower.call(this);};\n'+source+';({f:imFormat,m:MosaicModel,add:imEmojiAdd,move:imEmojiMove,change:imEmojiChange,order:imEmojiOrder,filterOrder:imFilterOrder,untagged:imUntagged,Feedback:ImSaveFeedback})',{crypto,btoa,setTimeout,clearTimeout,stats});
 const {f,m,add,move,change,order,filterOrder,untagged,Feedback}=api,plain=value=>JSON.parse(JSON.stringify(value));

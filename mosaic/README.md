@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.6](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.6.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.2.0](https://joshuazang.github.io/IM-style-editor/Mosaic-1.2.0.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -217,3 +217,12 @@ expands to display all rows without a separate scrollbar. Opening the menu
 focuses the menu itself, rather than making its first tag appear selected.
 Search/Tags and More use the same shared icons and focus styling as IM; active
 filters put the green check on the left and preserve the full search icon size.
+
+The two-slider button on the right of Search opens date filters. Presets cover
+today, yesterday, the last seven days and the last thirty days; custom From/To
+dates include the entire end date. Filtering uses each message's original date
+in your device's local time zone and combines with search, emoji and pin filters.
+Choose All dates to remove only the date condition, or the filter pill's X to
+clear all filters. Missing timestamps appear under All dates. Filtering changes
+the view only. New captures and explicit reply jumps can clear a hiding date
+condition to reveal their target, consistent with Mosaic's existing navigation.

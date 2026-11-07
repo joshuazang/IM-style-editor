@@ -18,7 +18,7 @@ ASSETS.mkdir(exist_ok=True)
 helpers = []
 for name in ['message-spacing.js', 'context-menu.js',
              'transfer-ui.js', 'editor-interactions.js',
-             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js', 'note-sessions.js', 'selection-touch.js']:
+             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js', 'note-sessions.js', 'selection-touch.js', 'search-filters.js']:
     path = TARGET / 'src' / name
     helpers.append((path if path.exists() else ROOT / 'src' / name).read_text())
 # Reuse the immutable React/SDK build prefix; only the application runtime is forked.

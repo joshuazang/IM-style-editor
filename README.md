@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.2.4](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.1.6](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.2.5](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.2.0](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -190,3 +190,10 @@ same magnifying-glass size with no tag drawing; their shared green check sits on
 the left. Both search buttons focus their search field when opening. The context
 menu's **Emoji picker** expands to show all rows without its own scrollbar, and
 Mosaic no longer automatically focuses the first emoji when opening the menu.
+
+IM 4.2.5 / Mosaic 1.2.0 add the same two-slider SVG at the right edge of each
+search field. Mosaic removes its leading in-field magnifier. Date filters use
+original message timestamps: Today, Yesterday, Last 7 days, Last 30 days, or an
+inclusive custom From/To range in the device's local time zone. Both interfaces
+reuse the same date logic, panel implementation and styles. These are view
+filters; they do not rewrite messages or add browser storage.

@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="mosaic-version" content="1.1.6">
+  <meta name="mosaic-version" content="1.2.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; img-src 'self' data:; font-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'">
   <title>Mosaic — a board for Standard Notes</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/mosaic-f09d877915c0.css">
-  <script defer src="./assets/mosaic-33f56b19e902.js"></script>
+  <link rel="stylesheet" href="./assets/mosaic-20df04d698fc.css">
+  <script defer src="./assets/mosaic-a9f1faebc968.js"></script>
 <meta name="im-shared-core" content="2f9b64fc8545947e787c71babafb2dabece1ce38db99b4ab1a8be2141928ea19">
-<meta name="im-shared-ui" content="3da25ef1a81ec9c8d538b59350db92c7df4932cf86dfffb4df82c5af5dcd0e4e">
+<meta name="im-shared-ui" content="b230909eeaad0da14cae13d445c2ce9e780b0863298fae03224a9d6163af1295">
 </head>
 <body>
   <div id="app">
@@ -26,7 +26,9 @@
       </div>
     </header>
     <section id="search-tags-panel" class="board-search-panel frost" aria-label="Search and tags" hidden>
-      <label class="search-field"><span id="search-icon"></span><input id="search" type="search" placeholder="Search" aria-label="Search cards" autocomplete="off"></label>
+      <div class="ui-search-row"><input id="search" type="search" placeholder="Search" aria-label="Search cards" autocomplete="off"><button id="date-filter-button" type="button" class="ui-search-filters" aria-label="Date filters" title="Date filters" aria-expanded="false" aria-pressed="false" aria-controls="date-filters"></button></div>
+      <p id="date-summary" class="ui-date-summary" hidden></p>
+      <div id="date-panel" hidden></div>
       <nav id="tag-filters" class="tag-filters" aria-label="Filter by emoji tag"></nav>
       <button id="pinned-filter" class="text-button" aria-label="Pinned cards" aria-pressed="false"><span id="pin-filter-icon"></span> Pinned cards</button>
     </section>
