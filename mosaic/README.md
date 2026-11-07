@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.5](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.5.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.6](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.6.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -38,6 +38,18 @@ This is the current note's board, rather than an account-wide dashboard.
   appear above that toolbar; board previews omit timestamps.
 - A vector palette inside an opened card offers preset background colors, including
   Iris blue with white text. Default removes the optional color field.
+- More → **Color palette** offers Sage (the original soft green), Paper (white
+  and charcoal), and Sand (warm cream). These affect the board and default cards;
+  explicit card colors are retained. Each palette keeps the existing automatic
+  OS night appearance.
+- More → **Font size** offers Small, Medium, Large and Extra large. Medium keeps
+  the previous card text sizes; Large is the default. Board text, opened-card
+  text and capture input respond to the choice, and measured card heights refresh.
+  Phone capture text stays at least 16px to avoid input zoom.
+- Filter tags and board tags have visible rounded borders and frosted surfaces.
+  Search tags share IM's hover tint, and pin controls have a circular hover tint.
+  Board previews use tighter spacing and omit all status labels; opened cards
+  retain their timestamp and separate statuses.
 - A separate quick-tag grid above the shared context actions. Emojis wrap across
   rows, with scrolling for larger tag collections. There is no Add label button
   or inline emoji selector in the opened card. Context-tag changes in an opened
@@ -88,6 +100,12 @@ text or its Edited status. Optional `cardColor` stores only a preset ID in
 format-3 extra metadata; IM preserves it through edits and editor switches.
 Unrecognized color IDs are never evaluated as CSS. Preview heights are measured
 only for nearby new/resized cards and reused during later layouts.
+
+Palette and font size are saved per note as the whitelisted `mosaicPalette`
+and `mosaicFontSize` settings through the existing acknowledged note queue. IM
+preserves them. Missing or unknown values display Sage/Large without rewriting
+the note. No appearance preference is stored in browser storage, and no fonts
+are fetched from outside the plugin.
 
 The shared menu design, touch placement, selection controls and static SVG
 dictionary come from `shared/ui`, compiled into both editors. The tag group is

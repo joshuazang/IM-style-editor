@@ -1,5 +1,6 @@
 /* Shared original SVG vectors. Only this fixed dictionary becomes markup. */
 const imUiIcons = {
+  textSize:'<path d="M3 5h12M9 5v14M5 19h8M16 11h6M19 11v8m-2 0h4"/>',
   mosaic:'<rect x="3" y="3" width="7" height="11" rx="2"/><rect x="14" y="3" width="7" height="6" rx="2"/><rect x="3" y="18" width="7" height="3" rx="1.5"/><rect x="14" y="13" width="7" height="8" rx="2"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   search:'<circle cx="10.8" cy="10.8" r="7.3"/><path d="m16 16 4.5 4.5"/>',

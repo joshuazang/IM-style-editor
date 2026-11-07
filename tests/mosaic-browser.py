@@ -201,6 +201,7 @@ readText:async()=>window.__incomingClipboard||''}});
 
     # IM-style selection hides search controls; choose the broad filter first.
     fill_search(e,'Thought')
+    e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight')
     e.locator('[data-id="'+small['messages'][4]['id']+'"]').click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
     e.locator('[data-id="'+small['messages'][5]['id']+'"]').click();e.get_by_role('button',name='Selection options',exact=True).click();e.get_by_role('menuitem',name='Merge selected',exact=True).click()
     expect(e.get_by_role('textbox',name='Merged card preview',exact=True)).to_have_value(small['messages'][4]['text']+'\n\n'+small['messages'][5]['text'])

@@ -57,6 +57,16 @@ for(const width of [280,350,700,1300]){
 }
 assert.equal(m.color({cardColor:'iris'}).background,'#4e5cf0');
 assert.equal(m.color({cardColor:'iris'}).ink,'#ffffff');
+assert.deepEqual(plain(m.appearance({})),{palette:'sage',fontSize:'large'});
+assert.deepEqual(plain(m.appearance({mosaicPalette:'paper',mosaicFontSize:'medium'})),{palette:'paper',fontSize:'medium'});
+for(const invalid of ['url(https://example.invalid)',null,{},[],{toString:'invalid'},'__proto__'])assert.equal(m.appearance({mosaicPalette:invalid,mosaicFontSize:invalid}).fontSize,'large');
+const sizedMessage={id:f.newId(),text:'A longer title to wrap\n'+ 'Readable text. '.repeat(15),reactions:['📓']};
+m.measure(sizedMessage,170,false,false,111,'medium');
+const medium=m.layout([sizedMessage],{mosaicFontSize:'medium'},350).items[0];
+assert.equal(medium.width,170);assert.equal(medium.height,111);
+assert.notEqual(m.layout([sizedMessage],{mosaicFontSize:'extra-large'},350).items[0].height,111,'Font changes must not reuse measured heights from another size');
+const appearanceSettings={...settings,mosaicPalette:'sand',mosaicFontSize:'extra-large'};
+assert.deepEqual(plain(other.inspect(f.portable(messages,appearanceSettings,draft,reply)).settings),appearanceSettings);
 assert.equal(m.color({cardColor:'url(https://example.invalid)'}).id,'default','Only preset IDs can become CSS colors');
 for(const preset of m.colors)for(const dark of [false,true]){
   const result=m.color({cardColor:preset.id},dark);assert.ok(result.id===preset.id&&result.background&&result.ink);

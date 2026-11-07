@@ -7,3 +7,11 @@
 .ui-toolbar .ui-toolbar-button svg{width:28px;height:28px;pointer-events:none}
 .ui-toolbar .ui-toolbar-more svg{width:20px;height:20px}
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.ui-toolbar .ui-toolbar-button{background:rgba(32,32,35,.22);color:#172033;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}
+/* Both search/tag menus use the same visible pointer and keyboard tint. */
+.board-search-panel .tag-chip:hover:not([aria-pressed=true]):not(:disabled),.board-search-panel .tag-chip:focus-visible:not([aria-pressed=true]),.editor-shell .search-tags-panel .reaction-filter .chip:hover:not(.active):not(:disabled),.editor-shell .search-tags-panel .reaction-filter .chip:focus-visible:not(.active){background:var(--tag-hover,#e5eee6)!important}
+.board-search-panel .tag-chip{border:1px solid #68796188;box-shadow:0 1px 2px #23371918,inset 0 1px 0 #ffffff70;background:var(--surface);color:var(--ink)}
+.board-search-panel .tag-chip[aria-pressed=true]{border:2px solid var(--accent);background:var(--accent-soft);color:var(--ink)}
+.board-search-panel .tag-chip.untagged{color:var(--danger)}
+.board-search-panel .tag-chip.untagged[aria-pressed=true]{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,var(--surface))}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.board-search-panel .tag-chip:not([aria-pressed=true]){background:color-mix(in srgb,var(--surface) var(--frost-tint,22%),transparent);backdrop-filter:blur(var(--frost-blur,10px));-webkit-backdrop-filter:blur(var(--frost-blur,10px))}}
+@media(prefers-color-scheme:dark){.board-search-panel .tag-chip{border-color:color-mix(in srgb,var(--ink) 35%,transparent)}}

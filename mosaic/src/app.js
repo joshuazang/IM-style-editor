@@ -263,12 +263,21 @@ function renderTags() {
   tags.splice(pos,0,'__untagged__');for(const tag of tags)add(tag,tag,tag==='__untagged__'?'untagged':null);
 }
 function renderAll() {
-  const s=active;renderStatus();renderNotice();renderCapture();renderTags();
+  const s=active;renderAppearance();renderStatus();renderNotice();renderCapture();renderTags();
   $('welcome').hidden=!!s;$('more-button').disabled=!s;$('search-button').disabled=!s;$('pinned-filter').disabled=!s;$('search').disabled=!s;
   $('pinned-filter').setAttribute('aria-pressed',String(!!s?.view.pinned));
   renderSearchControls();refreshEditorMetadata();
   $('app').classList.toggle('selection-mode',!!s?.view.selecting);
   rebuildLayout();renderSelection();
+}
+function renderAppearance() {
+  const root=document.documentElement,{palette,fontSize}=MosaicModel.appearance(active?.settings),font=MosaicModel.fontSizes[fontSize];
+  if(root.dataset.mosaicPalette!==palette)root.dataset.mosaicPalette=palette;
+  if(root.dataset.mosaicFontSize!==fontSize)root.dataset.mosaicFontSize=fontSize;
+  for(const [key,value] of Object.entries(font))if(typeof value==='number'){
+    const name='--type-'+key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()),next=value+'px';
+    if(root.style.getPropertyValue(name)!==next)root.style.setProperty(name,next);
+  }
 }
 function rebuildLayout() {
   const anchor=findAnchor();
@@ -287,7 +296,7 @@ function findAnchor() {
 }
 function scheduleWindow() {if(!frame)frame=requestAnimationFrame(()=>{frame=0;renderWindow();});}
 function renderWindow() {
-  const top=viewport.getBoundingClientRect().top-board.getBoundingClientRect().top,low=top-550,high=top+viewport.clientHeight+550;
+  const top=viewport.getBoundingClientRect().top-board.getBoundingClientRect().top,low=top-550,high=top+viewport.clientHeight+550,fontSize=MosaicModel.appearance(active?.settings).fontSize;
   const visible=new Set(),measurements=[];
   for(const item of layout.items){
     if(item.y+item.height<low||item.y>high)continue;
@@ -295,7 +304,7 @@ function renderWindow() {
     let node=mounted.get(item.message.id);
     if(!node){node=cardNode(item.message);mounted.set(item.message.id,node);board.append(node);}
     node.classList.toggle('is-compact',item.width<230);
-    const geometry=item.width+':'+!!active?.view.selecting;
+    const geometry=item.width+':'+!!active?.view.selecting+':'+fontSize;
     Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
     if(node.dataset.geometry!==geometry){node.dataset.geometry=geometry;measurements.push({node,item});}
   }
@@ -305,7 +314,7 @@ function renderWindow() {
   let changed=false;const selecting=!!active?.view.selecting;
   for(const {node,item} of measurements){
     const height=Math.ceil(node.getBoundingClientRect().height);
-    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height);
+    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize);
     if(measured&&height!==item.height)changed=true;
   }
   if(changed){
@@ -322,9 +331,6 @@ function metaText(message) {
   const bits=[];if(message.copied)bits.push('Copied');if(message.exported)bits.push('Exported');if(MosaicModel.isImported(message))bits.push('Imported');
   if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime()))bits.push(new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.createdAt)));
   if(message.edited)bits.push('Edited');return bits.join(' · ');
-}
-function statusText(message) {
-  return [message.copied&&'Copied',message.exported&&'Exported',MosaicModel.isImported(message)&&'Imported',message.edited&&'edited'].filter(Boolean).join(' · ');
 }
 function renderSearchControls() {
   const s=active,selecting=!!s?.view.selecting,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned);
@@ -350,7 +356,6 @@ function cardNode(message) {
   if(message.replyTo)node.append(el('div','card-reply',message.replyTo.text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
   if(parts.body)node.append(el('p','card-body',parts.body));
   if(message.reactions.length){const tags=el('div','card-tags');for(const tag of message.reactions.slice(0,10))tags.append(el('span','card-tag',tag));node.append(tags);}
-  const statuses=statusText(message);if(statuses)node.append(el('div','card-meta',statuses));
   const tools=el('div','card-tools');tools.append(
     button('Card options','more',event=>cardMenu(message,event),'icon-button more-card'));
   node.append(tools);
@@ -465,7 +470,30 @@ function mainMenu(event) {
   if(!active)return;const s=active;searchOpen=false;renderSearchControls();
   showMenu([['Import from clipboard','import',()=>importDialog()],['Export all cards','export',()=>exportRecords(s,s.messages)],['Select cards','select',()=>startSelection()],
     ['Clear message statuses','select',()=>statusDialog(null)],['Clear clipboard','trash',()=>clearClipboardDialog()],null,
+    ['Color palette','palette',()=>appearanceDialog('palette')],['Font size','textSize',()=>appearanceDialog('fontSize')],null,
     ...(latestUnfinished(s.note.uuid)?[['Resume unfinished edit','edit',()=>editCard(latestUnfinished(s.note.uuid).id)]]:[]),['About Mosaic','info',()=>aboutDialog()]],event);
+}
+function appearanceDialog(kind) {
+  const s=active,key=kind==='palette'?'mosaicPalette':'mosaicFontSize',d=openModal('appearance',kind==='palette'?'Color palette':'Font size');
+  d.root.append(el('p','dialog-help','For this note. Saved through Standard Notes.'));
+  const choices=el('div','appearance-choices'),items=kind==='palette'?MosaicModel.palettes:Object.entries(MosaicModel.fontSizes).map(([id,value])=>({id,...value}));
+  const controls=[];
+  for(const item of items){
+    const choice=button(item.name,null,async()=>{
+      if(d.busy||active!==s||modalState!==d||!writable(s))return;
+      if(MosaicModel.appearance(s.settings)[kind]===item.id)return;
+      d.busy=true;controls.forEach(control=>control.disabled=true);
+      try{await update(s,{settings:{...s.settings,[key]:item.id}});}
+      catch(error){dialogError(d,'Saving was not confirmed. Keep this editor open and retry saving.');}
+      finally{d.busy=false;if(modalState===d)for(const control of controls){control.disabled=!writable(s);control.setAttribute('aria-pressed',String(MosaicModel.appearance(s.settings)[kind]===control.dataset.value));}}
+    },'appearance-choice');
+    choice.replaceChildren();choice.dataset.value=item.id;choice.setAttribute('aria-pressed',String(MosaicModel.appearance(s.settings)[kind]===item.id));choice.disabled=!writable(s);
+    if(kind==='palette'){const preview=el('span','palette-preview '+item.id);preview.setAttribute('aria-hidden','true');preview.append(el('span'));choice.append(preview);}
+    const label=el('span','appearance-choice-label',item.name);if(item.description)label.append(el('small','',item.description));
+    if(kind==='fontSize')label.style.fontSize=item.editBody+'px';
+    choice.append(label);choices.append(choice);controls.push(choice);
+  }
+  d.root.append(choices);actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
 }
 function openModal(kind,title) {
   stashEdit();closeModal(true);const root=$('modal-content');root.replaceChildren();modal.classList.toggle('card-edit-dialog',kind==='edit');const heading=el('div','dialog-heading'),h=el('h2','',title);h.id='dialog-title';

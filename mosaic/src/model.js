@@ -1,6 +1,18 @@
 /* Presentation helpers. A card is still one format-3 message, never a second copy. */
 const MosaicModel = (() => {
   const heights=new WeakMap(),measured=new WeakMap();
+  const palettes=[{id:'sage',name:'Sage',description:'Soft green and clear white'},
+    {id:'paper',name:'Paper',description:'Clean white and charcoal'},
+    {id:'sand',name:'Sand',description:'Warm cream and dark brown'}];
+  // Medium keeps the previous type sizes; Large is the default for readability.
+  const fontSizes={
+    small:{name:'Small',title:15,compactTitle:14,titleLine:22,compactTitleLine:20,body:12,bodyLine:20,compactBodyLine:18,editTitle:22,compactEditTitle:20,editBody:14,capture:14},
+    medium:{name:'Medium',title:17,compactTitle:16,titleLine:25,compactTitleLine:22,body:13,bodyLine:23,compactBodyLine:20,editTitle:24,compactEditTitle:22,editBody:16,capture:15},
+    large:{name:'Large',title:19,compactTitle:18,titleLine:28,compactTitleLine:25,body:15,bodyLine:26,compactBodyLine:23,editTitle:26,compactEditTitle:24,editBody:18,capture:18},
+    'extra-large':{name:'Extra large',title:22,compactTitle:21,titleLine:32,compactTitleLine:29,body:18,bodyLine:30,compactBodyLine:27,editTitle:29,compactEditTitle:27,editBody:21,capture:20}
+  };
+  const appearance=(settings={})=>({palette:palettes.some(p=>p.id===settings.mosaicPalette)?settings.mosaicPalette:'sage',
+    fontSize:typeof settings.mosaicFontSize==='string'&&Object.hasOwn(fontSizes,settings.mosaicFontSize)?settings.mosaicFontSize:'large'});
   // Preset IDs are the only saved color values; unknown metadata is preserved.
   const colors=[
     {id:'default',name:'Default'},
@@ -19,7 +31,7 @@ const MosaicModel = (() => {
   ];
   const color = (message,dark=false) => {
     const preset=colors.find(item=>item.id===message.cardColor)||colors[0];
-    return {id:preset.id,background:preset[dark?'dark':'light']||'var(--surface)',ink:preset.ink||(dark?'#f3f5f1':'#27332f')};
+    return {id:preset.id,background:preset[dark?'dark':'light']||'var(--surface)',ink:preset.ink||(preset.id==='default'?'var(--ink)':dark?'#f3f5f1':'#27332f')};
   };
   const normalized = text => text.replace(/\r\n?/g, '\n');
   function split(text) {
@@ -93,24 +105,24 @@ const MosaicModel = (() => {
     }
     return lines;
   }
-  const heightKey=(width,pinned,selecting)=>width+':'+pinned+':'+selecting;
-  function measure(message,width,pinned,selecting,height) {
-    const key=heightKey(width,pinned,selecting),previous=measured.get(message);
+  const heightKey=(width,pinned,selecting,fontSize)=>width+':'+pinned+':'+selecting+':'+fontSize;
+  function measure(message,width,pinned,selecting,height,fontSize='large') {
+    const key=heightKey(width,pinned,selecting,fontSize),previous=measured.get(message);
     if(previous?.key===key&&previous.height===height)return false;
     measured.set(message,{key,height});return true;
   }
-  function cardHeight(message,width,pinned,selecting) {
-    const compact=width<230,key=heightKey(width,pinned,selecting),actual=measured.get(message),cached=heights.get(message);
+  function cardHeight(message,width,pinned,selecting,fontSize) {
+    const compact=width<230,font=fontSizes[fontSize],key=heightKey(width,pinned,selecting,fontSize),actual=measured.get(message),cached=heights.get(message);
     if(actual?.key===key)return actual.height;
     if(cached?.key===key)return cached.height;
-    const padding=compact?24:36,columns=Math.max(8,Math.floor((width-padding)/7));
+    const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
     const parts=split(message.text),titleLines=previewLines(parts.title,Math.max(5,columns-(pinned?4:0)),3),bodyLines=parts.body?previewLines(parts.body,columns,7):0;
-    const height=(compact?80:90)+titleLines*(compact?22:25)+bodyLines*(compact?20:23)+(bodyLines?10:0)+(message.reactions.length?34:0)+(message.replyTo?40:0);
+    const height=(compact?52:58)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines?8:0)+(message.reactions.length?34:0)+(message.replyTo?36:0);
     heights.set(message,{key,height});return height;
   }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
-    const pinIds=new Set(pins(settings));
+    const pinIds=new Set(pins(settings)),fontSize=appearance(settings).fontSize;
     const filtered=messages.filter(m=>matches(m,query,tag,pinnedOnly,pinIds)).slice().reverse();
     const groups=[['Pinned',filtered.filter(m=>pinIds.has(m.id))],['Other cards',filtered.filter(m=>!pinIds.has(m.id))]];
     const items=[], headings=[];let base=0;
@@ -119,7 +131,7 @@ const MosaicModel = (() => {
       if(name==='Pinned'||headings.length){headings.push({label:name,y:base});base+=36;}
       const heights=Array(columns).fill(base);
       for(const message of group){
-        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting);
+        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize);
         const column=heights.indexOf(Math.min(...heights));
         items.push({message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height});
         heights[column]+=height+gap;
@@ -128,5 +140,5 @@ const MosaicModel = (() => {
     }
     return {items,headings,height:base,count:filtered.length};
   }
-  return {split,join,normalized,pins,tags,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color};
+  return {split,join,normalized,pins,tags,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
 })();
