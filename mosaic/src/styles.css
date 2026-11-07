@@ -44,7 +44,7 @@ input,textarea{min-width:0;color:var(--ink)}
 #board{position:relative;min-height:1px;overflow-anchor:none}
 .section-heading{position:absolute;left:2px;font-size:10px;text-transform:uppercase;letter-spacing:1.6px;color:var(--muted);font-weight:700}
 .card{position:absolute;left:0;top:0;display:flex;flex-direction:column;padding:20px 20px 15px;border:1px solid #dce1d7;border-radius:17px;background:var(--card-color,#fff);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;outline:none;contain:layout style;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-.card:hover{box-shadow:0 8px 22px #2f443414;border-color:#b9c6b7}
+@media(hover:hover) and (pointer:fine){#board:not(.is-scrolling) .card:not(.selected):hover{box-shadow:0 8px 22px #2f443414;border-color:#b9c6b7}}
 .card:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
 .card-title{font-size:17px;font-weight:650;line-height:25px;margin:0 25px 0 0;letter-spacing:-.25px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;flex:none;white-space:pre-wrap}
 .card-title.empty-title{font-weight:500;color:var(--muted);font-style:italic}
@@ -339,8 +339,9 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card .emoji-tag-body{left:0;width:calc(100% - 11px)}
 .card .emoji-tag-tip{right:0;width:11px}
 .card .emoji-tag-emoji{position:relative;display:grid;place-items:center;min-width:20px;min-height:22px;padding:2px;font-size:14px;line-height:1;white-space:nowrap;pointer-events:none}
-.card .card-tag:hover{transform:translateY(-1px) scale(1.04)}
-.card .card-tag:hover svg,.card .card-tag:focus-visible svg{fill:color-mix(in srgb,var(--accent) 18%,var(--accent-soft))}
+@media(hover:hover) and (pointer:fine){#board:not(.is-scrolling) .card .card-tag:hover{transform:translateY(-1px) scale(1.04)}}
+.card .card-tag:focus-visible svg{fill:color-mix(in srgb,var(--accent) 18%,var(--accent-soft))}
+@media(hover:hover) and (pointer:fine){#board:not(.is-scrolling) .card .card-tag:hover svg{fill:color-mix(in srgb,var(--accent) 18%,var(--accent-soft))}}
 .card .card-tag:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 #search:focus{outline:none!important}
 #search:focus::placeholder{opacity:0!important}

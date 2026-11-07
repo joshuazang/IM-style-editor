@@ -88,6 +88,7 @@ function imUseMessageViewport({ scroller, composer, noteId, messages,viewKey }) 
     return () => {
       cancelAnimationFrame(frame);
       controller.cancel();delete list.imScroll;
+      if(list.imSelectionTouch)list.imSelectionTouch.gesture=null;
       observer.disconnect();
       list.removeEventListener('pointerdown', down);
       list.removeEventListener('pointermove', move);

@@ -45,8 +45,8 @@ try:
     e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight');page.wait_for_timeout(150)
     assert e.locator('.card-tags').evaluate_all('ns=>ns.every(n=>n.getBoundingClientRect().bottom<=document.querySelector("#capture-composer").getBoundingClientRect().top-7)')
     # Board tags filter without opening a card or submitting a focused capture draft.
-    badge=e.locator('.card .card-tag').first;emoji=badge.locator('.emoji-tag-emoji').inner_text();badge.hover()
-    assert badge.evaluate('n=>getComputedStyle(n).transform')!='none'
+    badge=e.locator('.card .card-tag').first;card_id=badge.evaluate('n=>n.closest(".card").dataset.id');badge=e.locator('[data-id="'+card_id+'"] .card-tag').first;emoji=badge.locator('.emoji-tag-emoji').inner_text();badge.scroll_into_view_if_needed();page.wait_for_timeout(150);badge.hover()
+    assert (badge.evaluate('n=>getComputedStyle(n).transform')!='none')==(width>=600)
     badge.click();expect(e.locator('#modal')).not_to_be_visible();expect(e.locator('#filter-pill')).to_be_visible()
     assert e.locator('.card').evaluate_all('(ns,tag)=>ns.every(n=>[...n.querySelectorAll(".emoji-tag-emoji")].some(x=>x.textContent===tag))',emoji)
     e.get_by_role('button',name='Clear all filters',exact=True).click();frame.wait_for_function(geometry)

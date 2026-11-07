@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.2.2](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.1.4](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.2.3](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.1.5](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -169,3 +169,10 @@ from the bottom-left edge and stay read-only. Mosaic keeps Sage, Paper and Sand
 light palettes regardless of system appearance, and search hides its placeholder
 while focused without an extra rectangular outline. IM appearance is unchanged
 apart from the requested menu label weight.
+
+IM 4.2.3 validates each touch selection once, using the row under the finger
+at the start and end of the tap. It ignores compatibility clicks, cancelled
+scroll gestures and touches from a previous note, while retaining keyboard and
+mouse selection. Mosaic 1.1.5 limits card/tag hover to mouse-capable devices and
+suppresses it during scrolling until the mouse deliberately moves again.
+No note format, saving, storage or encryption changes are involved.

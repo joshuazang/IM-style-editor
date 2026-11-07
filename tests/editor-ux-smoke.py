@@ -54,6 +54,23 @@ try:
     else:expected.add(target)
     assert selected()==expected,(i,selected(),expected)
    assert abs(im.locator('[data-selection-row="'+ids[7]+'"]').bounding_box()['y']-before)<1
+   # Some WebViews emit an additional legacy click with detail=0 after touch.
+   # It must not retarget selection to a neighboring row or toggle twice.
+   if width<600:
+    neighbor=im.locator('[data-selection-row="'+ids[7]+'"] .message-body')
+    neighbor.dispatch_event('click',{'bubbles':True,'cancelable':True,'detail':0})
+    assert selected()==expected,('legacy touch click selected a neighboring message',selected(),expected)
+   if width<600:
+    # A browser-adjusted target must still select the row under the finger,
+    # not the neighboring checkbox to which the browser delivered the click.
+    intended=im.locator('[data-selection-row="'+ids[8]+'"] .message-body');r=intended.bounding_box()
+    point={'pointerType':'touch','isPrimary':True,'pointerId':912,'clientX':r['x']+r['width']/2,'clientY':r['y']+r['height']/2,'bubbles':True}
+    neighbor=im.locator('[data-selection-row="'+ids[7]+'"] .message-body')
+    neighbor.dispatch_event('pointerdown',point);neighbor.dispatch_event('pointerup',point)
+    assert selected()==expected,'Release alone must not race the compatibility click'
+    neighbor.dispatch_event('click',{'bubbles':True,'cancelable':True,'detail':1})
+    expected.add(ids[8]);assert selected()==expected
+    neighbor.dispatch_event('click',{'bubbles':True,'cancelable':True,'detail':0});assert selected()==expected
    # Keyboard activation remains precise; cancelled and scrolling touch gestures do nothing.
    control=im.locator('[data-selection-row="'+ids[6]+'"] .selection-check');control.focus();control.press('Space');expected.remove(ids[6]);assert selected()==expected
    control.press('Enter');expected.add(ids[6]);assert selected()==expected
@@ -61,8 +78,41 @@ try:
     rect=im.locator('[data-selection-row="'+ids[6]+'"] .message-body').bounding_box();x=rect['x']+10;y=rect['y']+10
     touch('touchStart',x,y);touch('touchCancel',x,y);assert selected()==expected
     touch('touchStart',x,y);touch('touchMove',x,y-40);touch('touchEnd',x,y-40);page.wait_for_timeout(120);assert selected()==expected
+    # Cancelled drags cannot be revived by either kind of legacy click.
+    neighbor=im.locator('[data-selection-row="'+ids[7]+'"] .message-body')
+    for detail in [0,1]:neighbor.dispatch_event('click',{'bubbles':True,'cancelable':True,'detail':detail});assert selected()==expected
+   if width<600:
+    # The two notes intentionally share message IDs. A pending touch from A
+    # must not select a message after B has become the active note.
+    page.evaluate('switchNote("b")');expect(im.locator('.selected')).to_have_count(0)
+    im.locator('.messages').evaluate('n=>n.scrollTop=0');im.locator('[data-message-id="'+ids[1]+'"]').click(button='right');im.get_by_role('menuitem',name='Select',exact=True).click();expect(im.locator('.message-wrap.selected')).to_have_count(1)
+    page.evaluate('switchNote("a")');expect(im.locator('.selection-status')).to_contain_text(str(len(expected))+' / 80 selected');im.locator('.messages').evaluate('n=>n.scrollTop=0');expect(im.locator('.message-wrap.selected')).to_have_count(len(expected))
+    pending=im.locator('[data-selection-row="'+ids[7]+'"] .message-body');r=pending.bounding_box();point={'pointerType':'touch','isPrimary':True,'pointerId':913,'clientX':r['x']+r['width']/2,'clientY':r['y']+r['height']/2,'bubbles':True}
+    pending.dispatch_event('pointerdown',point);pending.dispatch_event('pointerup',point)
+    page.evaluate('switchNote("b")');expect(im.locator('.selection-status')).to_contain_text('1 / 80 selected');im.locator('.messages').evaluate('n=>n.scrollTop=0');expect(im.locator('.message-wrap.selected')).to_have_count(1)
+    im.locator('[data-selection-row="'+ids[7]+'"] .message-body').dispatch_event('click',{'bubbles':True,'cancelable':True,'detail':0})
+    assert selected()=={ids[1]},'Pending touches must not cross note switches'
+    im.get_by_role('button',name='Cancel',exact=True).click();expect(im.locator('.selection-status')).to_have_count(0)
+    page.evaluate('switchNote("a")');expect(im.locator('.selection-status')).to_contain_text(str(len(expected))+' / 80 selected');im.locator('.messages').evaluate('n=>n.scrollTop=0');expect(im.locator('.message-wrap.selected')).to_have_count(len(expected));assert selected()==expected
    im.get_by_role('button',name='Cancel',exact=True).click();expect(capture).to_be_visible()
    print(f'PASS {width}px: separate 44px IM row targets, exact rapid bubble/checkbox taps, stable geometry, keyboard selection and cancelled-scroll gestures',flush=True)
+
+   # Real scrolling never gives Mosaic a sticky hover or opens a card.
+   page.evaluate('openEditor("a","/mosaic/index.html",true)');mosaic=page.frame_locator('#editor');expect(mosaic.locator('.card').first).to_be_visible()
+   target=mosaic.locator('.card').first;target.scroll_into_view_if_needed();r=target.bounding_box();x=r['x']+r['width']/2;y=max(r['y']+20,100)
+   if width<600:
+    touch('touchStart',x,y);page.wait_for_timeout(80)
+    assert target.evaluate('n=>getComputedStyle(n).boxShadow')=='none'
+    touch('touchMove',x,y-65);touch('touchEnd',x,y-65);page.wait_for_timeout(180)
+    assert mosaic.locator('.card').evaluate_all('ns=>ns.every(n=>getComputedStyle(n).boxShadow==="none")')
+   else:
+    page.wait_for_timeout(150);page.mouse.move(x,y);page.wait_for_timeout(200);assert target.evaluate('n=>getComputedStyle(n).boxShadow')!='none'
+    page.mouse.wheel(0,240);page.wait_for_timeout(220)
+    assert mosaic.locator('.card').evaluate_all('ns=>ns.every(n=>getComputedStyle(n).boxShadow==="none")')
+    page.mouse.move(x+8,y);page.wait_for_timeout(200)
+    assert mosaic.locator('.card').evaluate_all('ns=>ns.some(n=>n.matches(":hover")&&getComputedStyle(n).boxShadow!=="none")')
+   expect(mosaic.locator('#modal')).not_to_be_visible()
+   print(f'PASS {width}px: Mosaic touch/scroll has no sticky card hover; deliberate mouse movement restores desktop feedback',flush=True)
 
    # Both interfaces submit immediately; only the feedback waits 300ms.
    for path in ['/next/index.html','/mosaic/index.html']:

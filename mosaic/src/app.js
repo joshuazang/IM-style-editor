@@ -895,7 +895,22 @@ $('search').addEventListener('input',event=>{if(active){active.view.query=event.
 $('search').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing){event.preventDefault();searchOpen=false;renderSearchControls();viewport.focus();}});
 $('empty-action').addEventListener('click',()=>{if(!active)return;if(active.view.query||active.view.tag||active.view.pinned){Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';renderAll();}else editorDialog();});
 $('preview-button').addEventListener('click',demo);
-viewport.addEventListener('scroll',scheduleWindow,{passive:true});
+// Scrolling is navigation, not an intention to hover a card. A fresh mouse
+// movement restores hover after scrolling; a stationary cursor never lights up
+// whichever card happens to move underneath it. No timers or saves are needed.
+let boardScrollAt=0,boardMousePoint=null;
+function suppressBoardHover(){boardScrollAt=performance.now();board.classList.add('is-scrolling');}
+viewport.addEventListener('scroll',()=>{suppressBoardHover();scheduleWindow();},{passive:true});
+viewport.addEventListener('wheel',suppressBoardHover,{passive:true});
+viewport.addEventListener('pointerdown',event=>{if(event.pointerType==='touch')suppressBoardHover();},{passive:true});
+viewport.addEventListener('pointermove',event=>{
+  if(event.pointerType!=='mouse')return;
+  // movementX/Y can both be zero when entering an iframe. Client coordinates
+  // distinguish a deliberate move from a stationary pointer during scrolling.
+  const moved=!boardMousePoint||event.clientX!==boardMousePoint.x||event.clientY!==boardMousePoint.y;
+  boardMousePoint={x:event.clientX,y:event.clientY};
+  if(moved&&performance.now()-boardScrollAt>120)board.classList.remove('is-scrolling');
+},{passive:true});
 let lastWidth=0;const overlayObserver=new ResizeObserver(()=>{if(board.clientWidth!==lastWidth){lastWidth=board.clientWidth;rebuildLayout();}syncOverlayMetrics();});
 for(const node of [viewport,$('capture-composer'),$('notice')])overlayObserver.observe(node);
 menu.addEventListener('pointerdown',event=>{event.stopPropagation();menuPress=true;});
