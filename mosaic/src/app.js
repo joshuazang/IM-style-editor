@@ -122,10 +122,10 @@ function receive(note, force=false) {
     if(s.note.content?.text===text||((s.pending||s.error)&&knownSessionText(s,text))){
       receiveNativeFields(s,note);return;
     }
-    const editing=modalState?.kind==='edit'&&modalState.uuid===note.uuid&&(modalState.currentText!==modalState.original||JSON.stringify([...modalState.tags])!==JSON.stringify(modalState.originalTags));
-    if(s.pending||s.error||s.dirty||editing){s.remote=note;retainedSessions.set(note.uuid,s);imCancelQueuedNoteSaves(note.uuid);renderNotice();return;}
+    const editing=modalState?.kind==='edit'&&modalState.uuid===note.uuid&&(modalState.currentText!==modalState.original||modalState.titleValue!==modalState.originalTitle||JSON.stringify([...modalState.tags])!==JSON.stringify(modalState.originalTags));
+    if(s.pending||s.error||s.dirty||editing||s.titleEntry){s.remote=note;retainedSessions.set(note.uuid,s);imCancelQueuedNoteSaves(note.uuid);renderNotice();return;}
   }
-  const previous=active;
+  const previous=active;if(previous?.titleEntry)retainedSessions.set(previous.note.uuid,previous);
   if(previous){previous.view.scroll=viewport.scrollTop;viewMemory.set(previous.note.uuid,previous.view);stashEdit();}
   closeModal(true);hideMenu();
   if(force){
@@ -167,13 +167,13 @@ function persist(s) {
     const confirmed=imConfirmedNote?.note===s.note?imConfirmedNote.snapshot:null;
     s.lastAck=confirmed?{text:confirmed.text,native:imNoteNativeSignature(confirmed.item)}:submitted;
     if(s.remote)return;
-    if(revision===s.revision){s.error='';s.dirty=false;s.nativeRepair=false;retainedSessions.delete(s.note.uuid);}
+    if(revision===s.revision){s.error='';s.dirty=false;s.nativeRepair=false;if(!s.titleEntry)retainedSessions.delete(s.note.uuid);}
     for(const intent of [...s.intents])if(intent.revision<=revision){s.intents.delete(intent);intent.finish();}
     if(active===s)safeRun(()=>applyTransferMarks(s));
   },error=>{
     if(!s.discarded&&revision===s.revision){s.error='Saving was not confirmed. Keep this editor open and retry. Your text is still here.';s.dirty=true;retainedSessions.set(s.note.uuid,s);}
     throw error;
-  }).finally(()=>{s.pending--;if(active===s){renderStatus();renderNotice();}});
+  }).finally(()=>{s.pending--;if(!s.pending&&!s.dirty&&!s.error&&!s.remote&&!s.titleEntry)retainedSessions.delete(s.note.uuid);if(active===s){renderStatus();renderNotice();}});
 }
 function update(s, change, redraw=true) {
   if(!writable(s))throw new Error('Saving is paused. Your original note is unchanged.');
@@ -207,11 +207,13 @@ function renderNotice() {
   if(s.damaged||s.remote||s.error)box.append(button('Review text',null,()=>recoveryDialog(s),''));
 }
 function renderCapture() {
-  const s=active,field=$('capture-input'),value=MosaicModel.normalized(s?.captureValue||'');
+  const s=active,field=$('capture-input'),value=MosaicModel.normalized(s?.titleEntry?.text??s?.captureValue??'');
+  field.setAttribute('aria-label',s?.titleEntry?'Title':'Take a note');field.placeholder=s?.titleEntry?'Write a title…':'Take a note…';
   if(field.value!==value)field.value=value;
   field.disabled=!writable();growCapture();
-  const quote=$('capture-reply');quote.replaceChildren();quote.hidden=!s?.reply;
-  if(s?.reply){
+  const quote=$('capture-reply');quote.replaceChildren();quote.hidden=!s?.reply&&!s?.titleEntry;
+  if(s?.titleEntry){const source=s.messages.find(m=>m.id===s.titleEntry.id);quote.append(el('strong','','Title for card'),el('span','inline-quote',source?.text.slice(0,160)||'Card'),button('Cancel title entry','close',()=>{s.titleEntry=null;if(!s.dirty&&!s.pending)retainedSessions.delete(s.note.uuid);renderCapture();},'icon-button'));}
+  else if(s?.reply){
     const text=button('Show quoted card',null,()=>jumpTo(s.reply),'inline-quote');text.textContent=s.reply.text.replace(/\s+/g,' ').slice(0,160)||'Quoted message';
     quote.append(text,button('Cancel reply','close',()=>safeRun(()=>update(s,{reply:null},false)),'icon-button danger'));
   }
@@ -220,10 +222,12 @@ function growCapture(){const field=$('capture-input');field.style.height='0px';f
 function inputCapture(){
   const s=active;if(!writable(s))return;
   const value=$('capture-input').value;
+  if(s.titleEntry){s.titleEntry.text=value;return;}
   s.captureValue=value===MosaicModel.normalized(s.captureOriginal)?s.captureOriginal:value;s.captureRevision++;
   safeRun(()=>update(s,{draft:s.captureValue},false));
 }
 function submitCapture(s=active,tag=s?.view.tag){
+  if(s?.titleEntry){if(s.composing){s.submitAfterComposition={title:true};return Promise.resolve();}return submitTitle(s);}
   if(!writable(s)||s.submission||!s.captureValue.trim())return Promise.resolve();
   if(s.composing){s.submitAfterComposition={tag};return Promise.resolve();}
   const text=s.captureValue,revision=s.captureRevision;
@@ -251,6 +255,20 @@ function submitCapture(s=active,tag=s?.view.tag){
     if(active===s)renderCapture();
   }});
   return saving;
+}
+function beginTitle(id){
+  const s=active,source=s?.messages.find(m=>m.id===id);if(!source||!writable(s))return;
+  if(s.titleEntry&&s.titleEntry.id!==id){hideMenu();notify('Finish or cancel the current title entry first.');return;}
+  if(!s.titleEntry)s.titleEntry={id,text:imFormat.title(source),original:imFormat.title(source),pending:false};retainedSessions.set(s.note.uuid,s);hideMenu();renderCapture();$('capture-input').focus();
+}
+function submitTitle(s){
+  const entry=s.titleEntry;if(!writable(s)||!entry||entry.pending)return Promise.resolve();
+  const source=s.messages.find(m=>m.id===entry.id),text=entry.text;
+  if(!source||imFormat.title(source)!==entry.original&&imFormat.title(source)!==entry.submitted)throw new Error('This title changed. Your entry is retained; review before saving.');
+  entry.pending=true;entry.submitted=text.trim()?text:'';
+  const saving=update(s,{messages:s.messages.map(m=>m.id===entry.id?imFormat.withTitle(m,text):m)});
+  s.intents.add({revision:s.revision,finish:()=>{entry.pending=false;entry.original=text.trim()?text:'';if(s.titleEntry===entry&&entry.text===text)s.titleEntry=null;if(active===s)renderCapture();}});
+  return saving.catch(error=>{entry.pending=false;throw error;});
 }
 function renderTags() {
   const box=$('tag-filters');box.replaceChildren();if(!active)return;
@@ -356,14 +374,10 @@ function cardNode(message) {
   const color=MosaicModel.color(message,dark.matches);node.style.setProperty('--card-color',color.background);node.style.setProperty('--card-ink',color.ink);
   node.dataset.id=message.id;node.setAttribute('role','listitem');node.tabIndex=0;node.setAttribute('aria-label',parts.title||parts.body.slice(0,70)||'Empty card');
   if(s.view.selecting){const check=el('span','selection-check');if(s.view.selected.has(message.id))check.append(mosaicIcon('check'));node.append(check);node.setAttribute('aria-label',(s.view.selected.has(message.id)?'Selected: ':'Select: ')+(parts.title||'Untitled card'));}
-  node.append(button(pinned?'Unpin card':'Pin card','pin',()=>safeRun(()=>togglePin(s,message.id)),'icon-button pin-card'),
-    el('h2','card-title'+(parts.title?'':' empty-title'),parts.title||'Untitled'));
+  if(parts.title)node.append(el('h2','card-title',parts.title));
   if(message.replyTo)node.append(el('div','card-reply',message.replyTo.text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
   if(parts.body)node.append(el('p','card-body',parts.body));
   if(message.reactions.length){const tags=el('div','card-tags');for(const tag of message.reactions.slice(0,10))tags.append(el('span','card-tag',tag));node.append(tags);}
-  const tools=el('div','card-tools');tools.append(
-    button('Card options','more',event=>cardMenu(message,event),'icon-button more-card'));
-  node.append(tools);
   node.addEventListener('click',()=>{if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);});
   node.addEventListener('keydown',event=>{if(event.target!==node)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
   bindContextMenu(node,event=>{const current=s.messages.find(m=>m.id===message.id);if(current)cardMenu(current,event);},()=>active===s&&!s.view.selecting);
@@ -463,7 +477,7 @@ function cardMenu(message,event) {
   const editing=modalState?.kind==='edit'&&modalState.uuid===s.note.uuid&&modalState.id===message.id?modalState:null;
   const current=()=>s.messages.find(m=>m.id===message.id);
   const saved=action=>async()=>{if(editing&&!(await editing.commit(false)))return;return action();};
-  showMenu([['Edit','edit',()=>editCard(message.id)],['Reply','reply',saved(()=>replyTo(message.id))],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
+  showMenu([['Edit','edit',()=>editCard(message.id)],[imFormat.title(message)?'Edit title':'Add title','textSize',()=>{if(editing)editing.unlockTitle();else beginTitle(message.id);}],['Reply','reply',saved(()=>replyTo(message.id))],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
     ['Copy','copy',saved(()=>copyRecords(s,[current()]))],['Select','select',saved(()=>{closeModal(true);startSelection(message.id);})],null,['Delete','trash',saved(()=>deleteCards(s,new Set([message.id]))),true]],event,{
     message:editing?{...message,reactions:[...editing.tags]}:message,
     toggleTag:tag=>{
@@ -567,7 +581,7 @@ function closeModal(force=false) {
 }
 function stashEdit() {
   const d=modalState;if(!d||d.kind!=='edit'||!d.currentText||!active||d.uuid!==active.note.uuid)return;
-  if(d.currentText!==d.original||JSON.stringify([...d.tags])!==JSON.stringify(d.originalTags))unfinishedEdits.set(editKey(d.uuid,d.id),{noteId:d.uuid,id:d.id,original:d.original,text:d.currentText,tags:[...d.tags]});
+  if(d.currentText!==d.original||d.titleValue!==d.originalTitle||JSON.stringify([...d.tags])!==JSON.stringify(d.originalTags))unfinishedEdits.set(editKey(d.uuid,d.id),{noteId:d.uuid,id:d.id,original:d.original,text:d.currentText,title:d.titleValue,originalTitle:d.originalTitle,titleUnlocked:d.titleUnlocked,tags:[...d.tags]});
 }
 function actions(record,items) {const row=el('div','dialog-actions');for(const item of items)row.append(item);record.root.append(row);return row;}
 function confirmAction(title,description,label,action,danger=false) {
@@ -596,20 +610,22 @@ function refreshEditorMetadata() {
 function editorDialog(id=null) {
   if(!id){$('capture-input').focus();return;}
   if(modalState?.kind==='edit'&&modalState.id===id&&modalState.uuid===active?.note.uuid){modalState.body.focus();return;}
-  const s=active;if(!writable(s)){notify('This note is read only until the notice above is resolved.');return;}
+  const s=active;if(s?.titleEntry){notify('Finish or cancel the current title entry first.');return;}if(!writable(s)){notify('This note is read only until the notice above is resolved.');return;}
   const message=s.messages.find(m=>m.id===id);if(!message)return;
   const stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
-  const restored=stashed?.id===id&&stashed.original===message.text?stashed:null;
-  const original=message.text,parts=MosaicModel.split(restored?.text??original);
-  const d=openModal('edit','Edit card');Object.assign(d,{id,original,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
+  const restored=stashed?.id===id&&stashed.original===message.text&&(stashed.originalTitle??imFormat.title(message))===imFormat.title(message)?stashed:null;
+  const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
+  const d=openModal('edit','Edit card');Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
   if(stashed&&!restored){
     d.root.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
     const earlier=el('textarea','transfer-text');earlier.readOnly=true;earlier.value=stashed.text;earlier.setAttribute('aria-label','Earlier unfinished edit');d.root.append(earlier);
   }
-  const title=el('input','editor-title');title.type='text';title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=parts.title;title.enterKeyHint='enter';
-  const body=el('textarea','editor-body');body.placeholder='Text';body.setAttribute('aria-label','Card body');body.value=parts.body;body.enterKeyHint='enter';d.body=body;
+  const title=el('textarea','editor-title');title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
+  const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
+  const body=el('textarea','editor-body');body.placeholder='Text';body.setAttribute('aria-label','Card body');body.value=d.currentText;body.enterKeyHint='enter';d.body=body;
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
-  d.root.append(title,pin,body);
+  d.root.append(titlePreview,title,pin,body);
+  d.unlockTitle=()=>{d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';hideMenu();title.focus();};
   d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;};
   d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');d.root.append(d.meta);
   const footer=el('div','card-detail-tools');
@@ -617,14 +633,9 @@ function editorDialog(id=null) {
   const more=button('Card options','more',event=>cardMenu(s.messages.find(m=>m.id===id),event),'icon-button detail-more');
   const close=button('Close',null,()=>safeRun(()=>saveEditor(true)),'detail-close');d.submit=close;
   footer.append(palette,more,close);d.root.append(footer);
-  const change=()=>{d.fieldRevision++;d.currentText=MosaicModel.join(original,title.value,body.value);};
+  const change=()=>{d.fieldRevision++;d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}};
   title.addEventListener('input',change);body.addEventListener('input',change);
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
-  title.addEventListener('keydown',event=>{
-    if(event.key!=='Enter'||event.isComposing||event.keyCode===229)return;
-    event.preventDefault();const suffix=title.value.slice(title.selectionEnd);title.value=title.value.slice(0,title.selectionStart);
-    body.value=suffix+(body.value?'\n'+body.value:'');change();body.focus();body.setSelectionRange(0,0);
-  });
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
   d.commit=saveEditor;
   async function saveEditor(closeAfter=true) {
@@ -632,21 +643,21 @@ function editorDialog(id=null) {
     if(!writable(s)){dialogError(d,'Saving is paused. Your edit is still here; review the saved version before continuing.');return false;}
     d.wantClose=d.wantClose||closeAfter;
     if(d.sending){try{await persist(s);return !d.sending;}catch{return false;}}
-    const submitted=d.currentText,submittedTags=[...d.tags],revision=d.fieldRevision;
-    const source=s.messages.find(m=>m.id===id);if(!source||source.text!==d.original){dialogError(d,'This card changed since you opened it. Your text is still here; copy it before reopening the card.');return false;}
-    const edited={...imFormat.editMessage(source,submitted),reactions:submittedTags};
-    if(submitted===source.text&&JSON.stringify(edited.reactions)===JSON.stringify(source.reactions)){
+    const submitted=d.currentText,submittedTitle=d.titleValue,submittedTags=[...d.tags],revision=d.fieldRevision;
+    const source=s.messages.find(m=>m.id===id);if(!source||source.text!==d.original||imFormat.title(source)!==d.originalTitle){dialogError(d,'This card changed since you opened it. Your text is still here; copy it before reopening the card.');return false;}
+    const edited=imFormat.withTitle({...imFormat.editMessage(source,submitted),reactions:submittedTags},submittedTitle);
+    if(submitted===source.text&&imFormat.title(edited)===imFormat.title(source)&&JSON.stringify(edited.reactions)===JSON.stringify(source.reactions)){
       if(restored)unfinishedEdits.delete(editKey(s.note.uuid,id));if(d.wantClose)closeModal(true);return true;
     }
     const tagOrder=[...new Set([...(s.settings.reactionOrder||MosaicModel.tags(s.messages,s.settings)),...d.tags])];
     d.sending=true;d.busy=true;close.disabled=true;close.textContent='Saving…';
     const saving=update(s,{messages:s.messages.map(m=>m.id===id?edited:m),settings:{...s.settings,reactionOrder:tagOrder,deletedEmojis:(s.settings.deletedEmojis||[]).filter(tag=>!d.tags.has(tag))}});
     s.intents.add({revision:s.revision,finish:()=>{
-      const stored=unfinishedEdits.get(editKey(s.note.uuid,id));if(stored?.text===submitted&&JSON.stringify(stored.tags)===JSON.stringify(submittedTags))unfinishedEdits.delete(editKey(s.note.uuid,id));
+      const stored=unfinishedEdits.get(editKey(s.note.uuid,id));if(stored?.text===submitted&&(stored.title??originalTitle)===submittedTitle&&JSON.stringify(stored.tags)===JSON.stringify(submittedTags))unfinishedEdits.delete(editKey(s.note.uuid,id));
       if(modalState!==d)return;
       d.sending=false;d.busy=false;close.disabled=false;close.textContent='Close';close.setAttribute('aria-label','Close');
       if(d.error){d.error.remove();d.error=null;}
-      d.original=submitted;d.originalTags=submittedTags;
+      d.original=submitted;d.originalTitle=submittedTitle.trim()?submittedTitle:'';d.originalTags=submittedTags;
       if(d.wantClose&&d.fieldRevision===revision){closeModal(true);notify('Card updated.');}
       else{d.wantClose=false;refreshEditorMetadata();}
     }});
@@ -660,7 +671,7 @@ function editorDialog(id=null) {
 function editCard(id){editorDialog(id);}
 function readCard(id) {
   const s=active,message=s?.messages.find(m=>m.id===id);if(!message)return;
-  const d=openModal('read','Card'),parts=MosaicModel.split(message.text);
+  const d=openModal('read','Card'),parts=MosaicModel.preview(message);
   if(message.replyTo){const quote=button('Show quoted card',null,()=>{closeModal();jumpTo(message.replyTo);},'reply-preview');quote.textContent=message.replyTo.text||'Quoted message';d.root.append(quote);}
   d.root.append(el('h3','reader-title',parts.title),el('div','reader-body',parts.body),el('p','reader-meta',metaText(message)));
   const tags=el('div','reader-tags');for(const tag of message.reactions)tags.append(el('span','card-tag',tag));d.root.append(tags);
@@ -767,7 +778,7 @@ function statusDialog(ids) {
 }
 function mergeDialog() {
   const s=active,ids=new Set(s.view.selected),records=s.messages.filter(m=>ids.has(m.id));if(records.length<2){notify('Select at least two cards to merge.');return;}
-  const preview=records.map(m=>m.text).join('\n\n'),snapshot=JSON.stringify(records);
+  const preview=imFormat.mergeText(records),snapshot=JSON.stringify(records);
   const d=confirmAction(`Merge ${records.length} cards?`,'Text will stay in its original IM order, separated by a blank line. Tags and pins are combined. Copied and Exported reset.','Merge selected',async()=>{
     if(JSON.stringify(s.messages.filter(m=>ids.has(m.id)))!==snapshot)throw new Error('These cards changed. Open a fresh merge preview.');
     const result=MosaicModel.merge(s.messages,s.settings,ids,s.note.uuid);s.view.selected=new Set([result.id]);rememberSelection();await update(s,result);
@@ -777,13 +788,15 @@ function mergeDialog() {
 function recoveryDialog(s) {
   const d=openModal('recovery','Review your text');d.root.append(el('p','dialog-help','Copy this text somewhere safe before closing the editor. Mosaic will not automatically overwrite a different saved version.'));
   const field=el('textarea','transfer-text');field.readOnly=true;field.value=s.note.content.text||'';field.setAttribute('aria-label','Current local note text');d.root.append(field);
+  if(s.titleEntry){const title=el('textarea','transfer-text');title.readOnly=true;title.value=s.titleEntry.text;title.setAttribute('aria-label','Unfinished title');d.root.append(title);}
+  for(const entry of unfinishedEdits.values())if(entry.noteId===s.note.uuid){const edit=el('textarea','transfer-text');edit.readOnly=true;edit.value=(entry.title?'title: '+JSON.stringify(entry.title)+'\n\n':'')+entry.text;edit.setAttribute('aria-label','Unfinished card edit');d.root.append(edit);}
   actions(d,[button('Close',null,()=>closeModal(),'secondary-button'),button('Copy local text',null,async()=>{if(await imWriteClipboard(field.value))notify('Local text copied.');else{field.focus();field.select();dialogError(d,'Automatic copying was blocked. Copy the selected text manually.');}},'primary-button')]);
   if(s.remote){d.root.append(el('p','dialog-help','Standard Notes also supplied this saved version:'));const remote=el('textarea','transfer-text');remote.value=s.remote.content?.text||'';remote.readOnly=true;remote.setAttribute('aria-label','Standard Notes version');d.root.append(remote);
     actions(d,[button('Use Standard Notes version',null,()=>confirmAction('Use the saved version?','Copy your local text first. This discards the unconfirmed local changes shown above.','Use saved version',()=>receive(s.remote,true),true),'secondary-button danger')]);}
 }
 function aboutDialog() {
   const d=openModal('about','Mosaic · '+MOSAIC_VERSION);
-  d.root.append(el('p','about-copy','Each card is the same message your IM-style editor reads: first line as the title, everything below as the body. There is no separate copy of your notes.'));
+  d.root.append(el('p','about-copy','Each card is the same message your IM-style editor reads. All text is body text unless you explicitly add a title from its context menu. There is no separate copy of your notes.'));
   d.root.append(el('p','about-copy','Your note content is saved through Standard Notes. Mosaic has no analytics, independent cloud service, or browser-storage copy. Saving still submits a complete note; very large active notes can reach Standard Notes’ sync limits.'));
   d.root.append(el('p','about-copy','New-card drafts save as you type. Click a card to edit. Enter adds a line; Close saves. Use Close before switching editors. Unfinished edits remain available while this editor stays open.'));
   const p=el('p','about-copy'),a=el('a','','Source, installation & privacy details');a.href='https://github.com/joshuazang/IM-style-editor/tree/main/mosaic';a.target='_blank';a.rel='noopener noreferrer';p.append(a);d.root.append(p);
@@ -824,7 +837,7 @@ $('capture-input').addEventListener('compositionend',()=>{
   // The final input event may follow compositionend in the same browser task.
   setTimeout(()=>{
     if(active!==s)return;
-    if($('capture-input').value!==MosaicModel.normalized(s.captureValue))inputCapture();
+    if($('capture-input').value!==MosaicModel.normalized(s.titleEntry?.text??s.captureValue))inputCapture();
     const request=s.submitAfterComposition;s.submitAfterComposition=null;
     if(request)safeRun(()=>submitCapture(s,request.tag));
   },0);
@@ -832,15 +845,16 @@ $('capture-input').addEventListener('compositionend',()=>{
 bindSubmitField($('capture-input'),()=>safeRun(()=>submitCapture()),{composing:()=>!!active?.composing});
 let outsideCapture=null;
 document.addEventListener('pointerdown',event=>{
-  outsideCapture=document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice')?{session:active,tag:active?.view.tag,x:event.clientX,y:event.clientY}:null;
+  outsideCapture=!active?.titleEntry&&document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu')?{session:active,tag:active?.view.tag,x:event.clientX,y:event.clientY}:null;
 },true);
 document.addEventListener('pointercancel',()=>outsideCapture=null,true);
 document.addEventListener('pointermove',event=>{if(outsideCapture&&Math.hypot(event.clientX-outsideCapture.x,event.clientY-outsideCapture.y)>9)outsideCapture=null;},true);
 document.addEventListener('pointerup',()=>{const pending=outsideCapture;setTimeout(()=>{if(outsideCapture===pending)outsideCapture=null;},700);},true);
 document.addEventListener('click',event=>{
   const pending=outsideCapture;outsideCapture=null;
+  if(active?.titleEntry||!menu.hidden||modal.open)return;
   if(pending?.session===active)safeRun(()=>submitCapture(pending.session,pending.tag));
-  else if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice'))safeRun(()=>submitCapture());
+  else if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu'))safeRun(()=>submitCapture());
 },true);
 $('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;searchOpen=false;renderAll();}});
 $('search').addEventListener('input',event=>{if(active){active.view.query=event.target.value;viewport.scrollTop=0;renderAll();}});
@@ -863,6 +877,7 @@ document.addEventListener('keydown',event=>{
     event.preventDefault();searchOpen=true;hideMenu();renderSearchControls();$('search').focus();$('search').select();return;
   }
   if(event.key==='Escape'){
+    if(active?.titleEntry&&menu.hidden&&!modal.open){event.preventDefault();active.titleEntry=null;renderCapture();return;}
     if(!menu.hidden){event.preventDefault();hideMenu();return;}
     if(modal.open)return;
     if(searchOpen){event.preventDefault();searchOpen=false;renderSearchControls();return;}

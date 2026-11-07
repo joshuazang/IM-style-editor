@@ -52,8 +52,8 @@ const MosaicModel = (() => {
   const isImported = message => !!message.forwarding && !message.importedStatusCleared;
   function prepare(message,previous){
     if(prepared.has(message))return prepared.get(message);
-    const sameText=previous?.message.text===message.text;
-    const value={message,search:sameText?previous.search:message.text.toLocaleLowerCase(),parts:sameText?previous.parts:split(message.text),tags:previous?.message.reactions===message.reactions?previous.tags:new Set(message.reactions)};
+    const sameText=previous?.message.text===message.text&&imFormat.title(previous.message)===imFormat.title(message);
+    const value={message,search:sameText?previous.search:(imFormat.title(message)?imFormat.title(message)+'\n'+message.text:message.text).toLocaleLowerCase(),parts:sameText?previous.parts:{title:imFormat.title(message),body:message.text},tags:previous?.message.reactions===message.reactions?previous.tags:new Set(message.reactions)};
     prepared.set(message,value);return value;
   }
   function index(messages){
@@ -101,7 +101,7 @@ const MosaicModel = (() => {
   function merge(messages, settings, ids, noteId) {
     const sources=messages.filter(m=>ids.has(m.id));
     if(sources.length<2)throw new Error('Select at least two cards.');
-    const first=sources[0],combined={...first,text:sources.map(m=>m.text).join('\n\n'),reactions:[...new Set(sources.flatMap(m=>m.reactions))],edited:true};
+    const first=sources[0],combined={...first,text:imFormat.mergeText(sources),reactions:[...new Set(sources.flatMap(m=>m.reactions))],edited:true};
     delete combined.copied;delete combined.exported;delete combined.editedAt;
     const origins=new Map();
     for(const m of sources){
@@ -139,8 +139,8 @@ const MosaicModel = (() => {
     if(actual?.key===key)return actual.height;
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
-    const parts=preview(message),titleLines=previewLines(parts.title,Math.max(5,columns-(pinned?4:0)),3),bodyLines=parts.body?previewLines(parts.body,columns,7):0;
-    const height=(compact?52:58)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines?8:0)+(message.reactions.length?34:0)+(message.replyTo?36:0);
+    const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,3):0,bodyLines=parts.body?previewLines(parts.body,columns,7):0;
+    const height=(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.reactions.length?34:0)+(message.replyTo?36:0);
     heights.set(message,{key,height});return height;
   }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {

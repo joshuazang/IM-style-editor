@@ -98,4 +98,9 @@ RAM. The shared save indicator schedules visual updates only: no save delay,
 new browser storage, preference copy or network request is introduced. Tag
 management uses the existing acknowledged note queue and preserves message text.
 
-See [release validation](release-4.1.12-mosaic-1.0.8.md) for current checks and limits.
+Optional titles are escaped text in the same note. Title entry uses the existing
+acknowledged queue and RAM-only unfinished-edit protection, without a separate
+browser/prefs title store. Title fields and display use text values/nodes;
+HTML-looking titles are never evaluated. Older readers reject the new field.
+
+See [release validation](release-4.2.0-mosaic-1.1.0.md) for current checks and limits.

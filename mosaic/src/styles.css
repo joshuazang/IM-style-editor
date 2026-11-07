@@ -336,3 +336,15 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .tag-add-form{display:flex;gap:8px;margin-top:16px}.tag-add-form input{flex:1;width:100px}
 .tag-add-form input,.tag-replace-form input{border:1px solid var(--line);border-radius:10px;background:var(--surface);min-height:44px;padding:8px;font-size:16px}
 .tag-replace-form label{display:flex;align-items:center;gap:12px;margin-bottom:16px}.tag-replace-form input{width:90px}
+/* Body-first previews fit their content; controls remain in opened cards only. */
+.card .card-title{margin:0;white-space:pre-wrap}
+.card .card-body{margin:0}
+.card .card-title+.card-body,.card .card-title+.card-reply,.card .card-reply+.card-body{margin-top:8px}
+.card .card-tags{margin:8px 0 0;padding:0;min-height:0}
+.card.is-pinned .card-title{margin-right:0}
+.selection-mode .card-title,.selection-mode .card:not(:has(.card-title))>.card-body{margin-left:23px}
+.selection-mode .card{min-height:44px}
+.card-edit-dialog .detail-title{white-space:pre-wrap;font-size:var(--type-edit-title,26px);line-height:1.45;font-weight:650;margin:8px 46px 8px 0;overflow-wrap:anywhere;flex:none}
+.card-edit-dialog .editor-title{resize:none;line-height:1.45;min-height:48px;max-height:35dvh;overflow:auto;flex:none}
+.card-edit-dialog .editor-body{padding-right:32px}
+.card-edit-dialog:has(.detail-title:not([hidden]),.editor-title:not([hidden])) .editor-body{padding-right:0}

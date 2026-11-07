@@ -71,3 +71,18 @@ Editor 4.0.4 adds one silent timer shared across notes in the new editor. Only 5
 Expiry disables the composer and Send button and opens a blocking, silent dialog. Esc cancels. Keys 2/3/4 only focus short extension/long extension/restart; Enter activates the focused choice. Pointer taps activate directly. Short and long extensions are 20% and 60% of the original duration: +1/+3 minutes for 5 minutes, +5/+15 for 25 minutes. Restart always repeats the original preset. The draft and caret are retained, selection mode is preserved, and focus returns after a choice. No audio, haptics, notification permissions, browser storage or independent network calls are used.
 
 In 4.0.5, one-second countdown updates stay inside the timer badge. The main editor responds to timer actions, errors and expiry rather than every tick. A deadline callback, visibility/focus checks and the expired-input guard retain interruption behavior; the badge also detects forward clock changes. No extra preference saves occur on ticks.
+
+## Optional titles (IM 4.2.0 / Mosaic 1.1.0)
+
+A bubble may have one `title: "quoted string"` metadata line before
+`@@IM:CONTENT`. It uses JSON string escaping: newlines are written as `\n`,
+quotes as `\"`, and backslashes as `\\`. Both editors decode these into literal
+text. No HTML or Markdown evaluation occurs. Body text is unaffected, including
+its first line and any literal `title:` lines. Missing titles add no bytes.
+The writer omits titles removed through the UI. Malformed/unquoted/non-string
+or duplicate title fields are rejected without overwriting the source note.
+Existing IDs, timestamps, settings, drafts and body framing are unchanged.
+
+This optional field extends format 3. Earlier readers reject it as unknown
+metadata; update both modern editors before using titles. Untitled notes remain
+readable by earlier format-3 releases. Archive format 2 is unchanged.

@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.1.12](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.0.8](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.2.0](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.1.0](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -134,3 +134,15 @@ Untagged remains movable and defaults to last. Message text stays intact.
 Board scrolling uses indexed columns, while search text and tag totals reuse
 RAM-only prepared data. Actual saves still submit the full note. See
 [release validation](docs/release-4.1.12-mosaic-1.0.8.md).
+
+IM 4.2.0 / Mosaic 1.1.0 make titles explicit and optional. All existing message
+text, including its first line, is body text. Add/Edit title in the context menu
+opens a target preview in either bottom composer; Enter saves and Shift+Enter
+adds a title line. In an opened Mosaic card, the same menu action unlocks a
+multiline field above the body; Close saves it. Unused titles add no saved data.
+Titles use a direct quoted `title:` field with escaped line breaks. Update both
+plugins before using titles: older releases reject that new metadata field.
+Title-only changes preserve body text/status, IDs, timestamps and capture drafts.
+Failed saves remain retryable, and late acknowledgments preserve newer entry.
+Mosaic board previews remove their pin/More buttons and unused footer space;
+opened cards retain those controls. See [validation and compatibility](docs/release-4.2.0-mosaic-1.1.0.md).

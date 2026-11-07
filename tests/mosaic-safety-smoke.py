@@ -81,16 +81,16 @@ try:
   for index in [2,3]:
     fill_search(e,'Thought '+str(index));e.locator('.card').click(button='right')
     e.get_by_role('menuitem',name='Edit',exact=True).click()
-    field=e.get_by_role('textbox',name='Card title',exact=True)
+    field=e.get_by_role('textbox',name='Card body',exact=True)
     assert field.evaluate('n=>n.spellcheck') is False
     field.fill('Unfinished card '+str(index));page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   for index in [3,2]:
     open_more(e);e.get_by_role('menuitem',name='Resume unfinished edit',exact=True).click()
-    expect(e.get_by_role('textbox',name='Card title',exact=True)).to_have_value('Unfinished card '+str(index))
+    expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_value('Unfinished card '+str(index))
     e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
   result=parse(page.evaluate('notes.a.content.text'))
-  assert result['messages'][2]['text'].startswith('Unfinished card 2\n') and result['messages'][3]['text'].startswith('Unfinished card 3\n')
+  assert result['messages'][2]['text']=='Unfinished card 2' and result['messages'][3]['text']=='Unfinished card 3'
   finish(context,errors,outside);print('PASS: multiple unfinished card edits remain separate across note switches',flush=True)
 
   # A late Copy or Export result rebases its status against the newest same-note item.

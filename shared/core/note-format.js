@@ -23,6 +23,7 @@ const imFormat = (() => {
       if (!object(message) || !validId(message.id) || ids.has(message.id) || typeof message.text !== 'string' ||
           !Array.isArray(message.reactions) || !message.reactions.every(tag => typeof tag === 'string') ||
           ('createdAt' in message && typeof message.createdAt !== 'string') ||
+          ('title' in message && typeof message.title !== 'string') ||
           ('separatorAfter' in message && typeof message.separatorAfter !== 'string')) throw new Error('Invalid or duplicate bubble metadata');
       if (Object.hasOwn(message,'replyTo')) validateReply(message.replyTo);
       ids.add(message.id);
@@ -55,7 +56,14 @@ const imFormat = (() => {
     const result={...normalizeMessage(message),text,edited:true};
     delete result.copied;delete result.exported;return result;
   };
-  const bubbleFields = { id: 'id', createdAt: 'created', edited: 'edited', copied:'copied', exported:'exported', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding', replyTo: 'reply-to' };
+  const title = message => typeof message?.title==='string'?message.title:'';
+  const withTitle = (message,value) => {
+    if(typeof value!=='string')throw new Error('Title must be text');
+    if(!value.trim()){if(!Object.hasOwn(message,'title'))return message;const next={...message};delete next.title;return next;}
+    return message.title===value?message:{...message,title:value};
+  };
+  const mergeText = messages => messages.map((message,index)=>index&&title(message)?title(message)+'\n'+message.text:message.text).join('\n\n');
+  const bubbleFields = { id: 'id', createdAt: 'created', title:'title', edited: 'edited', copied:'copied', exported:'exported', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding', replyTo: 'reply-to' };
   const settingsFields = { bubbleTheme: 'bubble-theme', backgroundTheme: 'background-theme', wallpaper: 'wallpaper', artwork: 'artwork', scale: 'scale', reactionOrder: 'reaction-order', deletedEmojis: 'deleted-emojis' };
   const valueText = value => typeof value === 'string' && /^[A-Za-z0-9_.:+-]+$/.test(value) && !/^(?:true|false|null|[-+]?\d)/.test(value) ? value : JSON.stringify(value);
   function fields(record, mapping, extrasName) {
@@ -65,6 +73,7 @@ const imFormat = (() => {
       const value = record[key];
       if(extrasName==='extra-metadata' && statuses.includes(key)){lines.push(label);continue;}
       if (extrasName === 'extra-metadata' && key === 'reactions' && value.length === 0) continue;
+      if (extrasName === 'extra-metadata' && key === 'title') {lines.push('title: '+JSON.stringify(value).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029'));continue;}
       lines.push(label + ': ' + (typeof value === 'string' && ['id','createdAt'].includes(key) && /^[A-Za-z0-9_.:+-]+$/.test(value) ? value : valueText(value)));
     }
     for (const [key, value] of Object.entries(record)) if (!Object.hasOwn(mapping, key) && !(extrasName === 'extra-metadata' && key === 'text')) extras[key] = value;
@@ -109,13 +118,14 @@ const imFormat = (() => {
       if (decoration(line)) continue;
       const status=extrasName==='extra-metadata' && /^(edited|copied|exported)(?::.*)?$/.exec(line);
       if(status){if(seen.has(status[1]))throw new Error('Duplicate status');seen.add(status[1]);record[status[1]]=true;continue;}
-      const match = /^([a-z][a-z-]*): (.*)$/.exec(line);
+      const match = /^([a-z][a-z-]*): ([\s\S]*)$/.exec(line);
       if (!match) throw new Error('Malformed metadata field or prose outside message text');
       if (!Object.hasOwn(inverse, match[1]) && match[1] !== extrasName) throw new Error('Unknown metadata field; use ' + extrasName);
       if (seen.has(match[1])) throw new Error('Duplicate metadata field');
       const [, label, raw] = match;
       seen.add(label);
       let value;
+      if(label==='title'&&!raw.startsWith('"'))throw new Error('Title must be a quoted string');
       if (['id','created','edited'].includes(label) && !raw.startsWith('"')) value = raw;
       else if (/^[A-Za-z][A-Za-z0-9_.+-]*$/.test(raw) && !['true','false','null'].includes(raw)) value = raw;
       else value = JSON.parse(raw);
@@ -271,5 +281,5 @@ const imFormat = (() => {
   }
   const recover=()=>null;
   const restore=()=>{throw new Error('Damaged format 3 records require manual repair');};
-  return {validateReply,readReply,normalizeMessage,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readSettings,isCurrent,write,recover,restore};
+  return {validateReply,title,withTitle,mergeText,readReply,normalizeMessage,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readSettings,isCurrent,write,recover,restore};
 })();

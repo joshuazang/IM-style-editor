@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.8](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.8.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.0](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.0.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -17,12 +17,23 @@ import them into a new format-3 note; keep the source until checked.
 
 ## Interface
 
-Each message becomes a card: the first line is its title and the remaining lines
-its body. They remain one saved text string. Viewing a note does not rewrite it.
+Each message becomes a card. All its text is body text, including the first line.
+A title appears only after Add title is explicitly chosen. Titles are optional
+message metadata in the same plain-text note. Viewing a note does not rewrite it.
 Pins appear first, then newer cards. Board order does not rearrange the IM timeline.
 This is the current note's board, rather than an account-wide dashboard.
 
 - Responsive masonry with two columns on phones and only nearby previews mounted.
+- Board previews have no pin/More buttons or empty footer rows. Their actions
+  remain in right-click/long-press menus. Font sizes and line spacing are retained;
+  blank lines in message text stay intact. Opened cards keep Pin and More.
+- Add/Edit title from the context menu opens a target preview in the bottom
+  composer. Enter saves and Shift+Enter adds a line. Cancel restores the capture
+  draft. Starting another title cannot overwrite unfinished title entry.
+- An opened card initially has no editable title field. Add/Edit title from its
+  context menu unlocks it above the body. Enter adds lines and Close saves.
+  An existing title otherwise displays as a heading; untitled cards have no
+  placeholder or reserved title space.
 - Top-right Search/tags and More controls matching IM; search, untagged filtering,
   pins and selection. Filtering replaces the controls with a change/clear pill.
   These frosted controls float above the board; the surrounding strip is
@@ -163,3 +174,18 @@ python3 tools/check-editors.py
 
 See [shared maintenance](../docs/shared-editors.md) and [NOTICE.md](NOTICE.md).
 Browser-sized tests do not substitute for physical iOS/macOS Standard Notes tests.
+
+## Optional title compatibility and preservation
+
+Titles require IM 4.2.0 / Mosaic 1.1.0 or later in both views. Older releases
+reject the direct `title:` metadata field and may report a titled note as invalid.
+Untitled format-3 notes remain unchanged. Titles use quoted strings with escaped
+newlines; literal body text beginning with `title:` remains body text.
+
+Title entry preserves the capture draft and reply. Failed title saves retain
+entry for Retry; late acknowledgments cannot clear newer typing. Unsubmitted
+titles and unfinished card edits stay in RAM across same-frame note switches;
+closing the frame/app can discard unconfirmed work. Conflict review exposes
+unfinished text. Title-only changes do not mark the body Edited. Search includes
+titles, Export/Import preserves them, and Merge keeps the first title while
+including later titles in the combined body so their words remain visible.

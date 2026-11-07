@@ -6,6 +6,7 @@
 .board-search-panel .tag-chip,.editor-shell .search-tags-panel .chip{min-height:44px;height:44px;min-width:44px}
 .editor-shell .tag-control span button{min-width:44px;min-height:44px}
 .ui-selection-action{position:relative}
+.editor-shell .message-title{font:inherit;font-weight:700;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:6px}
 input:focus-visible,textarea:focus-visible{outline:2px solid currentColor!important;outline-offset:-2px}
 .dialog-heading .icon-button{width:44px;height:44px}
 .board-search-panel input::placeholder{color:var(--muted);opacity:1}

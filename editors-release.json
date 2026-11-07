@@ -1,9 +1,9 @@
 {
   "format": 3,
-  "im_version": "4.1.12",
-  "mosaic_version": "1.0.8",
-  "shared_core_sha256": "2faacb5cb56cd5d09db974d60b435c50b96d903e59cbd498532a921ee3c8f5b6",
-  "shared_ui_sha256": "b373e4b4415a50a6b347d4bff16c5857ee08865e13043bcd5415ba7d0a0864dc",
+  "im_version": "4.2.0",
+  "mosaic_version": "1.1.0",
+  "shared_core_sha256": "2f9b64fc8545947e787c71babafb2dabece1ce38db99b4ab1a8be2141928ea19",
+  "shared_ui_sha256": "08b57605145514fd199916e9a09ff18dab50fbc5937087417baa2c0fc9f5eb74",
   "im_manifest": "im-style-editor-next.ext.json",
   "mosaic_manifest": "mosaic.ext.json"
 }

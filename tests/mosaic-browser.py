@@ -70,7 +70,7 @@ readText:async()=>window.__incomingClipboard||''}});
         fill_search(e,'A title')
         e.locator('[data-id="'+small['messages'][0]['id']+'"]').click()
         pass
-        expect(e.get_by_role('textbox',name='Card title',exact=True)).to_have_value('  A title  ')
+        expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_value(small['messages'][0]['text'].replace('\r\n','\n'))
         e.get_by_role('button',name='Close',exact=True).click()
         expect(e.locator('dialog')).not_to_be_visible()
         assert page.evaluate('saves.length')==0
@@ -132,7 +132,7 @@ readText:async()=>window.__incomingClipboard||''}});
     rendered=e.locator('.card').count();dom=e.locator('*').count();assert rendered<80 and dom<1600,(rendered,dom)
     e.locator('#viewport').evaluate('node=>node.scrollTop=node.scrollHeight/2');page.wait_for_timeout(100);assert e.locator('.card').count()<80
     fill_search(e,'Thought 4999');expect(e.locator('.card')).to_have_count(1)
-    e.locator('.card').click();e.get_by_role('textbox',name='Card title',exact=True).fill('Changed from Mosaic')
+    e.locator('.card').click();e.get_by_role('textbox',name='Card body',exact=True).fill('Changed from Mosaic\nNew body')
     e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     shared=parse(page.evaluate('notes.a.content.text'));assert shared['messages'][-1]['text'].startswith('Changed from Mosaic\n')
     assert shared['draft']==large['draft'] and shared['settings']['extra']=={'keep':True}
@@ -170,7 +170,7 @@ readText:async()=>window.__incomingClipboard||''}});
     # A plain note is never converted merely by viewing; markup is rendered literally.
     hostile='<img src="https://example.invalid/leak" onerror="window.pwned=1">\n<script>window.pwned=1</script>'
     page.evaluate('(text)=>{notes.hostile={uuid:"hostile",content_type:"Note",content:{text}};switchNote("hostile")}',hostile)
-    expect(e.locator('.card-title')).to_contain_text('<img')
+    expect(e.locator('.card-body')).to_contain_text('<img')
     assert e.locator('img').count()==0 and frame(page).evaluate('window.pwned') is None
     assert page.evaluate('notes.hostile.content.text')==hostile
     assert not errors,errors;assert not external,external

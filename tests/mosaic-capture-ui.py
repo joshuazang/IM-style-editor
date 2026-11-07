@@ -32,7 +32,7 @@ try:
     assert len(positions)==2,positions
    assert e.locator('body').evaluate('n=>n.scrollWidth<=innerWidth')
    page.wait_for_timeout(100)
-   clipped=e.locator('.card').evaluate_all('nodes=>nodes.filter(n=>n.querySelector(".card-tools").getBoundingClientRect().bottom>n.getBoundingClientRect().bottom-2).map(n=>n.dataset.id)')
+   clipped=e.locator('.card').evaluate_all('nodes=>nodes.filter(n=>n.lastElementChild.getBoundingClientRect().bottom>n.getBoundingClientRect().bottom-2).map(n=>n.dataset.id)')
    assert not clipped,clipped
    # Keep focus, send with Enter, reveal the new card even while reading farther down.
    e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight/2');field.fill('Sent from Enter')
@@ -60,17 +60,18 @@ try:
    page.wait_for_function('notes.a.content.text.includes("cardColor")');saved=parse(page.evaluate('notes.a.content.text'))
    source=saved['messages'][192];assert source['cardColor']=='iris' and source['text']==small['messages'][192]['text'] and not source.get('edited')
    assert card.evaluate('n=>getComputedStyle(n).color')=='rgb(255, 255, 255)'
-   card.get_by_role('button',name='Card options',exact=True).click()
+   card.click(button='right')
    assert e.get_by_role('button',name='Add label',exact=True).count()==0
    e.get_by_role('button',name='Tag 📍',exact=True).click();saved=parse(page.evaluate('notes.a.content.text'))
    assert saved['messages'][192]['reactions']==['📓','📍'] and saved['messages'][192]['cardColor']=='iris'
    assert saved['messages'][192]['text']==small['messages'][192]['text'] and not saved['messages'][192].get('edited')
    # An opened card uses multiline Enter and saves with Close.
    card.click(button='right');e.get_by_role('menuitem',name='Edit',exact=True).click()
+   e.locator('.detail-more').click();e.get_by_role('menuitem',name='Add title',exact=True).click()
    title=e.get_by_role('textbox',name='Card title',exact=True);body=e.get_by_role('textbox',name='Card body',exact=True)
-   title.fill('Changed title');title.press('End');title.press('Shift+Enter');expect(body).to_be_focused()
+   title.fill('Changed title');title.press('End');title.press('Shift+Enter');expect(title).to_have_value('Changed title\n');body.focus()
    body.fill('Body');body.press('Shift+Enter');body.type('New line');body.press('Enter');expect(body).to_have_value('Body\nNew line\n');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
-   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['text']=='Changed title\nBody\nNew line\n' and saved['messages'][192]['cardColor']=='iris'
+   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['text']=='Body\nNew line\n' and saved['messages'][192]['title']=='Changed title\n' and saved['messages'][192]['cardColor']=='iris'
    # Colors survive editor round trips, including writes performed by IM.
    page.evaluate('openEditor("a","/next/index.html")');im=page.frame_locator('#editor').get_by_role('textbox',name='Message',exact=True)
    im.fill('Draft from IM');page.wait_for_function('notes.a.content.text.includes("Draft from IM")');page.evaluate('openEditor("a")')
@@ -84,10 +85,9 @@ try:
    # Tapping a card tool still works when click-outside captures a draft first.
    fill_search(e,'Changed title');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
    e.locator('#capture-input').fill('Touch outside still sends')
-   if width<600:card.get_by_role('button',name='Card options',exact=True).tap()
-   else:card.get_by_role('button',name='Card options',exact=True).click()
+   card.click(button='right')
    expect(e.get_by_role('menuitem',name='Copy',exact=True)).to_be_visible();page.keyboard.press('Escape')
-   assert sum(m['text']=='Touch outside still sends' for m in parse(page.evaluate('notes.a.content.text'))['messages'])==1
+   assert parse(page.evaluate('notes.a.content.text'))['draft']=='Touch outside still sends'
    fill_search(e,'Changed title');card.click();e.locator('dialog').get_by_role('button',name='Background options',exact=True).click()
    e.get_by_role('group',name='Card background colors',exact=True).get_by_role('button',name='Default',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
    page.wait_for_function('!notes.a.content.text.includes("cardColor")')

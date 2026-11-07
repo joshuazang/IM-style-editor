@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
+const calls=[],pf={jsonObjectForItem:n=>({...n,parent:null,children:null}),sentMessages:[],postMessage:(action,data,callback)=>calls.push({action,data,callback})};
+const source=['note-format.js','host-bridge.js','note-storage.js'].map(n=>fs.readFileSync('shared/core/'+n,'utf8')).join('\n')+'\n'+fs.readFileSync('next/src/note-sessions.js','utf8');
+const {f,S}=vm.runInNewContext(source+';({f:imFormat,S:ImNoteSessions})',{pf,crypto,btoa,setTimeout,clearTimeout});
+const original={id:f.newId(),text:'Exact body\r\n',reactions:['💡'],copied:true,exported:true,custom:{keep:true}},base=f.portable([original],{},'Capture draft');
+const note=(uuid='a',text=base)=>({uuid,content_type:'Note',content:{text}}),tick=()=>new Promise(r=>setImmediate(r));
+(async()=>{
+ const sessions=new S(),a=sessions.receive(note());
+ sessions.rememberEdit(a,original.id,'Separate unfinished body edit');sessions.rememberTitle(a,original.id,'First title\nSecond line');sessions.submitTitle('a','First title\nSecond line');
+ f.write(a,[f.withTitle(original,'First title\nSecond line')],{});
+ const fail=sessions.persist(a);calls.at(-1).callback({error:'rejected'});await assert.rejects(fail);sessions.receive(note('b'));assert.equal(sessions.receive(note()),a);
+ assert.equal(sessions.titleFor('a').text,'First title\nSecond line');assert.equal(sessions.editFor('a').text,'Separate unfinished body edit');assert.equal(f.readDraft(a),'Capture draft');
+ const retry=sessions.persist(a);sessions.rememberTitle(a,original.id,'Newer title');calls.at(-1).callback({});await retry;assert.equal(sessions.titleFor('a').text,'Newer title');assert.equal(sessions.titleFor('a').original,'First title\nSecond line');
+ sessions.submitTitle('a','Newer title');f.write(a,[f.withTitle(f.readMessages(a)[0],'Newer title')],{});const success=sessions.persist(a);calls.at(-1).callback({});await success;assert.equal(sessions.titleFor('a'),undefined);assert.ok(sessions.editFor('a'));
+ assert.equal(f.readMessages(a)[0].edited,undefined);assert.equal(f.readMessages(a)[0].copied,true);assert.equal(f.readMessages(a)[0].text,original.text);
+ sessions.cancelEdit('a',original.id);sessions.rememberTitle(a,original.id,'Unsubmitted local title');
+ const remote=note('a',f.portable([{...original,title:'Incoming title'}],{},'Remote draft'));sessions.receive(remote);assert.equal(sessions.paused('a'),true);
+ const count=calls.length;await assert.rejects(sessions.persist(a));assert.equal(calls.length,count);assert.equal(sessions.titleFor('a').text,'Unsubmitted local title');
+ const chosen=sessions.resolve('a','local');assert.equal(f.readMessages(chosen)[0].title,'Unsubmitted local title');assert.equal(f.readDraft(chosen),'Capture draft');
+ const local=sessions.persist(chosen);calls.at(-1).callback({});await local;await tick();assert.equal(sessions.titleFor('a'),undefined);
+ sessions.receive(note('b'));assert.equal(sessions.retained.size,0);
+ console.log('PASS: failed multiline title retry/switch, preserved capture and separate body edit, newer typing after late ack, foreign-version pause, explicit local resolution and release of confirmed RAM sessions');
+})().catch(error=>{console.error(error);process.exitCode=1;});

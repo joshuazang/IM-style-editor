@@ -57,10 +57,7 @@ try:
    e.get_by_role('button',name='Clear all filters',exact=True).click()
    # Statuses remain in the record and opened card, and pins provide circular feedback.
    fill_search(e,'A title');card=e.locator('[data-id="'+data['messages'][0]['id']+'"]');card.hover()
-   if width>650:
-    pin=card.get_by_role('button',name='Pin card',exact=True);base=pin.evaluate('n=>getComputedStyle(n).backgroundColor');pin.hover()
-    assert pin.evaluate('n=>getComputedStyle(n).backgroundColor')!=base
-    assert pin.evaluate('n=>getComputedStyle(n).borderRadius')=='50%'
+   assert card.locator('.pin-card,.more-card,.card-tools').count()==0
    card.click();expect(e.locator('.card-detail-meta')).to_contain_text('Copied');expect(e.locator('.card-detail-meta')).to_contain_text('Exported');expect(e.locator('.card-detail-meta')).to_contain_text('edited')
    pin=e.locator('.detail-pin');e.get_by_role('textbox',name='Card body',exact=True).hover();base=pin.evaluate('n=>getComputedStyle(n).backgroundColor');pin.hover();assert pin.evaluate('n=>getComputedStyle(n).backgroundColor')!=base
    e.get_by_role('button',name='Close',exact=True).click();fill_search(e,'')
@@ -68,7 +65,7 @@ try:
    for scheme in ['light','dark']:
     page.emulate_media(color_scheme=scheme)
     for name in ['Sage','Paper','Sand']:
-     choose('Color palette',name);assert e.locator('.card-title').first.evaluate(contrast)>=4.5
+     choose('Color palette',name);assert e.locator('.card-body').first.evaluate(contrast)>=4.5
      assert e.locator('.card-body').first.evaluate(contrast)>=4.5
      if scheme=='dark':
       for control in ['#search-button','#more-button']:assert min(e.locator(control).evaluate(control_contrast))>=3,(name,control,e.locator(control).evaluate(control_contrast))

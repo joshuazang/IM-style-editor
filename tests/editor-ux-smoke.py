@@ -85,7 +85,7 @@ try:
    # Cmd/Ctrl+F uses whole-note search, while an open card keeps its normal editing keys.
    e.locator('.card').first.focus();page.keyboard.press('Control+f');search=e.locator('#search');expect(search).to_be_focused();search.fill('Short 0');page.keyboard.press('Escape')
    e.locator('.card').first.focus();page.keyboard.press('Meta+f');expect(search).to_be_focused();assert search.evaluate('n=>n.selectionStart===0&&n.selectionEnd===n.value.length')
-   search.fill('');search.press('Escape');e.locator('.card').first.click();title=e.get_by_role('textbox',name='Card title',exact=True);title.focus();page.keyboard.press('Control+f');expect(title).to_be_focused();e.get_by_role('button',name='Close',exact=True).click()
+   search.fill('');search.press('Escape');e.locator('.card').first.click();title=e.get_by_role('textbox',name='Card body',exact=True);title.focus();page.keyboard.press('Control+f');expect(title).to_be_focused();e.get_by_role('button',name='Close',exact=True).click()
    open_more(e);e.get_by_role('menuitem',name='Arrange tags',exact=True).click();dialog=e.get_by_role('dialog',name='Arrange tags',exact=True)
    assert dialog.locator('.tag-arrange-row').last.inner_text()=='Untagged'
    add=dialog.get_by_role('textbox',name='Add an emoji category',exact=True);before=page.evaluate('saves.length');add.fill('__untagged__');add.press('Enter');expect(dialog.locator('.dialog-error')).to_contain_text('Choose an emoji');assert page.evaluate('saves.length')==before

@@ -43,7 +43,7 @@ try:
    body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_focused()
    expect(e.locator('.card-timestamp')).to_have_text(re.compile('Nov'))
    expect(e.locator('.card-edited')).to_have_text('edited')
-   title=e.get_by_role('textbox',name='Card title',exact=True).bounding_box()
+   expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();title=body.bounding_box();title['height']=44
    top=dialog.locator('button:visible').evaluate_all('(nodes)=>nodes.filter(n=>n.getBoundingClientRect().top<'+str(title['y']+title['height'])+').map(n=>n.getAttribute("aria-label"))')
    assert top==['Pin card'],top
    before=page.evaluate('notes.a.content.text');body.fill('Changed body');body.press('End');body.press('Enter');body.type('Next line')
@@ -54,6 +54,7 @@ try:
    saved=parse(page.evaluate('notes.a.content.text'));first=saved['messages'][0]
    assert first['text'].endswith('New typing during acknowledgment') and first['edited'] and not first.get('copied') and not first.get('exported')
    assert first['createdAt']==data['messages'][0]['createdAt'] and 'editedAt' not in first
+   fill_search(e,'New typing during acknowledgment')
    # No-op Close never changes text or starts another save.
    before=page.evaluate('notes.a.content.text');count=page.evaluate('saves.length');card.click();e.get_by_role('button',name='Close',exact=True).click()
    assert page.evaluate('notes.a.content.text')==before and page.evaluate('saves.length')==count
@@ -62,7 +63,7 @@ try:
    e.get_by_role('button',name='Close',exact=True).click();page.set_viewport_size({'width':width,'height':844})
    fill_search(e,'Thought 2');card=e.locator('[data-id="'+data['messages'][2]['id']+'"]');card.click(button='right')
    menu=e.locator('#menu');expect(menu.locator('.ui-tag-panel')).to_be_visible();expect(menu.locator('.ui-action-panel')).to_be_visible()
-   assert menu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy','Select','Delete']
+   assert menu.get_by_role('menuitem').all_text_contents()==['Edit','Add title','Reply','Pin','Copy','Select','Delete']
    assert menu.get_by_role('button',name='Add label',exact=True).count()==0
    positions=menu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')
    assert len(set(point['x'] for point in positions))>1 and len(set(point['y'] for point in positions))<=2,positions
@@ -78,6 +79,7 @@ try:
    palette=e.get_by_role('group',name='Card background colors',exact=True);expect(palette).to_be_visible();palette.get_by_role('button',name='Rose',exact=True).click()
    expect(body).to_have_value('Edited with color and tags');e.get_by_role('button',name='Close',exact=True).click()
    saved=parse(page.evaluate('notes.a.content.text'))['messages'][2];assert saved['text'].endswith('Edited with color and tags') and saved['cardColor']=='rose' and saved['reactions']==['📍','📓']
+   fill_search(e,'Edited with color and tags')
    # Failed Close keeps the complete editor open for retry.
    card.click();body=e.get_by_role('textbox',name='Card body',exact=True);body.fill('Retain failed Close');page.evaluate('rejectSaves=true')
    e.get_by_role('button',name='Close',exact=True).click();expect(body).to_have_value('Retain failed Close');expect(dialog).to_be_visible()
@@ -91,7 +93,7 @@ try:
    page.evaluate('openEditor("a","/next/index.html",true)');im=page.frame_locator('#editor');expect(im.get_by_role('textbox',name='Message',exact=True)).to_be_visible()
    im.locator('.message-wrap').last.click(button='right');imenu=im.locator('.context-menu')
    expect(imenu.locator('.ui-tag-panel')).to_be_visible();expect(imenu.locator('.ui-action-panel')).to_be_visible()
-   assert imenu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy','Select','Delete']
+   assert imenu.get_by_role('menuitem').all_text_contents()==['Edit','Add title','Reply','Pin','Copy','Select','Delete']
    assert imenu.get_by_role('button',name='Add label',exact=True).count()==0
    positions=imenu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')
    assert len(set(point['x'] for point in positions))>1 and len(set(point['y'] for point in positions))<=2,positions

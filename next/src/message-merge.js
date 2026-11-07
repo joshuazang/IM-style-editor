@@ -2,7 +2,7 @@
 function imMergeSelected(messages,settings,selected,noteId){
   const sources=messages.filter(message=>selected.has(message.id));
   if(sources.length<2)throw new Error('Select at least two messages to merge.');
-  const first=sources[0],merged={...first,text:sources.map(message=>message.text).join('\n\n'),
+  const first=sources[0],merged={...first,text:imFormat.mergeText(sources),
     reactions:[...new Set(sources.flatMap(message=>message.reactions))],edited:true};
   delete merged.copied;delete merged.exported;delete merged.editedAt;
   const origins=new Map();
@@ -38,7 +38,7 @@ function imUseMessageMerge({noteRef,selected,save,select,notify}){
   dt.useEffect(()=>setDialog(null),[uuid]);
   return {dialog,close:()=>setDialog(null),open:()=>{
     const sources=imFormat.readMessages(noteRef.current).filter(message=>selected.has(message.id));
-    if(sources.length>1)setDialog({uuid,sources,text:sources.map(message=>message.text).join('\n\n')});
+    if(sources.length>1)setDialog({uuid,sources,text:imFormat.mergeText(sources)});
   },apply:async()=>{
     if(!dialog||noteRef.current?.uuid!==dialog.uuid)throw new Error('The active note changed.');
     const note=noteRef.current,messages=imFormat.readMessages(note),ids=new Set(dialog.sources.map(message=>message.id));
