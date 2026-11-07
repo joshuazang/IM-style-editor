@@ -593,6 +593,11 @@ function confirmAction(title,description,label,action,danger=false) {
   },danger?'secondary-button danger':'primary-button');
   const cancel=button('Cancel',null,()=>closeModal(),'secondary-button');actions(d,[cancel,confirm]);cancel.focus();return d;
 }
+function renderEditorTags(d){
+  if(!d.tagBadges)return;
+  d.tagBadges.replaceChildren();d.tagBadges.hidden=!d.tags.size;
+  for(const tag of d.tags){const badge=el('span','card-tag',tag);badge.setAttribute('role','listitem');d.tagBadges.append(badge);}
+}
 function refreshEditorMetadata() {
   const d=modalState,s=active;if(d?.kind!=='edit'||d.uuid!==s?.note.uuid||!d.meta)return;
   const message=s.messages.find(m=>m.id===d.id);if(!message)return;
@@ -606,6 +611,7 @@ function refreshEditorMetadata() {
     add(text,'card-timestamp');d.meta.querySelector('.card-timestamp').title=new Date(message.createdAt).toLocaleString();
   }
   if(message.edited)add('edited','card-edited');
+  renderEditorTags(d);
 }
 function editorDialog(id=null) {
   if(!id){$('capture-input').focus();return;}
@@ -626,7 +632,8 @@ function editorDialog(id=null) {
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
   d.root.append(titlePreview,title,pin,body);
   d.unlockTitle=()=>{d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';hideMenu();title.focus();};
-  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;};
+  d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');d.root.append(d.tagBadges);
+  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);};
   d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');d.root.append(d.meta);
   const footer=el('div','card-detail-tools');
   const palette=button('Background options','palette',event=>colorMenu(id,event));
