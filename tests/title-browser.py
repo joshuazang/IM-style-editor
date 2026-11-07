@@ -23,9 +23,17 @@ try:
     e=page.frame_locator('#editor');mosaic=path.startswith('/mosaic');capture=e.get_by_role('textbox',name='Take a note' if mosaic else 'Message',exact=True);expect(capture).to_be_visible()
     capture.fill('Capture draft that must survive\nSecond line');page.wait_for_function('notes.a.content.text.includes("Capture draft that must survive")')
     target=data['messages'][2]['id']
+    def search_im(query):
+     expect(e.locator('#append-text')).to_be_enabled()
+     search=e.get_by_role('textbox',name='Search messages',exact=True)
+     if not search.is_visible():
+      control=e.get_by_role('button',name='Search and tags',exact=True)
+      if not control.is_visible():control=e.get_by_role('button',name='Change filters',exact=True)
+      control.click()
+     search.fill(query);search.press('Escape')
     def row():
      if mosaic:e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight');return e.locator('[data-id="'+target+'"]')
-     e.locator('.messages').evaluate('n=>n.scrollTop=0');return e.locator('[data-message-id="'+target+'"]')
+     search_im('Thought 2');return e.locator('[data-message-id="'+target+'"]')
     def title_menu(name):
      row().click(button='right');e.get_by_role('menuitem',name=name,exact=True).click();return e.get_by_role('textbox',name='Title',exact=True)
     title=title_menu('Add title');expect(title).to_have_value('');expect(e.get_by_role('button',name='Cancel title entry',exact=True)).to_be_visible()
@@ -42,7 +50,7 @@ try:
     page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click();expect(capture).to_have_value(saved['draft'])
     saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][2]['title']=='Retry multiline\nKept after switching';assert saved['messages'][2]['text']==data['messages'][2]['text'];assert not saved['messages'][2].get('edited')
     other='/next/index.html' if mosaic else '/mosaic/index.html';page.evaluate('(path)=>openEditor("a",path,true)',other);e=page.frame_locator('#editor')
-    if mosaic:e.locator('.messages').evaluate('n=>n.scrollTop=0')
+    if mosaic:search_im('Retry multiline')
     else:fill_search(e,'Retry multiline')
     expect(e.locator('.message-title' if mosaic else '.card-title').filter(has_text='Retry multiline')).to_be_visible()
     assert not errors,errors;assert not outside,outside;assert e.locator('body').evaluate('()=>__writes.length')==0
