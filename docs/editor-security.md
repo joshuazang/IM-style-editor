@@ -67,6 +67,9 @@ clearing empties the current clipboard, not every historical clipboard copy.
 - Text fields request disabled spellchecking, autocomplete, autocorrection and
   writing suggestions. These are client hints; OS/keyboard writing tools or
   third-party services may ignore them. CSP does not govern those external tools.
+- Mosaic card colors resolve preset IDs to fixed local CSS colors; arbitrary
+  metadata cannot supply CSS or URLs. Labels are text in the existing reaction
+  array, rendered as text nodes. Neither feature introduces storage/network APIs.
 
 Neither the code review nor synthetic tests can establish that nobody or no
 machine can ever read a note. The renderer and trusted Standard Notes client

@@ -208,3 +208,42 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .board-content{padding:0 16px 24px}
 
 }
+/* Compact two-column phone cards, with dedicated tools below the content. */
+.card{padding:18px 18px 14px;color:var(--card-ink,var(--ink))}
+.card.selected{padding:17px 17px 13px}
+.card-title{margin:0;letter-spacing:-.2px}
+.card.is-pinned .card-title{margin-right:26px}
+.selection-mode .card-title{margin-left:23px}
+.card .card-body{margin-top:10px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 88%,transparent)}
+.card .card-meta{margin-top:10px;padding-top:0;min-height:12px;line-height:12px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 72%,transparent)}
+.card .card-tags{margin-top:10px;padding-top:0;min-height:24px}
+.card .card-reply{margin-top:8px;color:inherit;border-left-color:currentColor}
+.card>.pin-card{position:absolute;right:6px;top:6px;width:30px;height:30px;border-radius:9px;opacity:0;pointer-events:none;background:var(--card-color)}
+.card>.pin-card svg{width:18px;height:18px}
+.card:hover>.pin-card,.card:focus-within>.pin-card,.card.is-pinned>.pin-card{opacity:1;pointer-events:auto}
+.card-tools{display:flex;align-items:center;justify-content:space-between;flex:none;gap:6px;margin-top:auto;padding-top:4px}
+.card-tools .icon-button{width:38px;height:32px;border-radius:10px;color:inherit}
+.card-tools .icon-button svg{width:19px;height:19px}
+.card-tools .icon-button:hover{background:color-mix(in srgb,var(--card-ink,var(--ink)) 10%,transparent)}
+.card.is-compact{padding:12px 12px 10px}
+.card.is-compact.selected{padding:11px 11px 9px}
+.card.is-compact .card-title{font-size:16px;line-height:22px;font-weight:600}
+.card.is-compact .card-body{font-size:13px;line-height:20px}
+.card.is-compact .card-meta{font-size:9px;line-height:12px}
+.card.is-compact .card-reply{font-size:11px;padding:6px 7px}
+.card.is-compact .card-tag{font-size:14px;padding:2px 4px;line-height:20px}
+@media(hover:none){.card:not(.is-pinned)>.pin-card{display:none}}
+.color-menu{min-width:0;padding:12px}
+.color-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(40px,1fr));gap:7px;width:min(628px,calc(100vw - 50px))}
+.color-menu .color-swatch{position:relative;display:grid;place-items:center;width:100%;height:auto;aspect-ratio:1;min-height:40px;padding:0;border:2px solid transparent;border-radius:50%;background:var(--swatch);box-shadow:inset 0 0 0 1px #0000000a;color:var(--ink)}
+.color-menu .color-swatch:hover{background:var(--swatch);box-shadow:inset 0 0 0 2px #00000033}
+.color-menu .color-swatch[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:2px}
+.color-menu .color-swatch>svg:last-child:not(:first-child),.color-menu .color-swatch[aria-pressed=true]>svg:only-child{position:absolute;right:-5px;top:-5px;width:20px;height:20px;padding:3px;border-radius:50%;background:var(--accent);color:var(--surface);box-shadow:0 0 0 2px var(--surface)}
+.label-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;max-height:40dvh;overflow:auto;padding:3px}
+.label-option{display:flex;align-items:center;gap:12px;min-height:44px;overflow-wrap:anywhere;padding:8px;border-radius:10px;font-size:17px}
+.label-option:hover{background:var(--accent-soft)}
+.label-option input{width:19px;height:19px;flex:none;margin:0;accent-color:var(--accent)}
+.new-label{display:flex;align-items:center;gap:8px;margin-top:18px}
+.new-label>input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:16px}
+.new-label .secondary-button{flex:none}
+.menu{max-height:calc(100dvh - 20px);overflow-y:auto;overscroll-behavior:contain}

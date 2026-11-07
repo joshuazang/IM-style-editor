@@ -31,6 +31,24 @@ function notify(text) {
   toastTimer=setTimeout(()=>$('toast').hidden=true,5000);
 }
 function safeRun(action) {try{Promise.resolve(action()).catch(error=>notify(error.message||'The action could not be completed.'));}catch(error){notify(error.message);}}
+// iOS keyboards may issue beforeinput without a useful keydown. Shift+Enter
+// remains a native line break; neither path submits an IME confirmation key.
+function bindSubmitField(field,submit,{composing=()=>false,newline}={}) {
+  let allowLineBreak=false,ime=false;
+  const allowThisEvent=()=>{allowLineBreak=true;setTimeout(()=>allowLineBreak=false,0);};
+  field.addEventListener('compositionstart',()=>ime=true);
+  field.addEventListener('compositionend',()=>ime=false);
+  field.addEventListener('keydown',event=>{
+    if(event.key!=='Enter')return;
+    if(event.isComposing||event.keyCode===229||ime||composing()){allowThisEvent();return;}
+    if(event.shiftKey){allowThisEvent();if(newline){event.preventDefault();newline();}return;}
+    event.preventDefault();if(!event.repeat)submit();
+  });
+  field.addEventListener('beforeinput',event=>{
+    if(!['insertLineBreak','insertParagraph'].includes(event.inputType)||allowLineBreak||event.isComposing||ime||composing())return;
+    event.preventDefault();submit();
+  });
+}
 function newView(uuid) {
   const old=viewMemory.get(uuid);
   return old||{query:'',tag:'',pinned:false,selecting:false,selected:new Set(selectionPreferences[uuid]||[]),scroll:0};
@@ -180,9 +198,19 @@ function submitCapture(s=active,tag=s?.view.tag){
   const tags=tag&&tag!=='__untagged__'?[tag]:[];
   const message={id:imFormat.newId(),text,reactions:tags,createdAt:new Date().toISOString(),...(s.reply?{replyTo:s.reply}:{})};
   s.submission={id:message.id,text,revision};
+  s.locatedId=message.id;setTimeout(()=>{if(s.locatedId===message.id)s.locatedId=null;},2200);
+  // Reveal the card just captured, including when a search or pins-only view
+  // would otherwise hide it. Its active emoji filter still supplies the label.
+  if(s.view.query&&!text.toLocaleLowerCase().includes(s.view.query.toLocaleLowerCase())){s.view.query='';$('search').value='';}
+  s.view.pinned=false;
   let saving;
   try{saving=update(s,{messages:[...s.messages,message],draft:'',reply:null});}
   catch(error){s.submission=null;throw error;}
+  const placed=layout.items.find(item=>item.message.id===message.id);
+  if(placed){
+    viewport.scrollTo({top:Math.max(0,placed.y-10),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    scheduleWindow();requestAnimationFrame(()=>mounted.get(message.id)?.classList.add('located'));
+  }
   s.intents.add({revision:s.revision,finish:()=>{
     s.submission=null;
     if(s.captureRevision===revision){s.captureValue='';s.captureOriginal='';}
@@ -213,7 +241,7 @@ function renderAll() {
 }
 function rebuildLayout() {
   const anchor=findAnchor();
-  layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned):{items:[],headings:[],height:0,count:0};
+  layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned,active.view.selecting):{items:[],headings:[],height:0,count:0};
   board.style.height=layout.height+'px';board.replaceChildren();mounted.clear();
   for(const heading of layout.headings){const node=el('div','section-heading',heading.label);node.style.top=heading.y+'px';board.append(node);}
   const filtered=active&&(active.view.query||active.view.tag||active.view.pinned);
@@ -229,15 +257,35 @@ function findAnchor() {
 function scheduleWindow() {if(!frame)frame=requestAnimationFrame(()=>{frame=0;renderWindow();});}
 function renderWindow() {
   const top=viewport.getBoundingClientRect().top-board.getBoundingClientRect().top,low=top-550,high=top+viewport.clientHeight+550;
-  const visible=new Set();
+  const visible=new Set(),measurements=[];
   for(const item of layout.items){
     if(item.y+item.height<low||item.y>high)continue;
     visible.add(item.message.id);
     let node=mounted.get(item.message.id);
     if(!node){node=cardNode(item.message);mounted.set(item.message.id,node);board.append(node);}
-    Object.assign(node.style,{width:item.width+'px',height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});
+    node.classList.toggle('is-compact',item.width<230);
+    const geometry=item.width+':'+!!active?.view.selecting;
+    Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
+    if(node.dataset.geometry!==geometry){node.dataset.geometry=geometry;measurements.push({node,item});}
   }
   for(const [id,node] of mounted)if(!visible.has(id)){node.remove();mounted.delete(id);}
+  // Measure only newly mounted/resized previews, in one read batch. Reuse those
+  // real heights on future layouts rather than leaving guessed empty space.
+  let changed=false;const selecting=!!active?.view.selecting;
+  for(const {node,item} of measurements){
+    const height=Math.ceil(node.getBoundingClientRect().height);
+    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height);
+    if(measured&&height!==item.height)changed=true;
+  }
+  if(changed){
+    const anchor=findAnchor(),s=active;
+    layout=MosaicModel.layout(s.messages,s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting);
+    board.style.height=layout.height+'px';
+    for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
+    for(const item of layout.items){const node=mounted.get(item.message.id);if(node)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
+    if(anchor&&!s.locatedId){const next=layout.items.find(item=>item.message.id===anchor.id);if(next&&Math.abs(next.y-anchor.y)>.5)viewport.scrollTop+=next.y-anchor.y;}
+    scheduleWindow();
+  }
 }
 function metaText(message) {
   const bits=[];if(message.copied)bits.push('Copied');if(message.exported)bits.push('Exported');if(MosaicModel.isImported(message))bits.push('Imported');
@@ -247,16 +295,20 @@ function metaText(message) {
 function cardNode(message) {
   const s=active,parts=MosaicModel.split(message.text),pinned=MosaicModel.pins(s.settings).includes(message.id);
   const node=el('article','card'+(pinned?' is-pinned':'')+(s.view.selected.has(message.id)?' selected':''));
+  if(s.locatedId===message.id)node.classList.add('located');
+  const color=MosaicModel.color(message,dark.matches);node.style.setProperty('--card-color',color.background);node.style.setProperty('--card-ink',color.ink);
   node.dataset.id=message.id;node.setAttribute('role','listitem');node.tabIndex=0;node.setAttribute('aria-label',parts.title||parts.body.slice(0,70)||'Empty card');
   if(s.view.selecting){const check=el('span','selection-check');if(s.view.selected.has(message.id))check.append(mosaicIcon('check'));node.append(check);node.setAttribute('aria-label',(s.view.selected.has(message.id)?'Selected: ':'Select: ')+(parts.title||'Untitled card'));}
-  const actions=el('div','card-actions');
-  actions.append(button(pinned?'Unpin card':'Pin card','pin',()=>safeRun(()=>togglePin(s,message.id)),'icon-button pin-card'),
-    button('Card options','more',event=>cardMenu(message,event),'icon-button more-card'));
-  node.append(actions,el('h2','card-title'+(parts.title?'':' empty-title'),parts.title||'Untitled'));
+  node.append(button(pinned?'Unpin card':'Pin card','pin',()=>safeRun(()=>togglePin(s,message.id)),'icon-button pin-card'),
+    el('h2','card-title'+(parts.title?'':' empty-title'),parts.title||'Untitled'));
   if(message.replyTo)node.append(el('div','card-reply',message.replyTo.text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
   if(parts.body)node.append(el('p','card-body',parts.body));
   if(message.reactions.length){const tags=el('div','card-tags');for(const tag of message.reactions.slice(0,10))tags.append(el('span','card-tag',tag));node.append(tags);}
   const meta=el('div','card-meta');meta.append(el('span','meta-text',metaText(message)),el('span','meta-dot'));node.append(meta);
+  const tools=el('div','card-tools');tools.append(
+    button('Background options','palette',event=>colorMenu(message.id,event),'icon-button palette-card'),
+    button('Card options','more',event=>cardMenu(message,event),'icon-button more-card'));
+  node.append(tools);
   let longPressed=false;
   node.addEventListener('click',()=>{if(longPressed){longPressed=false;return;}if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):readCard(message.id);});
   node.addEventListener('keydown',event=>{if(event.target!==node)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
@@ -286,17 +338,64 @@ function togglePin(s,id) {
   return update(s,{settings:{...s.settings,pinnedMessageIds:next}});
 }
 function showMenu(items,event) {
-  hideMenu();menu.replaceChildren();
+  hideMenu();menu.replaceChildren();menu.className='menu';menu.setAttribute('role','menu');menu.removeAttribute('aria-label');
   for(const item of items){if(!item){menu.append(el('hr'));continue;}const [label,icon,action,danger]=item;const b=button(label,icon,()=>{hideMenu();safeRun(action);},danger?'danger':'');b.append(el('span','',label));b.setAttribute('role','menuitem');menu.append(b);}
+  placeMenu(event);
+}
+function placeMenu(event) {
   menu.hidden=false;
-  const x=event?.clientX??$('more-button').getBoundingClientRect().right,y=event?.clientY??$('more-button').getBoundingClientRect().bottom;
+  const anchor=(event?.currentTarget||$('more-button')).getBoundingClientRect();
+  const x=event?.clientX||anchor.right,y=event?.clientY||anchor.bottom;
   const rect=menu.getBoundingClientRect();menu.style.left=Math.max(10,Math.min(x-rect.width+20,innerWidth-rect.width-10))+'px';menu.style.top=Math.max(10,Math.min(y+7,innerHeight-rect.height-10))+'px';
   menu.querySelector('button')?.focus({preventScroll:true});
 }
 function hideMenu(){menu.hidden=true;}
+function colorMenu(id,event) {
+  const s=active,message=s?.messages.find(m=>m.id===id);if(!message||!writable(s))return;
+  hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Card background colors');
+  const grid=el('div','color-grid'),current=MosaicModel.color(message,dark.matches).id;
+  for(const preset of MosaicModel.colors){
+    const swatch=button(preset.name,preset.id==='default'?'noColor':null,()=>{
+      hideMenu();if(active!==s||!writable(s))return;
+      const source=s.messages.find(m=>m.id===id);if(!source||(preset.id==='default'?!Object.hasOwn(source,'cardColor'):source.cardColor===preset.id))return;
+      const next={...source};if(preset.id==='default')delete next.cardColor;else next.cardColor=preset.id;
+      safeRun(()=>update(s,{messages:s.messages.map(m=>m.id===id?next:m)}));
+    },'color-swatch');
+    swatch.setAttribute('aria-pressed',String(preset.id===current));
+    swatch.style.setProperty('--swatch',preset[dark.matches?'dark':'light']||'var(--surface)');
+    if(preset.id===current)swatch.append(mosaicIcon('check'));grid.append(swatch);
+  }
+  menu.append(grid);placeMenu(event);
+}
+function labelDialog(id) {
+  const s=active;if(!writable(s))return;
+  const message=s.messages.find(m=>m.id===id);if(!message)return;
+  const d=openModal('labels','Labels');
+  const options=el('div','label-options');d.root.append(options);
+  function changeLabel(tag,enabled){
+    if(active!==s||!writable(s))return;
+    const source=s.messages.find(m=>m.id===id);if(!source)return;
+    const reactions=enabled?[...new Set([...source.reactions,tag])]:source.reactions.filter(value=>value!==tag);
+    const settings={...s.settings,reactionOrder:[...new Set([...MosaicModel.tags(s.messages,s.settings),tag])],deletedEmojis:(s.settings.deletedEmojis||[]).filter(value=>value!==tag)};
+    safeRun(()=>update(s,{messages:s.messages.map(m=>m.id===id?{...m,reactions}:m),settings}));
+  }
+  function option(tag,checked){
+    const row=el('label','label-option'),check=el('input');check.type='checkbox';check.checked=checked;
+    check.addEventListener('change',()=>changeLabel(tag,check.checked));row.append(check,el('span','',tag));options.append(row);
+  }
+  for(const tag of new Set([...MosaicModel.tags(s.messages,s.settings),...message.reactions]))option(tag,message.reactions.includes(tag));
+  const create=el('form','new-label'),input=el('input');input.type='text';input.maxLength=32;input.placeholder='New label or emoji';input.setAttribute('aria-label','New label');
+  const add=button('Add label','plus',null,'secondary-button');add.type='submit';
+  create.append(input,add);create.addEventListener('submit',event=>{
+    event.preventDefault();const tag=input.value.trim();if(!tag)return;
+    const existing=[...options.querySelectorAll('label')].find(row=>row.textContent===tag);
+    if(existing)existing.querySelector('input').checked=true;else option(tag,true);
+    changeLabel(tag,true);input.value='';input.focus();
+  });d.root.append(create);actions(d,[button('Done',null,()=>closeModal(),'primary-button')]);
+}
 function cardMenu(message,event) {
   const s=active,pinned=MosaicModel.pins(s.settings).includes(message.id);
-  showMenu([['Edit','edit',()=>editCard(message.id)],['Reply','reply',()=>replyTo(message.id)],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
+  showMenu([['Edit','edit',()=>editCard(message.id)],['Add label','tag',()=>labelDialog(message.id)],['Reply','reply',()=>replyTo(message.id)],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
     ['Copy text','copy',()=>copyRecords(s,[message])],['Export','export',()=>exportRecords(s,[message])],['Select','select',()=>startSelection(message.id)],null,['Delete','trash',()=>deleteCards(s,new Set([message.id])),true]],event);
 }
 function mainMenu(event) {
@@ -358,7 +457,12 @@ function editorDialog(id=null) {
     d.fieldRevision++;d.currentText=MosaicModel.join(original,title.value,body.value);submit.disabled=!d.currentText.trim()||d.sending;
   };
   title.addEventListener('input',change);body.addEventListener('input',change);
-  d.root.addEventListener('keydown',event=>{if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)&&!event.isComposing){event.preventDefault();submit.click();}});
+  body.enterKeyHint='send';title.enterKeyHint='send';
+  bindSubmitField(body,()=>submit.click());
+  bindSubmitField(title,()=>submit.click(),{newline:()=>{
+    const suffix=title.value.slice(title.selectionEnd);title.value=title.value.slice(0,title.selectionStart);
+    body.value=suffix+(body.value?'\n'+body.value:'');change();body.focus();body.setSelectionRange(0,0);
+  }});
   async function saveEditor() {
     if(active!==s||modalState!==d)return;
     if(!writable(s)){dialogError(d,'Saving is paused. Your edit is still here; review the saved version before continuing.');return;}
@@ -558,10 +662,18 @@ $('capture-input').addEventListener('compositionend',()=>{
     if(request)safeRun(()=>submitCapture(s,request.tag));
   },0);
 });
-$('capture-input').addEventListener('focusout',event=>{if(event.relatedTarget&&!$('capture-composer').contains(event.relatedTarget)&&!event.relatedTarget.closest('#notice'))safeRun(()=>submitCapture());});
-$('capture-input').addEventListener('keydown',event=>{if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)&&!event.isComposing){event.preventDefault();safeRun(()=>submitCapture());}});
+bindSubmitField($('capture-input'),()=>safeRun(()=>submitCapture()),{composing:()=>!!active?.composing});
+let outsideCapture=null;
 document.addEventListener('pointerdown',event=>{
-  if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice'))safeRun(()=>submitCapture());
+  outsideCapture=document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice')?{session:active,tag:active?.view.tag,x:event.clientX,y:event.clientY}:null;
+},true);
+document.addEventListener('pointercancel',()=>outsideCapture=null,true);
+document.addEventListener('pointermove',event=>{if(outsideCapture&&Math.hypot(event.clientX-outsideCapture.x,event.clientY-outsideCapture.y)>9)outsideCapture=null;},true);
+document.addEventListener('pointerup',()=>{const pending=outsideCapture;setTimeout(()=>{if(outsideCapture===pending)outsideCapture=null;},700);},true);
+document.addEventListener('click',event=>{
+  const pending=outsideCapture;outsideCapture=null;
+  if(pending?.session===active)safeRun(()=>submitCapture(pending.session,pending.tag));
+  else if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice'))safeRun(()=>submitCapture());
 },true);
 $('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;renderAll();}});
 $('search').addEventListener('input',event=>{if(active){active.view.query=event.target.value;viewport.scrollTop=0;renderAll();}});
@@ -570,7 +682,7 @@ $('preview-button').addEventListener('click',demo);
 viewport.addEventListener('scroll',scheduleWindow,{passive:true});
 let lastWidth=0;new ResizeObserver(()=>{if(board.clientWidth!==lastWidth){lastWidth=board.clientWidth;rebuildLayout();}}).observe(viewport);
 dark.addEventListener('change',()=>rebuildLayout());
-document.addEventListener('pointerdown',event=>{if(!menu.hidden&&!menu.contains(event.target)&&!event.target.closest('#more-button,.more-card'))hideMenu();});
+document.addEventListener('pointerdown',event=>{if(!menu.hidden&&!menu.contains(event.target)&&!event.target.closest('#more-button,.more-card,.palette-card'))hideMenu();});
 document.addEventListener('keydown',event=>{
   if(event.key==='Escape'){
     if(!menu.hidden){event.preventDefault();hideMenu();return;}

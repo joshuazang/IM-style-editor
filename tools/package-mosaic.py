@@ -18,8 +18,8 @@ for data, suffix in [(script,'.js'),(style,'.css')]:
     (TARGET / name).write_bytes(data);files[name]=data
     if suffix == '.js': js_path=name
     else: css_path=name
-for old in (TARGET/'assets').glob('mosaic-*'):
-    if old.suffix in ['.js','.css'] and str(old.relative_to(TARGET)) not in files: old.unlink()
+# Retain published fingerprinted assets for cached pages. The install ZIP below
+# contains only this release's assets, so installed size does not grow.
 html = (TARGET/'index.template.html').read_text().replace('__JS__','./'+js_path).replace('__CSS__','./'+css_path).replace('__VERSION__',VERSION)
 html = html.replace('</head>',f'<meta name="im-shared-core" content="{core_digest()}">\n</head>')
 (TARGET/'index.html').write_text(html);files['index.html']=html.encode()

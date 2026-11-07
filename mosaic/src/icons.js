@@ -16,6 +16,8 @@ const MosaicIcons = {
   trash:'<path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/>',
   import:'<path d="M4 15v5h16v-5M12 3v12m-5-5 5 5 5-5"/>',
   tag:'<path d="m3 4 9-1 9 9-9 9-9-9V4Z"/><circle cx="7.5" cy="7.5" r=".8"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 0 18h1.2a2.3 2.3 0 0 0 1.7-3.8 1.6 1.6 0 0 1 1.2-2.6H18a3 3 0 0 0 3-3A8.7 8.7 0 0 0 12 3Z"/><circle cx="7.5" cy="9" r=".8"/><circle cx="11" cy="6.5" r=".8"/><circle cx="15.5" cy="7.5" r=".8"/><circle cx="6.7" cy="13" r=".8"/>',
+  noColor:'<path d="m4 4 16 16M9 4l-4 7a6 6 0 0 0 9 8M13 6l6 7a5 5 0 0 1-1 5"/>',
   untagged:'<path d="M3 9V4l9-1 9 9-5 5M12 21l-4-4M3 3l18 18"/><circle cx="7.5" cy="7.5" r=".7"/>',
   arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
   back:'<path d="M19 12H5m6-6-6 6 6 6"/>',

@@ -4,7 +4,7 @@ This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
 - **[IM-style-editor 4.1.6](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.0.1](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[Mosaic 1.0.2](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. The original
 [Mosaic install link](https://joshuazang.github.io/Mosaic/mosaic.ext.json)
@@ -67,3 +67,11 @@ reuse their cached message section after adding/editing cards. Newly created
 replies keep bounded quoted context rather than recursively copying the entire
 chain; existing saved replies are preserved. Both interfaces request that browser
 spellchecking, autocomplete, autocorrection and writing suggestions stay off.
+
+Mosaic 1.0.2 uses two compact masonry columns on phones. Enter adds a card and
+reveals it without moving input focus; Shift+Enter inserts a line break. The
+same keys save an existing card or add a body line. Each card has a vector
+palette for preset background colors and **Add label** in its three-dot menu.
+Labels reuse the shared tags; card colors are optional message metadata that
+IM preserves. Nearby previews use their measured heights to avoid blank space
+and clipped controls. Draft saving and the shared core are unchanged.

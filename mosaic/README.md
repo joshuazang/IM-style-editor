@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.1](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.1.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.2](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.2.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -19,10 +19,16 @@ its body. They remain one saved text string. Viewing a note does not rewrite it.
 Pins appear first, then newer cards. Board order does not rearrange the IM timeline.
 This is the current note's board, rather than an account-wide dashboard.
 
-- Responsive masonry with only nearby card previews mounted.
+- Responsive masonry with two columns on phones and only nearby previews mounted.
 - Search, emoji filters, untagged filtering, pins and selection.
-- A constant “Take a note…” field. Click outside it to add a card, or use
-  Command/Ctrl+Enter; Enter inserts a newline. IME composition finishes first.
+- A constant “Take a note…” field. Enter adds a card and reveals it while keeping
+  focus; Shift+Enter inserts a newline. Clicking outside also adds the card.
+  IME confirmation keys finish composition rather than sending early.
+- Enter saves an existing-card edit; Shift+Enter adds a body line.
+- A vector palette on every card offers preset background colors, including
+  Iris blue with white text. Default removes the optional color field.
+- **Add label** in each card's three-dot menu changes existing tags immediately
+  or adds a new label/emoji. It does not create a separate label system.
 - Plain-text card editing, quoted replies and navigation to the original.
 - Copy, Export, Import, merge, status clearing and confirmed deletion.
 - Manual clipboard clearing and Import and clear clipboard, with confirmation.
@@ -56,6 +62,12 @@ matching original message. If that message changed during the clipboard action,
 its newer text is not marked as copied. Manual native copying cannot be verified.
 Refreshed Standard Notes titles, references and unrelated native fields survive
 later writes. Invalid notes remain read-only.
+
+Label and color changes save through the same queue without changing message
+text or its Edited status. Optional `cardColor` stores only a preset ID in
+format-3 extra metadata; IM preserves it through edits and editor switches.
+Unrecognized color IDs are never evaluated as CSS. Preview heights are measured
+only for nearby new/resized cards and reused during later layouts.
 
 Each actual save still submits the whole note to Standard Notes. Caching and
 virtual previews reduce local work, but cannot eliminate large-note sync limits.

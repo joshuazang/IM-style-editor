@@ -6,6 +6,7 @@ const bodies=['','One line','\nAn empty first line','  Title  \r\n\r\nBody\r\n',
 const messages=bodies.map((text,i)=>({id:f.newId(),text,reactions:i%2?['📓']:[],createdAt:'2026-11-06T12:00:00Z',...(i===1?{edited:true,copied:true,exported:true,custom:{keep:true}}:{})}));
 messages[2].replyTo=m.reply(messages[1],'fixture');
 messages[3].forwarding={sourceMessageId:messages[0].id,sourceNoteId:'source',forwardedAt:'2026-11-01T12:00:00Z'};
+messages[1].cardColor='iris';
 const settings={bubbleTheme:'iris',reactionOrder:['📓','📍'],pinnedMessageIds:[messages[1].id],untaggedPosition:2,unrelated:{keep:true}};
 const draft='  Draft\r\n\r\n🙂\n',reply=m.reply(messages[1],'fixture');
 const note={uuid:'fixture',content_type:'Note',content:{text:f.portable(messages,settings,draft,reply),title:'Native title',references:[{uuid:'ref'}],appData:{unrelated:{keep:true}}},clientData:{unrelated:{keep:true}}};
@@ -50,8 +51,15 @@ for(const width of [280,350,700,1300]){
   const before=JSON.stringify(many),grid=m.layout(many,{pinnedMessageIds:[many[10].id]},width);
   assert.equal(grid.items.length,5000);assert.equal(JSON.stringify(many),before);
   for(const item of grid.items){assert.ok(item.width>0&&item.height>0&&item.x>=0&&item.x+item.width<=width+.01);}
+  if(width<600)assert.equal(new Set(grid.items.map(item=>item.x)).size,2,'Two masonry columns on phones');
   const visible=grid.items.filter(item=>item.y<1600&&item.y+item.height>0);assert.ok(visible.length<70);
   assert.equal(m.layout(many,{},width,'','📓').count,1667);assert.equal(m.layout(many,{},width,'','__untagged__').count,3333);
+}
+assert.equal(m.color({cardColor:'iris'}).background,'#4e5cf0');
+assert.equal(m.color({cardColor:'iris'}).ink,'#ffffff');
+assert.equal(m.color({cardColor:'url(https://example.invalid)'}).id,'default','Only preset IDs can become CSS colors');
+for(const preset of m.colors)for(const dark of [false,true]){
+  const result=m.color({cardColor:preset.id},dark);assert.ok(result.id===preset.id&&result.background&&result.ink);
 }
 const damaged={content:{text:initial.replace('@@IM:CONTENT','@@BROKEN')}};
 assert.throws(()=>f.write(damaged,[],{}),/Malformed/);assert.equal(damaged.content.text,initial.replace('@@IM:CONTENT','@@BROKEN'));

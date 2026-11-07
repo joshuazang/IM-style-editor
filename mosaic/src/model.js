@@ -1,6 +1,26 @@
 /* Presentation helpers. A card is still one format-3 message, never a second copy. */
 const MosaicModel = (() => {
-  const heights=new WeakMap();
+  const heights=new WeakMap(),measured=new WeakMap();
+  // Preset IDs are the only saved color values; unknown metadata is preserved.
+  const colors=[
+    {id:'default',name:'Default'},
+    {id:'coral',name:'Coral',light:'#f7b2ae',dark:'#663e3e'},
+    {id:'peach',name:'Peach',light:'#f6b18a',dark:'#67452f'},
+    {id:'lemon',name:'Lemon',light:'#fff6b3',dark:'#5a512e'},
+    {id:'sage',name:'Sage',light:'#e2f3ce',dark:'#3b5138'},
+    {id:'seafoam',name:'Seafoam',light:'#b9ded5',dark:'#304f49'},
+    {id:'ice',name:'Ice',light:'#d4e5ed',dark:'#354d59'},
+    {id:'blue',name:'Blue',light:'#aecfdf',dark:'#304d65'},
+    {id:'lavender',name:'Lavender',light:'#d7c2df',dark:'#51405e'},
+    {id:'rose',name:'Rose',light:'#f5dfd9',dark:'#5b4148'},
+    {id:'sand',name:'Sand',light:'#e9e3d1',dark:'#514b3b'},
+    {id:'stone',name:'Stone',light:'#eeeef0',dark:'#44484d'},
+    {id:'iris',name:'Iris blue',light:'#4e5cf0',dark:'#4e5cf0',ink:'#ffffff'}
+  ];
+  const color = (message,dark=false) => {
+    const preset=colors.find(item=>item.id===message.cardColor)||colors[0];
+    return {id:preset.id,background:preset[dark?'dark':'light']||'var(--surface)',ink:preset.ink||(dark?'#f3f5f1':'#27332f')};
+  };
   const normalized = text => text.replace(/\r\n?/g, '\n');
   function split(text) {
     const match = /\r\n|\n|\r/.exec(text);
@@ -73,14 +93,23 @@ const MosaicModel = (() => {
     }
     return lines;
   }
-  function cardHeight(message,columns) {
-    const cached=heights.get(message);if(cached?.columns===columns)return cached.height;
-    const parts=split(message.text),titleLines=previewLines(parts.title,columns,3),bodyLines=parts.body?previewLines(parts.body,columns,7):0;
-    const height=84+titleLines*25+bodyLines*23+(bodyLines?12:0)+(message.reactions.length?34:0)+(message.replyTo?44:0);
-    heights.set(message,{columns,height});return height;
+  const heightKey=(width,pinned,selecting)=>width+':'+pinned+':'+selecting;
+  function measure(message,width,pinned,selecting,height) {
+    const key=heightKey(width,pinned,selecting),previous=measured.get(message);
+    if(previous?.key===key&&previous.height===height)return false;
+    measured.set(message,{key,height});return true;
   }
-  function layout(messages, settings, width, query='', tag='', pinnedOnly=false) {
-    const gap=16, columns=Math.max(1,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
+  function cardHeight(message,width,pinned,selecting) {
+    const compact=width<230,key=heightKey(width,pinned,selecting),actual=measured.get(message),cached=heights.get(message);
+    if(actual?.key===key)return actual.height;
+    if(cached?.key===key)return cached.height;
+    const padding=compact?24:36,columns=Math.max(8,Math.floor((width-padding)/7));
+    const parts=split(message.text),titleLines=previewLines(parts.title,Math.max(5,columns-(pinned?4:0)),3),bodyLines=parts.body?previewLines(parts.body,columns,7):0;
+    const height=(compact?80:90)+titleLines*(compact?22:25)+bodyLines*(compact?20:23)+(bodyLines?10:0)+(message.reactions.length?34:0)+(message.replyTo?40:0);
+    heights.set(message,{key,height});return height;
+  }
+  function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
+    const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
     const pinIds=new Set(pins(settings));
     const filtered=messages.filter(m=>matches(m,query,tag,pinnedOnly,pinIds)).slice().reverse();
     const groups=[['Pinned',filtered.filter(m=>pinIds.has(m.id))],['Other cards',filtered.filter(m=>!pinIds.has(m.id))]];
@@ -90,7 +119,7 @@ const MosaicModel = (() => {
       if(name==='Pinned'||headings.length){headings.push({label:name,y:base});base+=36;}
       const heights=Array(columns).fill(base);
       for(const message of group){
-        const height=cardHeight(message,Math.max(12,Math.floor((cardWidth-40)/7.4)));
+        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting);
         const column=heights.indexOf(Math.min(...heights));
         items.push({message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height});
         heights[column]+=height+gap;
@@ -99,5 +128,5 @@ const MosaicModel = (() => {
     }
     return {items,headings,height:base,count:filtered.length};
   }
-  return {split,join,normalized,pins,tags,isImported,matches,clearStatuses,reply,target,merge,layout};
+  return {split,join,normalized,pins,tags,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color};
 })();
