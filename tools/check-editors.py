@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import threading
+from collections import deque
 from shared_core import ROOT
 
 parser = argparse.ArgumentParser()
@@ -13,7 +14,18 @@ parser.add_argument('--data-only', action='store_true', help='Skip browser tests
 args = parser.parse_args()
 
 def run(*command, env=None):
-    subprocess.run(command, cwd=ROOT, env=env, check=True)
+    tail = deque(maxlen=45)
+    with subprocess.Popen(command, cwd=ROOT, env=env, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True, errors='replace', bufsize=1) as process:
+        for line in process.stdout:
+            print(line, end='', flush=True)
+            tail.append(line)
+        code = process.wait()
+    if code:
+        if (env or os.environ).get('GITHUB_ACTIONS') == 'true':
+            detail = ''.join(tail)[-6000:].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+            print('::error title=Editor validation failed::' + detail, flush=True)
+        raise subprocess.CalledProcessError(code, command)
 
 run(sys.executable, 'tools/verify-editors.py')
 tests = sorted((ROOT / 'tests').glob('*.test.cjs'))
