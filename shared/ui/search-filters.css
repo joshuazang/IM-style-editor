@@ -7,25 +7,18 @@
 .ui-search-row .ui-search-filters:hover,.editor-shell .ui-search-row .ui-search-filters:hover,.ui-search-row .ui-search-filters[aria-pressed=true],.editor-shell .ui-search-row .ui-search-filters[aria-pressed=true]{background:#e5eee6!important}
 .ui-search-filters:focus-visible{outline:2px solid #285b89!important;outline-offset:-2px}
 .ui-date-panel{margin-top:10px;padding:10px;border:1px solid var(--line,#b7c2d2);border-radius:12px;background:var(--surface,#fff);color:#27382f}
-.ui-date-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .ui-date-panel button,.editor-shell .ui-date-panel button{min-height:40px;border:1px solid #b7c2d288;border-radius:9px;padding:7px 9px;background:transparent!important;color:#27382f;font:inherit;font-size:13px;cursor:pointer}
 .ui-date-panel button:hover,.editor-shell .ui-date-panel button:hover,.ui-date-panel button[aria-pressed=true],.editor-shell .ui-date-panel button[aria-pressed=true]{background:#e5eee6!important;border-color:#7a9c85}
 .ui-date-panel button:focus-visible{outline:2px solid #285b89!important;outline-offset:-2px}
-.ui-date-custom{margin-top:10px}.ui-date-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.ui-date-fields label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px;color:#27382f}
-.ui-date-fields input,.editor-shell .search-tags-panel .ui-date-fields input{width:100%;min-width:0;height:42px;margin:0;padding:6px;border:1px solid #b7c2d288;border-radius:8px;font:inherit;font-size:16px;background:#fff!important;color:#27382f;color-scheme:light}
 .ui-date-apply{margin-top:10px;width:100%}.ui-date-error{font-size:12px;color:#a62c30;margin:8px 0 0}
-.ui-date-summary{margin:8px 2px 0;font-size:12px;color:#395843}
 .board-search-panel,.editor-shell .search-tags-panel{max-height:calc(100dvh - 76px);overflow:auto;overscroll-behavior:contain}
 
 /* Focus changes paint only, keeping the input's size and content position fixed. */
 .ui-search-row:focus-within,.editor-shell .ui-search-row:focus-within{border-color:#202124;box-shadow:0 0 0 1px #202124}
 .editor-shell .ui-search-row{background:color-mix(in srgb,var(--surface,#fff) var(--frost-tint,22%),transparent);backdrop-filter:blur(var(--frost-blur,10px));-webkit-backdrop-filter:blur(var(--frost-blur,10px))}
-.ui-date-single{grid-template-columns:minmax(0,1fr)}
-.ui-date-summary{display:flex;align-items:center;gap:6px}
-.ui-date-summary .ui-date-clear,.editor-shell .ui-date-summary .ui-date-clear{display:grid;place-items:center;width:28px;height:28px;min-height:28px;padding:3px;border:0;border-radius:50%;background:transparent!important;color:#27382f;box-shadow:none;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;cursor:pointer}
-.ui-date-summary .ui-date-clear svg{width:20px;height:20px;pointer-events:none}
-.ui-date-summary .ui-date-clear:hover,.editor-shell .ui-date-summary .ui-date-clear:hover{background:#e5eee6!important}
-.ui-date-summary .ui-date-clear:focus-visible{outline:2px solid #285b89!important;outline-offset:-2px}
 
 .ui-date-panel [hidden]{display:none!important}
+
+.ui-date-field{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.ui-date-field input,.editor-shell .search-tags-panel .ui-date-field input{width:100%;min-width:0;height:44px;margin:0;padding:8px;border:1px solid #b7c2d288;border-radius:8px;font:inherit;font-size:16px;background:#fff!important;color:#27382f;color-scheme:light}
+.ui-date-field input:focus{outline:1px solid #202124!important;outline-offset:0}

@@ -14,9 +14,9 @@ def fill_search(editor,text):
     editor.locator('#search').press('Escape')
 
 def click_outside_capture(editor):
-    control=editor.get_by_role('button',name='Change filters',exact=True)
-    if not control.is_visible():control=editor.get_by_role('button',name='Search and tags',exact=True)
-    control.click()
+    # Search/date controls are navigation and deliberately preserve the draft.
+    # Click the actual blank board gutter to exercise click-away submission.
+    editor.locator('#viewport').click(position={'x':2,'y':120})
 
 def choose_tag(editor,name):
     open_search(editor)

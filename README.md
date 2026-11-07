@@ -191,15 +191,17 @@ the left. Both search buttons focus their search field when opening. The context
 menu's **Emoji picker** expands to show all rows without its own scrollbar, and
 Mosaic no longer automatically focuses the first emoji when opening the menu.
 
-IM 4.2.5 / Mosaic 1.2.0 add the same two-slider SVG at the right edge of each
-search field. Mosaic removes its leading in-field magnifier. Date filters use
-original message timestamps: Today, Yesterday, Last 7 days, Last 30 days, or an
-inclusive custom From/To range in the device's local time zone. Both interfaces
-reuse the same date logic, panel implementation and styles. These are view
-filters; they do not rewrite messages or add browser storage.
+IM 4.2.7 / Mosaic 1.3.0 replace date filtering with **Jump to date**. The
+shared calendar-and-magnifier SVG sits at the right edge of each search field;
+the two-slider vector is retained in source as an archived icon. Choose a local
+calendar date to reveal its first message in the full note. Text/tag/pins filters
+are cleared for the jump; earlier and later messages remain scrollable in each
+interface's normal ordering. Dates with no messages jump forward to the next
+available message, or backward to the last earlier one when there is no later
+message, with a brief notice. Undated messages remain in the note.
 
-IM 4.2.6 / Mosaic 1.2.1 remove the visible All dates choice and add Exact date
-with one date field. The unfiltered state has no date label. The X beside an
-active date clears only the date condition and returns focus to search. Both
-search fields use a precise black focus emphasis without resizing; IM restores
-its previous 22% frosted surface with 10px blur, while Mosaic's field stays solid.
+Both interfaces reuse one date picker, lookup and vector definition. Navigation
+only changes the view: it does not rewrite notes, touch drafts, add storage, or
+change encryption. The search fields retain their precise black focus emphasis
+without resizing; IM uses its 22% frosted surface with 10px blur, while Mosaic's
+field stays solid.

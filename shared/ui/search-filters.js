@@ -1,59 +1,42 @@
-/* Shared view-only date filters. Calendar bounds use the device's local zone,
- * including 23/25-hour days. Nothing here writes notes or browser storage. */
-const imDatePresets=[['all','All dates'],['today','Today'],['yesterday','Yesterday'],['week','Last 7 days'],['month','Last 30 days'],['day','Exact date'],['custom','Custom range']];
-const imDateTimes=new WeakMap();
+/* Shared, view-only date navigation. Local calendar days include DST changes.
+ * This never changes a message, writes storage, or filters the note. */
 function imDateInput(value){
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
  const [year,month,day]=value.split('-').map(Number),date=new Date(0);date.setFullYear(year,month-1,day);date.setHours(0,0,0,0);
  return date.getFullYear()===year&&date.getMonth()===month-1&&date.getDate()===day?date:null;
 }
-function imDateRange(filter={},now=new Date()){
- const preset=imDatePresets.some(([id])=>id===filter?.preset)?filter.preset:'all',today=new Date(now);today.setHours(0,0,0,0);
- const shift=(date,days)=>{const result=new Date(date);result.setDate(result.getDate()+days);return result;};
- const format=date=>new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(date);
- let start=-Infinity,end=Infinity,label=imDatePresets.find(([id])=>id===preset)[1],error='';
- if(preset==='today'){start=+today;end=+shift(today,1);}
- if(preset==='yesterday'){start=+shift(today,-1);end=+today;}
- if(preset==='week'||preset==='month'){start=+shift(today,preset==='week'?-6:-29);end=+shift(today,1);}
- if(preset==='day'){const date=imDateInput(filter.date);if(!date)error='Choose a valid date.';else{start=+date;end=+shift(date,1);label=format(date);}}
- if(preset==='custom'){
-  const from=filter.from?imDateInput(filter.from):null,to=filter.to?imDateInput(filter.to):null;
-  if((filter.from&&!from)||(filter.to&&!to))error='Choose a valid date.';
-  else if(!from&&!to)error='Choose at least one date.';
-  else if(from&&to&&from>to)error='From date must be on or before To date.';
-  if(from)start=+from;if(to)end=+shift(to,1);
-  label=from&&to?format(from)+' – '+format(to):from?'From '+format(from):to?'Through '+format(to):'Custom range';
+
+function imDateTarget(messages,value){
+ const start=imDateInput(value);if(!start)return null;
+ const end=new Date(start);end.setDate(end.getDate()+1);
+ let after=null,before=null,afterTime=Infinity,beforeTime=-Infinity;
+ for(const message of messages){
+  const time=typeof message.createdAt==='string'?Date.parse(message.createdAt):NaN;
+  if(!Number.isFinite(time))continue;
+  if(time>=+start&&time<afterTime){after=message;afterTime=time;}
+  else if(time<+start&&time>beforeTime){before=message;beforeTime=time;}
  }
- const active=preset!=='all'&&!error;return {active,start,end,error,label,preset,key:active?[preset,start,end].join(':'):'all'};
+ const message=after||before;if(!message)return null;
+ return {message,exact:after!==null&&afterTime<+end};
 }
-function imDateMatches(message,range){
- if(!range.active)return true;
- let cached=imDateTimes.get(message);
- if(!cached||cached.source!==message.createdAt){cached={source:message.createdAt,time:typeof message.createdAt==='string'?Date.parse(message.createdAt):NaN};imDateTimes.set(message,cached);}
- return Number.isFinite(cached.time)&&cached.time>=range.start&&cached.time<range.end;
+function imDateJumpNotice(target){
+ return target.exact?'':'No messages on that date. Showing '+new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(new Date(target.message.createdAt))+'.';
 }
-function imCreateDateFilterPanel({value,onApply,onClose}){
- const make=(tag,css,text)=>{const node=document.createElement(tag);if(css)node.className=css;if(text!==undefined)node.textContent=text;return node;};
- const root=make('section','ui-date-panel');root.id='date-filters';root.setAttribute('role','group');root.setAttribute('aria-label','Date filters');
- let draft={preset:'all',...value};
- const apply=filter=>{const range=imDateRange(filter);if(range.error){error.textContent=range.error;error.hidden=false;return;}onApply(filter);onClose();};
- const presets=make('div','ui-date-presets');presets.setAttribute('role','group');presets.setAttribute('aria-label','Date options');
- for(const [id,label] of imDatePresets){
-  if(id==='all')continue;
-  const b=make('button','',label);b.type='button';b.setAttribute('aria-pressed',String(draft.preset===id));
-  b.addEventListener('click',()=>{
-   if(id!=='custom'&&id!=='day'){apply({preset:id});return;}
-   draft.preset=id;custom.hidden=false;dayFields.hidden=id!=='day';fields.hidden=id!=='custom';error.hidden=true;
-   for(const item of presets.children)item.setAttribute('aria-pressed',String(item===b));
-   (id==='day'?single:from).focus();
-  });presets.append(b);
- }
- const custom=make('div','ui-date-custom');custom.hidden=!['day','custom'].includes(draft.preset);
- const dayFields=make('div','ui-date-fields ui-date-single');dayFields.hidden=draft.preset!=='day';
- const fields=make('div','ui-date-fields');fields.hidden=draft.preset!=='custom';
- const field=(text,key,container)=>{const label=make('label','',text),input=make('input');input.type='date';imPrivateTextField(input);input.setAttribute('aria-label',text);input.value=draft[key]||'';input.addEventListener('input',()=>{draft[key]=input.value;error.hidden=true;});label.append(input);container.append(label);return input;};
- const single=field('Date','date',dayFields),from=field('From date','from',fields);field('To date','to',fields);
- const error=make('p','ui-date-error');error.setAttribute('role','alert');error.hidden=true;
- const button=make('button','ui-date-apply','Apply date filter');button.type='button';button.addEventListener('click',()=>apply({...draft}));
- custom.append(dayFields,fields,error,button);root.append(presets,custom);return root;
+function imCreateDateJumpPanel({onJump,onClose}){
+ const root=document.createElement('section');root.className='ui-date-panel';root.id='date-picker';root.setAttribute('role','group');root.setAttribute('aria-label','Jump to date');
+ const label=document.createElement('label');label.className='ui-date-field';label.textContent='Date';
+ const input=document.createElement('input');input.type='date';imPrivateTextField(input);input.setAttribute('aria-label','Date');
+ const error=document.createElement('p');error.className='ui-date-error';error.setAttribute('role','alert');error.hidden=true;
+ const apply=()=>{
+  if(!imDateInput(input.value)){error.textContent='Choose a valid date.';error.hidden=false;return;}
+  if(onJump(input.value)===false){error.textContent='There are no dated messages in this note.';error.hidden=false;return;}
+  onClose();
+ };
+ input.addEventListener('change',apply);input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.stopPropagation();apply();}});
+ const button=document.createElement('button');button.type='button';button.className='ui-date-apply';button.textContent='Jump to date';button.addEventListener('click',apply);
+ label.append(input);root.append(label,error,button);
+ // Native pickers differ between desktop/mobile hosts; the visible date input
+ // remains usable when an embedded host disallows programmatic showPicker().
+ root.openPicker=()=>{input.focus({preventScroll:true});try{input.showPicker?.();}catch{}};
+ return root;
 }

@@ -74,13 +74,12 @@ const MosaicModel = (() => {
   function tags(messages, settings) {
     return imEmojiOrder(messages,settings,index(messages).tags);
   }
-  function filtered(messages,settings,query,tag,pinnedOnly,dateFilter){
-    const dateRange=imDateRange(dateFilter);
+  function filtered(messages,settings,query,tag,pinnedOnly){
     const data=index(messages),pinIds=pins(settings),normalized=query.toLocaleLowerCase(),last=data.lastQuery;
-    if(last&&last.query===normalized&&last.tag===tag&&last.pinnedOnly===pinnedOnly&&last.dateKey===dateRange.key&&(!pinnedOnly||last.pinIds===pinIds))return last.result;
+    if(last&&last.query===normalized&&last.tag===tag&&last.pinnedOnly===pinnedOnly&&(!pinnedOnly||last.pinIds===pinIds))return last.result;
     const pinned=new Set(pinIds),result=[];
-    for(const entry of data.byId.values())if((!normalized||entry.search.includes(normalized))&&(!tag||(tag==='__untagged__'?!entry.tags.size:entry.tags.has(tag)))&&(!pinnedOnly||pinned.has(entry.message.id))&&imDateMatches(entry.message,dateRange))result.push(entry.message);
-    data.lastQuery={query:normalized,tag,pinnedOnly,pinIds,dateKey:dateRange.key,result};return result;
+    for(const entry of data.byId.values())if((!normalized||entry.search.includes(normalized))&&(!tag||(tag==='__untagged__'?!entry.tags.size:entry.tags.has(tag)))&&(!pinnedOnly||pinned.has(entry.message.id)))result.push(entry.message);
+    data.lastQuery={query:normalized,tag,pinnedOnly,pinIds,result};return result;
   }
   function clearStatuses(messages, flags, ids) {
     return messages.map(message => {
@@ -145,10 +144,10 @@ const MosaicModel = (() => {
     const height=Math.max(0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0));
     heights.set(message,{key,height});return height;
   }
-  function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false,dateFilter) {
+  function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
     const pinIds=new Set(pins(settings)),fontSize=appearance(settings).fontSize;
-    const matching=filtered(messages,settings,query,tag,pinnedOnly,dateFilter).slice().reverse();
+    const matching=filtered(messages,settings,query,tag,pinnedOnly).slice().reverse();
     const groups=[['Pinned',matching.filter(m=>pinIds.has(m.id))],['Other cards',matching.filter(m=>!pinIds.has(m.id))]];
     const items=[],headings=[],byId=new Map(),columnItems=Array.from({length:columns},()=>[]);let base=0;
     for(const [name,group] of groups){

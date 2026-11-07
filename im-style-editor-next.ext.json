@@ -3,10 +3,10 @@
   "name": "IM-style-editor",
   "content_type": "SN|Component",
   "area": "editor-editor",
-  "version": "4.2.6",
+  "version": "4.2.7",
   "description": "A private IM-style editor with format-3 notes, efficient draft saving and windowed message rendering. Import message exports from Archive into a new note.",
-  "url": "https://joshuazang.github.io/IM-style-editor/next/index.html?v=4.2.6",
-  "download_url": "https://joshuazang.github.io/IM-style-editor/IM-style-editor-4.2.6.zip",
+  "url": "https://joshuazang.github.io/IM-style-editor/next/index.html?v=4.2.7",
+  "download_url": "https://joshuazang.github.io/IM-style-editor/IM-style-editor-4.2.7.zip",
   "latest_url": "https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json",
   "marketing_url": "https://joshuazang.github.io/IM-style-editor/",
   "thumbnail_url": ""
