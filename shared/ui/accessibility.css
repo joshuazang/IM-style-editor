@@ -8,6 +8,9 @@
 .ui-selection-action{position:relative}
 .editor-shell .message-title{font:inherit;font-weight:700;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:6px}
 input:focus-visible,textarea:focus-visible{outline:2px solid currentColor!important;outline-offset:-2px}
+/* Writing surfaces keep their own rounded container, without an inset rectangle. */
+#capture-input:focus,.card-edit-dialog .editor-title:focus,.card-edit-dialog .editor-body:focus{outline:none!important}
+#capture-input:focus::placeholder,.editor-shell .composer textarea:focus::placeholder{opacity:0!important}
 .dialog-heading .icon-button{width:44px;height:44px}
 .board-search-panel input::placeholder{color:var(--muted);opacity:1}
 .card-edit-dialog .editor-title::placeholder,.card-edit-dialog .editor-body::placeholder{color:inherit;opacity:.9}
