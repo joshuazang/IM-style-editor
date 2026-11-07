@@ -18,7 +18,7 @@ ASSETS.mkdir(exist_ok=True)
 helpers = []
 for name in ['message-spacing.js', 'context-menu.js',
              'transfer-ui.js', 'editor-interactions.js',
-             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js', 'note-sessions.js']:
+             'reply-ui.js', 'emoji-management.js', 'virtual-messages.js', 'status-clear.js', 'message-merge.js', 'selection-memory.js', 'silent-timer.js', 'note-sessions.js', 'selection-touch.js']:
     path = TARGET / 'src' / name
     helpers.append((path if path.exists() else ROOT / 'src' / name).read_text())
 # Reuse the immutable React/SDK build prefix; only the application runtime is forked.
@@ -71,6 +71,12 @@ styles = (ROOT / css_path).read_text() + '''
 .clipboard-import-actions button{min-width:0;white-space:normal}
 .silent-timer-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .messages{overflow-anchor:none}
+.selection-touch-row{min-height:44px;touch-action:pan-y}
+.selection-touch-row>.message-wrap{max-width:calc(100% - 54px)}
+.editor-shell .selection-touch-row>.selection-check{display:grid;place-items:center;left:0;top:50%;transform:translateY(-50%);margin:0;width:44px;height:44px;padding:0;border:0!important;box-shadow:none!important;background:transparent!important;font-size:13px;line-height:1}
+.editor-shell .selection-touch-row>.selection-check:before{content:"";position:absolute;inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;border:3px solid #52606d;border-radius:50%;box-sizing:border-box;background:var(--surface);pointer-events:none}
+.editor-shell .selection-touch-row>.selection-check.checked:before{border-color:#2f6415;background:#3c801b}
+.selection-mark{position:relative;z-index:1}
 .virtual-message{width:100%;min-width:0;flex-shrink:0;overflow-anchor:none}
 .virtual-spacer{flex:0 0 auto;pointer-events:none;overflow-anchor:none}
 .day-divider{font-size:17px;font-weight:750;color:#334155}

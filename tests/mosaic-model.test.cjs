@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-const core=fs.readFileSync('shared/core/note-format.js','utf8');
+const core=fs.readFileSync('shared/core/note-format.js','utf8')+'\n'+fs.readFileSync('shared/core/emoji-tags.js','utf8');
 const load=()=>vm.runInNewContext(core+'\n'+fs.readFileSync('shared/core/reply-record.js','utf8')+'\n'+fs.readFileSync('mosaic/src/model.js','utf8')+'\n'+fs.readFileSync('shared/core/message-transfer.js','utf8')+';({f:imFormat,m:MosaicModel,t:imTransfer})',{crypto,btoa});
 const {f,m,t}=load(),other=load().f,plain=x=>JSON.parse(JSON.stringify(x));
 const bodies=['','One line','\nAn empty first line','  Title  \r\n\r\nBody\r\n','标题🙂\n@@IM:BUBBLE\n@@IM:END\n','<img src=x onerror=alert(1)>\n<script>secret()</script>','\r\n','\n\n','\\literal\n\\@@IM:BUBBLE'];

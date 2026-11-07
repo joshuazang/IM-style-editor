@@ -1,0 +1,23 @@
+/* Visible focus and separate finger targets, without painting full-width strips. */
+:root{--focus-ring:#285b89}
+.ui-context-menu button:focus-visible,.selection-more-menu button:focus-visible,.tag-arrange-row button:focus-visible,.appearance-choice:focus-visible{outline:2px solid var(--focus-ring,#285b89)!important;outline-offset:-2px}
+.ui-context-menu .ui-tag-grid{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;max-height:100px}
+.ui-context-menu .ui-tag-choice{min-height:44px;height:44px}
+.board-search-panel .tag-chip,.editor-shell .search-tags-panel .chip{min-height:44px;height:44px;min-width:44px}
+.editor-shell .tag-control span button{min-width:44px;min-height:44px}
+.ui-selection-action{position:relative}
+input:focus-visible,textarea:focus-visible{outline:2px solid currentColor!important;outline-offset:-2px}
+.dialog-heading .icon-button{width:44px;height:44px}
+.board-search-panel input::placeholder{color:var(--muted);opacity:1}
+.card-edit-dialog .editor-title::placeholder,.card-edit-dialog .editor-body::placeholder{color:inherit;opacity:.9}
+.editor-shell .ui-selection-toolbar,.editor-shell .ui-selection-status{--selection-ink:#172033;--frost-tint:72%}
+.board-toolbar .ui-selection-toolbar,#selection-bar{--selection-ink:var(--ink);--frost-tint:72%}
+.ui-save-feedback{position:absolute;z-index:2;font-size:11px;line-height:14px;font-weight:500;white-space:nowrap;pointer-events:none;border-radius:7px;padding:1px 5px;background:var(--surface,#fff);color:var(--feedback-ink,#27382f)}
+.editor-shell .composer>.ui-save-feedback{bottom:0;right:68px;--feedback-ink:#172033}
+#save-status.ui-save-feedback{right:1px;bottom:-18px;font-size:11px;color:var(--ink)}
+@supports(backdrop-filter:blur(1px)){.ui-save-feedback{background:color-mix(in srgb,var(--surface,#fff) 90%,transparent);backdrop-filter:blur(10px)}}
+@media(pointer:coarse){
+ .ui-toolbar .ui-toolbar-button:before,.ui-selection-action:before{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%}
+ .card-tools{min-height:44px;padding-top:0}.card-tools .icon-button{width:44px;height:44px}
+}
+@media(prefers-color-scheme:dark){:root{--focus-ring:#b7dcff;--danger:#f18c88}.editor-shell{--focus-ring:#285b89}.board-toolbar .selection-delete{color:#ffb4ad}}

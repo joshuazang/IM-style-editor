@@ -1,6 +1,7 @@
 /* Presentation helpers. A card is still one format-3 message, never a second copy. */
 const MosaicModel = (() => {
-  const heights=new WeakMap(),measured=new WeakMap();
+  const heights=new WeakMap(),measured=new WeakMap(),prepared=new WeakMap(),indexes=new WeakMap(),pinCache=new WeakMap();
+  let latestIndex=null;
   const palettes=[{id:'sage',name:'Sage',description:'Soft green and clear white'},
     {id:'paper',name:'Paper',description:'Clean white and charcoal'},
     {id:'sand',name:'Sand',description:'Warm cream and dark brown'}];
@@ -47,16 +48,38 @@ const MosaicModel = (() => {
     const nextBody = sameBody ? parts.body : normalized(body).replace(/\n/g, separator);
     return title + (nextBody || parts.separator ? separator + nextBody : '');
   }
-  const pins = settings => [...new Set(Array.isArray(settings.pinnedMessageIds) ? settings.pinnedMessageIds : [])];
+  const pins = settings => {if(!pinCache.has(settings))pinCache.set(settings,[...new Set(Array.isArray(settings.pinnedMessageIds)?settings.pinnedMessageIds:[])]);return pinCache.get(settings);};
   const isImported = message => !!message.forwarding && !message.importedStatusCleared;
+  function prepare(message,previous){
+    if(prepared.has(message))return prepared.get(message);
+    const sameText=previous?.message.text===message.text;
+    const value={message,search:sameText?previous.search:message.text.toLocaleLowerCase(),parts:sameText?previous.parts:split(message.text),tags:previous?.message.reactions===message.reactions?previous.tags:new Set(message.reactions)};
+    prepared.set(message,value);return value;
+  }
+  function index(messages){
+    if(indexes.has(messages))return indexes.get(messages);
+    const byId=new Map(),counts=new Map(),tags=new Set();let untagged=0;
+    for(const message of messages){
+      const entry=prepare(message,latestIndex?.byId.get(message.id));byId.set(message.id,entry);
+      if(!entry.tags.size)untagged++;
+      for(const tag of entry.tags){tags.add(tag);counts.set(tag,(counts.get(tag)||0)+1);}
+    }
+    const value={byId,counts,tags,untagged,lastQuery:null};indexes.set(messages,value);latestIndex=value;return value;
+  }
+  const preview = message => prepare(message).parts;
   const matches = (message, query, tag, pinned, pinIds) =>
-    (!query || message.text.toLocaleLowerCase().includes(query.toLocaleLowerCase())) &&
-    (!tag || (tag==='__untagged__' ? message.reactions.length===0 : message.reactions.includes(tag))) &&
+    (!query || prepare(message).search.includes(query.toLocaleLowerCase())) &&
+    (!tag || (tag==='__untagged__' ? prepare(message).tags.size===0 : prepare(message).tags.has(tag))) &&
     (!pinned || pinIds.has(message.id));
   function tags(messages, settings) {
-    const removed = new Set(settings.deletedEmojis || []);
-    const order = [...new Set([...(settings.reactionOrder || ['1️⃣','2️⃣','3️⃣','📓','📚','✅','💡','📍']), ...messages.flatMap(m=>m.reactions)])];
-    return order.filter(tag=>!removed.has(tag));
+    return imEmojiOrder(messages,settings,index(messages).tags);
+  }
+  function filtered(messages,settings,query,tag,pinnedOnly){
+    const data=index(messages),pinIds=pins(settings),normalized=query.toLocaleLowerCase(),last=data.lastQuery;
+    if(last&&last.query===normalized&&last.tag===tag&&last.pinnedOnly===pinnedOnly&&(!pinnedOnly||last.pinIds===pinIds))return last.result;
+    const pinned=new Set(pinIds),result=[];
+    for(const entry of data.byId.values())if((!normalized||entry.search.includes(normalized))&&(!tag||(tag==='__untagged__'?!entry.tags.size:entry.tags.has(tag)))&&(!pinnedOnly||pinned.has(entry.message.id)))result.push(entry.message);
+    data.lastQuery={query:normalized,tag,pinnedOnly,pinIds,result};return result;
   }
   function clearStatuses(messages, flags, ids) {
     return messages.map(message => {
@@ -116,16 +139,16 @@ const MosaicModel = (() => {
     if(actual?.key===key)return actual.height;
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
-    const parts=split(message.text),titleLines=previewLines(parts.title,Math.max(5,columns-(pinned?4:0)),3),bodyLines=parts.body?previewLines(parts.body,columns,7):0;
+    const parts=preview(message),titleLines=previewLines(parts.title,Math.max(5,columns-(pinned?4:0)),3),bodyLines=parts.body?previewLines(parts.body,columns,7):0;
     const height=(compact?52:58)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines?8:0)+(message.reactions.length?34:0)+(message.replyTo?36:0);
     heights.set(message,{key,height});return height;
   }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
     const pinIds=new Set(pins(settings)),fontSize=appearance(settings).fontSize;
-    const filtered=messages.filter(m=>matches(m,query,tag,pinnedOnly,pinIds)).slice().reverse();
-    const groups=[['Pinned',filtered.filter(m=>pinIds.has(m.id))],['Other cards',filtered.filter(m=>!pinIds.has(m.id))]];
-    const items=[], headings=[];let base=0;
+    const matching=filtered(messages,settings,query,tag,pinnedOnly).slice().reverse();
+    const groups=[['Pinned',matching.filter(m=>pinIds.has(m.id))],['Other cards',matching.filter(m=>!pinIds.has(m.id))]];
+    const items=[],headings=[],byId=new Map(),columnItems=Array.from({length:columns},()=>[]);let base=0;
     for(const [name,group] of groups){
       if(!group.length)continue;
       if(name==='Pinned'||headings.length){headings.push({label:name,y:base});base+=36;}
@@ -133,12 +156,22 @@ const MosaicModel = (() => {
       for(const message of group){
         const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize);
         const column=heights.indexOf(Math.min(...heights));
-        items.push({message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height});
+        const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,order:items.length};
+        items.push(item);columnItems[column].push(item);byId.set(message.id,item);
         heights[column]+=height+gap;
       }
       base=Math.max(...heights)+12;
     }
-    return {items,headings,height:base,count:filtered.length};
+    return {items,headings,byId,columns:columnItems,height:base,count:matching.length};
   }
-  return {split,join,normalized,pins,tags,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
+  function visible(layout,low,high){
+    const result=[];
+    for(const column of layout.columns||[]){
+      let a=0,b=column.length;
+      while(a<b){const middle=(a+b)>>1,item=column[middle];if(item.y+item.height<low)a=middle+1;else b=middle;}
+      for(let i=a;i<column.length&&column[i].y<=high;i++)result.push(column[i]);
+    }
+    return result.sort((a,b)=>a.order-b.order);
+  }
+  return {split,join,normalized,pins,tags,index,preview,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
 })();

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto');
 const metadata=JSON.parse(fs.readFileSync('editors-release.json'));
 const digest=crypto.createHash('sha256');
-for(const name of ['icons.js','menu-position.js','menu.css','controls.css','selection.css']){digest.update(name+'\0');digest.update(fs.readFileSync('shared/ui/'+name));}
+for(const name of ['icons.js','menu-position.js','menu.css','controls.css','selection.css','save-feedback.js','accessibility.css']){digest.update(name+'\0');digest.update(fs.readFileSync('shared/ui/'+name));}
 assert.equal(metadata.shared_ui_sha256,digest.digest('hex'));
 let previous;
 for(const directory of ['next','mosaic']){
@@ -11,7 +11,7 @@ for(const directory of ['next','mosaic']){
  const block=js.slice(js.indexOf('/* IM_SHARED_UI_BEGIN'),js.indexOf('/* IM_SHARED_UI_END */'));
  if(previous)assert.equal(block,previous);previous=block;
  const css=fs.readFileSync(directory+'/'+/href="\.\/([^"?]+\.css)/.exec(html)[1],'utf8');
- for(const name of ['menu.css','controls.css','selection.css'])assert.ok(css.includes(fs.readFileSync('shared/ui/'+name,'utf8')));
+ for(const name of ['menu.css','controls.css','selection.css','accessibility.css'])assert.ok(css.includes(fs.readFileSync('shared/ui/'+name,'utf8')));
  assert.ok(js.includes('ui-tag-panel')&&js.includes('ui-action-panel'));
 }
 console.log('PASS: both editors bundle identical shared menu vectors/styles and top controls; tag and action panels share the same source');

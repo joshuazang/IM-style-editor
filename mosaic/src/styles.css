@@ -306,7 +306,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .appearance-choice:hover{background:var(--accent-soft)}
 .appearance-choice[aria-pressed=true]{border:2px solid var(--accent);padding:11px;box-shadow:0 0 0 1px var(--accent)}
 .appearance-choice-label{font-weight:600}
-.appearance-choice-label small{display:block;margin-top:4px;font-size:12px;font-weight:400;color:var(--muted)}
+.appearance-choice-label small{display:block;margin-top:4px;font-size:12px;font-weight:400;color:inherit}
 .palette-preview{display:grid;place-items:center;width:48px;height:42px;flex:none;border:1px solid #0002;border-radius:9px;background:#f8f9f5}
 .palette-preview>span{width:28px;height:24px;border-radius:4px;background:#fff;border:1px solid #dfe5dd;box-shadow:0 2px 5px #0001}
 .palette-preview.paper{background:#f7f8fa}.palette-preview.paper>span{border-color:#dadce0}
@@ -326,3 +326,13 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
  :root[data-mosaic-palette=sand]{--canvas:#24201c;--surface:#302a24;--ink:#f2e9df;--muted:#c3b3a3;--line:#51463a;--accent:#e5c19c;--accent-soft:#4e3b2a;--frost:#302a24cc}
  .board-search-panel .tag-chip{border-color:var(--line)}
 }
+.tag-arrange-list{display:flex;flex-direction:column;gap:6px;max-height:50dvh;overflow:auto;padding:3px}
+.tag-arrange-row{display:grid;grid-template-columns:minmax(36px,1fr) repeat(4,44px);align-items:center;gap:4px;border-bottom:1px solid var(--line);padding:3px 0}
+.tag-arrange-row.tag-arrange-untagged{grid-template-columns:minmax(0,1fr) repeat(2,44px)}
+.tag-arrange-row .icon-button{width:44px;height:44px}
+.tag-arrange-row>.icon-button:nth-of-type(-n+2)>svg{transform:rotate(90deg)}
+.tag-arrange-symbol{display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:20px}
+.tag-arrange-untagged .tag-arrange-symbol{font-size:13px;color:var(--danger)}
+.tag-add-form{display:flex;gap:8px;margin-top:16px}.tag-add-form input{flex:1;width:100px}
+.tag-add-form input,.tag-replace-form input{border:1px solid var(--line);border-radius:10px;background:var(--surface);min-height:44px;padding:8px;font-size:16px}
+.tag-replace-form label{display:flex;align-items:center;gap:12px;margin-bottom:16px}.tag-replace-form input{width:90px}

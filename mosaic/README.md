@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.7](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.7.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.0.8](https://joshuazang.github.io/IM-style-editor/Mosaic-1.0.8.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -29,6 +29,12 @@ This is the current note's board, rather than an account-wide dashboard.
   transparent and does not intercept touches on cards underneath.
   In night appearance, their foreground and frosted surface follow the palette
   and remain legible over both bright and dark cards.
+- Cmd/Ctrl+F opens the board's whole-note search and selects its query. An open
+  card keeps normal editing keyboard behavior.
+- More → **Arrange tags** adds, replaces, merges, deletes and reorders emoji
+  categories for this note. Replacing with an existing tag merges the categories.
+  Confirmed deletion removes that tag from every card and keeps all cards/text.
+  Untagged is movable and defaults to last. Both editors share these commands.
 - A constant bottom “Take a note…” field. Enter adds a card and reveals it while keeping
   focus; Shift+Enter inserts a newline. Clicking outside also adds the card.
   IME confirmation keys finish composition rather than sending early.
@@ -78,6 +84,11 @@ Adding a card can replace a waiting draft-only write with the final card write.
 Input clears only after acknowledgment, and a late acknowledgment cannot clear
 newer typing.
 
+Fast saves stay quiet. A pending save shows **Saving…** after 300ms and briefly
+**Saved** after acknowledgment. This visual delay does not delay saving. Saved
+means the Standard Notes app accepted it; the app reports cloud sync separately.
+Failed saves keep Retry and conflicts offer Review.
+
 Rejected saves remain available when switching away and back in the same live
 editor. Retry saves that retained version. A conflicting host version pauses
 waiting writes and offers both texts for review. An already-sent request cannot
@@ -117,6 +128,10 @@ selection mode and the main menu rather than the card's context menu.
 
 Each actual save still submits the whole note to Standard Notes. Caching and
 virtual previews reduce local work, but cannot eliminate large-note sync limits.
+Scrolling searches sorted column positions for nearby cards instead of scanning
+the whole board. Prepared text and tag totals are reused until messages change;
+font/width changes refresh geometry. These caches stay only in working memory.
+Changes to messages or geometry can still rebuild the matching layout.
 
 ## Privacy and encryption
 

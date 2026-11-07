@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.1.11](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.0.7](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.1.12](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.0.8](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -121,3 +121,16 @@ unused theme loading, and bounds preference callbacks independently for selectio
 and the timer. Mosaic 1.0.7 fixes dark header contrast while retaining frost and
 transparent surrounding strips. Format 3 and the storage/encryption channel are
 unchanged. See [release validation](docs/release-4.1.11-mosaic-1.0.7.md).
+
+IM 4.1.12 gives selection rows separate 44px touch targets. Taps stay bound to
+the original message; dragging and cancelled gestures do not select a neighbor.
+Both editors improve keyboard focus and control contrast, and show quiet saving
+feedback after 300ms. This delays only the label: drafts still save immediately.
+Failed saves retain their existing Retry warning and conflicts retain Review.
+
+Mosaic 1.0.8 adds focused Cmd/Ctrl+F search and **More → Arrange tags**, using
+the same add, replace/merge, confirmed delete and reorder commands as IM.
+Untagged remains movable and defaults to last. Message text stays intact.
+Board scrolling uses indexed columns, while search text and tag totals reuse
+RAM-only prepared data. Actual saves still submit the full note. See
+[release validation](docs/release-4.1.12-mosaic-1.0.8.md).

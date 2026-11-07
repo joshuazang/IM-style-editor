@@ -2,7 +2,7 @@
 
 `shared/core` is the only modern source for the format-3 parser/writer, save
 queue, host metadata helpers, message interchange, clipboard compatibility,
-text-field defaults and reply records. `next/src` contains the IM interface;
+text-field defaults, reply records and tag-management commands. `next/src` contains the IM interface;
 `mosaic/src` contains the Mosaic interface. Root `src` and root `index.html`
 belong to the independent format-2 Archive, which is not migrated.
 
@@ -10,6 +10,8 @@ belong to the independent format-2 Archive, which is not migrated.
 compact toolbar styles and selection controls. `menu-position.js` supplies the
 same touch clearance and viewport fitting to both interfaces; `selection.css`
 and the selection vectors keep their top actions and bottom fields aligned.
+The shared save-feedback controller delays only the visual pending label, and
+common accessibility styles supply focus rings and separate control targets.
 These sources are compiled into both interfaces, with
 its own SHA-256 recorded in `editors-release.json` and generated page metadata.
 Interface action handlers remain in their respective source trees. A shared

@@ -64,7 +64,6 @@ function imShowReply({reply,messages,noteId,scroller,composer,clearFilters,notic
 }
 
 /* Untagged is a filter, never a message reaction. */
-const imUntagged='__im_untagged__';
 function ImUntaggedIcon(){return x.jsxs('svg',{className:'untagged-icon',width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,children:[x.jsx('path',{d:'M4 9V5a2 2 0 0 1 2-2h8l7 7a2 2 0 0 1 0 3l-7 7a2 2 0 0 1-3 0l-4-4M3 3l18 18'}),x.jsx('circle',{cx:10,cy:7,r:1})]})}
 function imPinIds(settings){return [...new Set((Array.isArray(settings.pinnedMessageIds)?settings.pinnedMessageIds:settings.pinnedMessageId?[settings.pinnedMessageId]:[]).filter(id=>typeof id==='string'))]}
 function imPinSettings(settings,messages){const next={...settings};const ids=imPinIds(settings).filter(id=>!messages||messages.some(message=>message.id===id));delete next.pinnedMessageId;if(ids.length)next.pinnedMessageIds=ids;else delete next.pinnedMessageIds;return next}
@@ -76,7 +75,7 @@ function ImPinIcon({list=false,unpin=false,filled=false}){
   x.jsx('g',{transform:list?'translate(6 1) scale(.9)':undefined,children:x.jsx('path',{d:pin})}),
   unpin&&x.jsx('path',{d:'M4 3 23 22',strokeWidth:2.1})]})
 }
-function imFilterOrder(tags,position){const order=tags.filter(tag=>tag!==imUntagged);const index=Number.isInteger(position)?Math.max(0,Math.min(position,order.length)):order.length;return [...order.slice(0,index),imUntagged,...order.slice(index)]}
+
 
 function ImPinnedPreview({messages,show,openList}){
  const [index,setIndex]=dt.useState(0);const current=Math.min(index,messages.length-1),message=messages[current];

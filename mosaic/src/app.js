@@ -17,6 +17,7 @@ const viewMemory=new Map(), unfinishedEdits=new Map();
 const retainedSessions=new Map(), transferMarks=new Map();
 const editKey=(uuid,id)=>JSON.stringify([uuid,id]);
 function latestUnfinished(uuid){let latest;for(const entry of unfinishedEdits.values())if(entry.noteId===uuid)latest=entry;return latest;}
+const saveFeedback=new ImSaveFeedback(()=>renderStatus());
 const dark=matchMedia('(prefers-color-scheme: dark)');
 const pf=new MosaicRelay({targetWindow:window,options:{coallesedSaving:false,acceptsThemes:false},onReady:()=>{
   const saved=pf.getComponentDataValueForKey('mosaicSelectionsV1');
@@ -186,9 +187,11 @@ function update(s, change, redraw=true) {
 }
 function retrySave() {if(active)safeRun(()=>persist(active));}
 function renderStatus() {
-  const node=$('save-status');node.classList.toggle('saving',!!active?.pending);
-  node.textContent=!active?'Open in Standard Notes':active.demo?'Preview · not saved':active.error?'Save needs attention':active.remote?'Review changes':active.pending?'Saving…':active.damaged?'Read only':'Saved';
-  node.hidden=!active?.pending&&!active?.error&&!active?.remote&&!active?.demo;
+  const node=$('save-status'),s=active;
+  const text=saveFeedback.update(s?.note.uuid,!!s?.pending,!!(s?.error||s?.remote||s?.damaged||s?.deleted||s?.view.selecting));
+  node.classList.add('ui-save-feedback');node.classList.toggle('saving',text==='Saving…');
+  node.textContent=s?.demo?'Preview · not saved':text;node.hidden=!node.textContent;
+  node.title=text==='Saved'?'Accepted by Standard Notes':'';
 }
 function renderNotice() {
   const box=$('notice');box.replaceChildren();const s=active;box.hidden=true;if(!s)return;
@@ -235,7 +238,7 @@ function submitCapture(s=active,tag=s?.view.tag){
   let saving;
   try{saving=update(s,{messages:[...s.messages,message],draft:'',reply:null});}
   catch(error){s.submission=null;throw error;}
-  const placed=layout.items.find(item=>item.message.id===message.id);
+  const placed=layout.byId?.get(message.id);
   if(placed){
     const origin=board.getBoundingClientRect().top-viewport.getBoundingClientRect().top+viewport.scrollTop;
     viewport.scrollTo({top:Math.max(0,origin+placed.y-64),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
@@ -286,20 +289,19 @@ function rebuildLayout() {
   for(const heading of layout.headings){const node=el('div','section-heading',heading.label);node.style.top=heading.y+'px';board.append(node);}
   const filtered=active&&(active.view.query||active.view.tag||active.view.pinned);
   $('empty').hidden=!active||!!layout.count||active.damaged||!filtered;
-  if(anchor){const next=layout.items.find(p=>p.message.id===anchor.id);if(next)viewport.scrollTop+=next.y-anchor.y;}
+  if(anchor){const next=layout.byId?.get(anchor.id);if(next)viewport.scrollTop+=next.y-anchor.y;}
   renderWindow();
 }
 function findAnchor() {
   const top=viewport.getBoundingClientRect().top,origin=board.getBoundingClientRect().top;
-  const item=layout.items.find(p=>p.y+origin+p.height>top&&p.y+origin<top+viewport.clientHeight);
+  const item=MosaicModel.visible(layout,top-origin,top-origin+viewport.clientHeight).find(p=>p.y+origin+p.height>top&&p.y+origin<top+viewport.clientHeight);
   return item?{id:item.message.id,y:item.y}:null;
 }
 function scheduleWindow() {if(!frame)frame=requestAnimationFrame(()=>{frame=0;renderWindow();});}
 function renderWindow() {
   const top=viewport.getBoundingClientRect().top-board.getBoundingClientRect().top,low=top-550,high=top+viewport.clientHeight+550,fontSize=MosaicModel.appearance(active?.settings).fontSize;
   const visible=new Set(),measurements=[];
-  for(const item of layout.items){
-    if(item.y+item.height<low||item.y>high)continue;
+  for(const item of MosaicModel.visible(layout,low,high)){
     visible.add(item.message.id);
     let node=mounted.get(item.message.id);
     if(!node){node=cardNode(item.message);mounted.set(item.message.id,node);board.append(node);}
@@ -318,12 +320,15 @@ function renderWindow() {
     if(measured&&height!==item.height)changed=true;
   }
   if(changed){
-    const anchor=findAnchor(),s=active;
+    const anchor=findAnchor(),s=active,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
     layout=MosaicModel.layout(s.messages,s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting);
     board.style.height=layout.height+'px';
     for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
-    for(const item of layout.items){const node=mounted.get(item.message.id);if(node)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
-    if(anchor&&!s.locatedId){const next=layout.items.find(item=>item.message.id===anchor.id);if(next&&Math.abs(next.y-anchor.y)>.5)viewport.scrollTop+=next.y-anchor.y;}
+    for(const [id,node] of mounted){const item=layout.byId.get(id);if(item)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
+    if(!s.locatedId){
+      if(atBottom)viewport.scrollTop=viewport.scrollHeight;
+      else if(anchor){const next=layout.byId.get(anchor.id);if(next&&Math.abs(next.y-anchor.y)>.5)viewport.scrollTop+=next.y-anchor.y;}
+    }
     scheduleWindow();
   }
 }
@@ -345,7 +350,7 @@ function renderSearchControls() {
 }
 function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
 function cardNode(message) {
-  const s=active,parts=MosaicModel.split(message.text),pinned=MosaicModel.pins(s.settings).includes(message.id);
+  const s=active,parts=MosaicModel.preview(message),pinned=MosaicModel.pins(s.settings).includes(message.id);
   const node=el('article','card'+(pinned?' is-pinned':'')+(s.view.selected.has(message.id)?' selected':''));
   if(s.locatedId===message.id)node.classList.add('located');
   const color=MosaicModel.color(message,dark.matches);node.style.setProperty('--card-color',color.background);node.style.setProperty('--card-ink',color.ink);
@@ -364,7 +369,8 @@ function cardNode(message) {
   bindContextMenu(node,event=>{const current=s.messages.find(m=>m.id===message.id);if(current)cardMenu(current,event);},()=>active===s&&!s.view.selecting);
   return node;
 }
-function toggleSelection(id) {const v=active.view;v.selecting=true;searchOpen=false;v.selected.has(id)?v.selected.delete(id):v.selected.add(id);rememberSelection();renderAll();}
+function toggleSelection(id) {const v=active.view,entering=!v.selecting;v.selecting=true;searchOpen=false;v.selected.has(id)?v.selected.delete(id):v.selected.add(id);rememberSelection();if(entering)renderAll();else{refreshSelectionCards();renderSelection();}}
+function refreshSelectionCards(){for(const [id,node] of mounted){const selected=active.view.selected.has(id);node.classList.toggle('selected',selected);const check=node.querySelector('.selection-check');if(check){check.replaceChildren();if(selected)check.append(mosaicIcon('check'));}const message=layout.byId?.get(id)?.message;if(message)node.setAttribute('aria-label',(selected?'Selected: ':'Select: ')+(MosaicModel.preview(message).title||'Untitled card'));}}
 function startSelection(id) {active.view.selecting=true;searchOpen=false;if(id)active.view.selected.add(id);rememberSelection();renderAll();}
 function cancelSelection() {if(!active)return;active.view.selecting=false;active.view.selected.clear();rememberSelection();renderAll();}
 function selectedRecords() {return active.messages.filter(m=>active.view.selected.has(m.id));}
@@ -376,7 +382,7 @@ function renderSelection() {
     ['delete','Delete selected',()=>deleteCards(s,new Set(s.view.selected))]];
   for(const [kind,label,action] of choices){const control=button(label,null,action,'ui-selection-action'+(kind==='delete'?' selection-delete':''));control.replaceChildren(mosaicIcon(kind,true));control.disabled=!count||!writable(s);controls.append(control);}
   toolbar.append(controls);
-  const all=button('Select all','selectAll',()=>{for(const item of layout.items)s.view.selected.add(item.message.id);rememberSelection();renderAll();},'selection-all');
+  const all=button('Select all','selectAll',()=>{for(const item of layout.items)s.view.selected.add(item.message.id);rememberSelection();refreshSelectionCards();renderSelection();},'selection-all');
   const description=el('span','selection-description',`${count} / ${s.messages.length} selected`);description.setAttribute('role','status');
   const cancel=button('Cancel selection',null,cancelSelection,'selection-cancel');cancel.replaceChildren(mosaicIcon('cancel',true));bar.append(all,description,cancel);
   syncOverlayMetrics();
@@ -470,8 +476,58 @@ function mainMenu(event) {
   if(!active)return;const s=active;searchOpen=false;renderSearchControls();
   showMenu([['Import from clipboard','import',()=>importDialog()],['Export all cards','export',()=>exportRecords(s,s.messages)],['Select cards','select',()=>startSelection()],
     ['Clear message statuses','select',()=>statusDialog(null)],['Clear clipboard','trash',()=>clearClipboardDialog()],null,
-    ['Color palette','palette',()=>appearanceDialog('palette')],['Font size','textSize',()=>appearanceDialog('fontSize')],null,
+    ['Color palette','palette',()=>appearanceDialog('palette')],['Font size','textSize',()=>appearanceDialog('fontSize')],['Arrange tags','tag',()=>arrangeTagsDialog()],null,
     ...(latestUnfinished(s.note.uuid)?[['Resume unfinished edit','edit',()=>editCard(latestUnfinished(s.note.uuid).id)]]:[]),['About Mosaic','info',()=>aboutDialog()]],event);
+}
+function arrangeTagsDialog(){
+  const s=active,d=openModal('tags','Arrange tags'),list=el('div','tag-arrange-list');d.root.append(list);
+  const form=el('form','tag-add-form'),input=el('input');input.placeholder='Add an emoji';input.maxLength=32;input.required=true;input.setAttribute('aria-label','Add an emoji category');
+  const add=button('Add emoji',null,()=>{},'secondary-button');add.type='submit';form.append(input,add);d.root.append(form);
+  actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
+  const valid=()=>active===s&&modalState===d&&writable(s);
+  async function save(change,filter){
+    if(d.busy||!valid())return;
+    const focusLabel=document.activeElement?.getAttribute('aria-label'),focusInput=document.activeElement===input;
+    d.busy=true;for(const node of d.root.querySelectorAll('button,input'))node.disabled=true;
+    if(filter!==undefined)s.view.tag=filter;
+    try{await update(s,change);if(modalState===d){input.value='';if(d.error){d.error.remove();d.error=null;}}}
+    catch{dialogError(d,'Saving was not confirmed. Your tag changes are retained; close this panel and use Retry save.');}
+    finally{d.busy=false;if(modalState===d){
+      for(const node of d.root.querySelectorAll('button,input'))node.disabled=false;render();
+      const focused=focusInput&&!input.disabled?input:[...d.root.querySelectorAll('button')].find(node=>!node.disabled&&node.getAttribute('aria-label')===focusLabel);
+      (focused||d.root.querySelector('.dialog-actions button'))?.focus({preventScroll:true});
+    }}
+  }
+  function render(){
+    list.replaceChildren();const order=imFilterOrder(MosaicModel.tags(s.messages,s.settings),s.settings.untaggedPosition);
+    for(const [index,tag] of order.entries()){
+      const untagged=tag===imUntagged,label=untagged?'Untagged':tag,row=el('div','tag-arrange-row'+(untagged?' tag-arrange-untagged':''));
+      const symbol=el('span','tag-arrange-symbol');if(untagged){symbol.append(mosaicIcon('untagged'),document.createTextNode('Untagged'));}else symbol.textContent=tag;row.append(symbol);
+      for(const [delta,name,icon] of [[-1,'earlier','back'],[1,'later','arrow']]){
+        const move=button('Move '+label+' '+name,icon,()=>safeRun(()=>save({settings:imEmojiMove(s.messages,s.settings,tag,delta)})),'icon-button');move.disabled=!writable(s)||(delta===-1?index===0:index===order.length-1);row.append(move);
+      }
+      if(!untagged)row.append(button('Edit '+tag,'edit',()=>replaceEmojiDialog(tag),'icon-button'),button('Delete '+tag,'trash',()=>{
+        const count=MosaicModel.index(s.messages).counts.get(tag)||0;
+        if(window.confirm(`Remove ${tag} from this note’s menu and ${count} card${count===1?'':'s'}? All cards and their text will be kept.`))safeRun(()=>save(imEmojiChange(s.messages,s.settings,tag),s.view.tag===tag?'':undefined));
+      },'icon-button danger'));
+      if(!writable(s))for(const control of row.querySelectorAll('button'))control.disabled=true;list.append(row);
+    }
+    input.disabled=add.disabled=!writable(s);
+  }
+  form.addEventListener('submit',event=>{event.preventDefault();try{const settings=imEmojiAdd(s.messages,s.settings,input.value);safeRun(()=>save({settings}));}catch(error){dialogError(d,error.message);}});render();
+}
+function replaceEmojiDialog(from){
+  const s=active,d=openModal('replace-tag','Replace emoji'),form=el('form','tag-replace-form'),label=el('label','',`Replace ${from} with`),input=el('input');input.value=from;input.maxLength=32;input.required=true;input.setAttribute('aria-label','Replacement emoji');label.append(input);form.append(label);
+  const count=MosaicModel.index(s.messages).counts.get(from)||0;form.append(el('p','dialog-help',`Updates tags on ${count} card${count===1?'':'s'}. All text and other tags stay unchanged.`));d.root.append(form);
+  const row=el('div','dialog-actions'),cancel=button('Cancel emoji change',null,()=>arrangeTagsDialog(),'secondary-button'),save=button('Save emoji change',null,()=>{},'primary-button');save.type='submit';row.append(cancel,save);form.append(row);
+  form.addEventListener('submit',event=>{event.preventDefault();safeRun(async()=>{
+    if(d.busy||active!==s||modalState!==d||!writable(s))return;
+    let to,change;try{to=imEmojiValue(input.value);change=imEmojiChange(s.messages,s.settings,from,to);}catch(error){dialogError(d,error.message);return;}d.busy=true;save.disabled=cancel.disabled=input.disabled=true;
+    if(s.view.tag===from)s.view.tag=to;
+    try{await update(s,change);if(active===s&&modalState===d)arrangeTagsDialog();}
+    catch{dialogError(d,'Saving was not confirmed. Your change is retained; close this panel and use Retry save.');}
+    finally{d.busy=false;if(modalState===d){cancel.disabled=false;save.disabled=input.disabled=!writable(s);}}
+  });});input.focus();input.select();
 }
 function appearanceDialog(kind) {
   const s=active,key=kind==='palette'?'mosaicPalette':'mosaicFontSize',d=openModal('appearance',kind==='palette'?'Color palette':'Font size');
@@ -617,7 +673,7 @@ function replyTo(id) {
 function jumpTo(reply) {
   const s=active,target=MosaicModel.target(s.messages,reply,s.note.uuid);if(!target){notify('The original message is not in this note. The quoted text is still preserved.');return;}
   s.view.query='';s.view.tag='';s.view.pinned=false;$('search').value='';renderAll();
-  const item=layout.items.find(p=>p.message.id===target.id);if(!item)return;
+  const item=layout.byId?.get(target.id);if(!item)return;
   const origin=board.getBoundingClientRect().top-viewport.getBoundingClientRect().top+viewport.scrollTop;
   const bounds=viewport.getBoundingClientRect(),top=Math.max(bounds.top,document.querySelector('.board-toolbar').getBoundingClientRect().bottom+12),bottom=Math.min(bounds.bottom,$(s.view.selecting?'selection-bar':'capture-composer').getBoundingClientRect().top-12);
   viewport.scrollTop=origin+item.y-(top-bounds.top)-Math.max(0,(bottom-top-item.height)/2);renderWindow();
@@ -803,6 +859,9 @@ document.addEventListener('pointerdown',event=>{
   if(searchOpen&&!event.target.closest('#search-tags-panel,.board-toolbar')){searchOpen=false;renderSearchControls();}
 });
 document.addEventListener('keydown',event=>{
+  if(!event.defaultPrevented&&!event.isComposing&&active&&!modal.open&&!active.view.selecting&&(event.metaKey||event.ctrlKey)&&!event.altKey&&!event.shiftKey&&event.key.toLowerCase()==='f'){
+    event.preventDefault();searchOpen=true;hideMenu();renderSearchControls();$('search').focus();$('search').select();return;
+  }
   if(event.key==='Escape'){
     if(!menu.hidden){event.preventDefault();hideMenu();return;}
     if(modal.open)return;

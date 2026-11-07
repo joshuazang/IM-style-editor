@@ -11,7 +11,7 @@ const blocks=appFiles.map(path=>{
  return block;
 });
 assert.equal(blocks[0],blocks[1],'The two shipped interfaces must contain the identical shared core');
-const names=['note-format.js','host-bridge.js','note-storage.js','message-transfer.js','privacy.js','clipboard.js','reply-record.js'];
+const names=['note-format.js','host-bridge.js','note-storage.js','message-transfer.js','privacy.js','clipboard.js','reply-record.js','emoji-tags.js'];
 const digest=crypto.createHash('sha256');
 for(const name of names){
  assert.ok(!fs.existsSync('next/src/'+name)&&!fs.existsSync('mosaic/src/'+name),'No independent modern core copy: '+name);
