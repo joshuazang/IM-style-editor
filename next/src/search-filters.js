@@ -8,7 +8,7 @@ function ImSearchRow({query,change,disabled,dateFilter,setDateFilter,dateOpen,se
  const range=imDateRange(dateFilter);
  return x.jsxs(x.Fragment,{children:[
   x.jsxs('div',{className:'ui-search-row',children:[x.jsx('input',{value:query,onChange:e=>change(e.target.value),placeholder:'Search this note','aria-label':'Search messages',disabled}),x.jsx('button',{type:'button',className:'ui-search-filters','aria-label':'Date filters',title:'Date filters','aria-expanded':dateOpen,'aria-pressed':range.active,'aria-controls':'date-filters',onClick:()=>setDateOpen(!dateOpen),children:x.jsx(ImToolbarIcon,{name:'filters'})})]}),
-  range.active&&x.jsx('p',{className:'ui-date-summary',children:range.label}),
+  range.active&&x.jsxs('p',{className:'ui-date-summary',children:[x.jsx('span',{children:range.label}),x.jsx('button',{type:'button',className:'ui-date-clear','aria-label':'Clear date filter',title:'Clear date filter',onClick:()=>{setDateFilter({preset:'all'});setDateOpen(false);requestAnimationFrame(()=>document.querySelector('[aria-label="Search messages"]')?.focus({preventScroll:true}))},children:x.jsx(ImToolbarIcon,{name:'cancel'})})]}),
   dateOpen&&x.jsx(ImDateFilters,{value:dateFilter,apply:setDateFilter,close:()=>setDateOpen(false)})
  ]});
 }

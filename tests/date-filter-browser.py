@@ -38,19 +38,23 @@ try:
      expected={data['messages'][i]['id'] for i in indexes}
      page.wait_for_timeout(70);assert ids()==expected,(mosaic,width,indexes,ids(),expected)
     open_search();button=e.get_by_role('button',name='Date filters',exact=True);svg=button.locator('svg');assert svg.locator('circle').count()==2;assert svg.locator('path').count()==1;vectors.append(svg.inner_html())
-    row=button.locator('..');assert button.bounding_box()['x']>row.locator('input').bounding_box()['x']+row.locator('input').bounding_box()['width']
+    row=button.locator('..');field=open_search();field.focus();assert row.evaluate('n=>getComputedStyle(n).boxShadow')=='rgb(32, 33, 36) 0px 0px 0px 1px';assert row.evaluate('n=>getComputedStyle(n).borderTopColor')=='rgb(32, 33, 36)';assert row.evaluate('n=>getComputedStyle(n).backdropFilter')==('none' if mosaic else 'blur(10px)');assert e.locator('.ui-date-summary:visible').count()==0;assert button.bounding_box()['x']>row.locator('input').bounding_box()['x']+row.locator('input').bounding_box()['width']
     if mosaic:assert e.locator('#search-icon').count()==0
     base=button.evaluate('n=>getComputedStyle(n).backgroundColor');button.hover();assert button.evaluate('n=>getComputedStyle(n).backgroundColor')!=base
-    for name,indexes in [('Today',[0,1]),('Yesterday',[2]),('Last 7 days',[0,1,2,3]),('Last 30 days',[0,1,2,3,4,5]),('All dates',list(range(8)))]:choose(name);expect_ids(indexes)
+    for name,indexes in [('Today',[0,1]),('Yesterday',[2]),('Last 7 days',[0,1,2,3]),('Last 30 days',[0,1,2,3,4,5])]:choose(name);expect_ids(indexes)
+    e.get_by_role('button',name='Clear date filter',exact=True).click();expect_ids(range(8));assert e.locator('.ui-date-summary:visible').count()==0
+    choose('Exact date');assert e.get_by_role('button',name='All dates',exact=True).count()==0;assert e.get_by_label('From date',exact=True).is_hidden();single=e.get_by_label('Date',exact=True);expect(single).to_be_visible();single.fill('2026-11-06');
+    if width==390:page.screenshot(path='/tmp/exact-date-'+('mosaic' if mosaic else 'im')+'.png')
+    e.get_by_role('button',name='Apply date filter',exact=True).click();expect_ids([2]);e.get_by_role('button',name='Clear date filter',exact=True).click();expect_ids(range(8))
     choose('Custom range');start=e.get_by_label('From date',exact=True);end=e.get_by_label('To date',exact=True);start.fill('2026-11-08');end.fill('2026-11-06');e.get_by_role('button',name='Apply date filter',exact=True).click();expect(e.get_by_role('alert').filter(has_text='From date must')).to_be_visible();expect_ids(range(8))
     start.fill('2026-11-06');end.fill('2026-11-07');e.get_by_role('button',name='Apply date filter',exact=True).click();expect_ids([0,1,2]);expect(e.locator('.ui-date-summary')).to_contain_text('Nov 6')
-    open_search().fill('Date item 0');expect_ids([0]);choose('All dates');expect_ids([0])
+    open_search().fill('Date item 0');expect_ids([0]);e.get_by_role('button',name='Clear date filter',exact=True).click();expect(open_search()).to_be_focused();expect_ids([0])
     e.get_by_role('button',name='Clear all filters',exact=True).click();expect_ids(range(8))
     choose('Today');expect_ids([0,1]);e.get_by_role('button',name='Clear all filters',exact=True).click();expect_ids(range(8))
     open_search();e.get_by_role('button',name='Date filters',exact=True).click();expect(e.get_by_role('group',name='Date filters',exact=True)).to_be_visible()
     if width==390:page.screenshot(path='/tmp/date-filters-'+('mosaic' if mosaic else 'im')+'.png')
     page.evaluate('switchNote("b")');page.wait_for_timeout(100);open_search();expect(e.get_by_role('group',name='Date filters',exact=True)).not_to_be_visible();expect_ids(range(8))
     assert page.evaluate('saves.length')==0;assert page.evaluate('notes.a.content.text')==data['note']['content']['text']
-   assert vectors[0]==vectors[1];assert not errors,errors;print(f'PASS {width}px: shared right-edge two-slider SVG/hover, original-date presets, DST week, inclusive custom ranges, invalid-range retention, query intersection, clearing and note isolation; zero note writes',flush=True);context.close()
+   assert vectors[0]==vectors[1];assert not errors,errors;print(f'PASS {width}px: shared two-slider control, precise black focus with IM-only frost, hidden no-filter state, exact date, date presets, DST week, inclusive custom ranges, invalid-range retention, query intersection, clearing and note isolation; zero note writes',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

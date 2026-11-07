@@ -8,6 +8,7 @@ const week=date('week');assert.equal(week.start,Date.parse('2026-11-01T04:00:00Z
 assert.equal(date('yesterday').start,Date.parse('2026-11-06T05:00:00Z'));assert.equal(date('month').start,Date.parse('2026-10-09T04:00:00Z'));
 const fall=api.range({preset:'today'},new Date('2026-11-01T17:00:00Z'));assert.equal((fall.end-fall.start)/3600000,25);
 const spring=api.range({preset:'today'},new Date('2026-03-08T17:00:00Z'));assert.equal((spring.end-spring.start)/3600000,23);
+const exact=date('day',{date:'2026-11-01'});assert.equal(exact.start,fall.start);assert.equal(exact.end,fall.end);assert.equal((exact.end-exact.start)/3600000,25);assert.ok(date('day').error);assert.ok(date('day',{date:'2026-02-30'}).error);
 const custom=date('custom',{from:'2026-11-01',to:'2026-11-01'});assert.equal(custom.start,fall.start);assert.equal(custom.end,fall.end);
 assert.ok(date('custom',{from:'2026-11-08',to:'2026-11-07'}).error);assert.ok(date('custom',{from:'2026-02-30'}).error);assert.ok(date('custom').error);
 assert.ok(!date('custom',{from:'2026-11-07'}).error);assert.equal(date('custom',{to:'2026-11-07'}).end,today.end);

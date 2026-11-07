@@ -370,11 +370,13 @@ function renderSearchControls() {
 function renderDateControls(){
  const range=imDateRange(active?.view.dateFilter);$('date-filter-button').setAttribute('aria-pressed',String(range.active));
  if(!searchOpen)dateOpen=false;
- $('date-filter-button').setAttribute('aria-expanded',String(dateOpen));$('date-summary').hidden=!range.active;$('date-summary').textContent=range.active?range.label:'';
+ $('date-filter-button').setAttribute('aria-expanded',String(dateOpen));$('date-summary').hidden=!range.active;$('date-summary-label').textContent=range.active?range.label:'';
  const holder=$('date-panel');holder.hidden=!dateOpen;
  if(!dateOpen)holder.replaceChildren();
  else if(!holder.firstChild){const session=active;holder.append(imCreateDateFilterPanel({value:session?.view.dateFilter,onApply:value=>{if(active!==session)return;session.view.dateFilter=value;viewport.scrollTop=0;renderAll();},onClose:()=>{dateOpen=false;renderDateControls();}}));}
 }
+$('clear-date-filter').append(mosaicToolbarIcon('cancel'));
+$('clear-date-filter').addEventListener('click',()=>{if(!active)return;active.view.dateFilter={preset:'all'};dateOpen=false;viewport.scrollTop=0;renderAll();$('search').focus({preventScroll:true});});
 $('date-filter-button').append(mosaicToolbarIcon('filters'));
 $('date-filter-button').addEventListener('click',()=>{dateOpen=!dateOpen;renderDateControls();});
 function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
