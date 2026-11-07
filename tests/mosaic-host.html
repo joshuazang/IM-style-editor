@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Synthetic Standard Notes host</title></head><body>
+<script>
+window.notes={};window.saves=[];window.subscription=null;window.editor=null;window.activeUuid=null;
+window.rejectSaves=false;window.holdAck=false;window.acks=[];window.preferences={};window.mobile=false;
+window.releaseAcks=()=>{const current=acks.splice(0);for(const send of current)send();};
+window.openEditor=(uuid,path='/mosaic/index.html',isMobile=false)=>{
+  activeUuid=uuid;mobile=isMobile;subscription=null;editor?.remove();
+  editor=document.createElement('iframe');editor.id='editor';editor.src=path;
+  editor.setAttribute('sandbox','allow-scripts allow-forms allow-modals');
+  editor.style='position:fixed;inset:0;width:100%;height:100%;border:0';
+  editor.addEventListener('load',()=>editor.contentWindow.postMessage({action:'component-registered',sessionKey:'synthetic-session',componentData:structuredClone(preferences),data:{uuid:'synthetic-component',environment:isMobile?'mobile':'web',platform:isMobile?'ios':'web',activeThemeUrls:[]}},'*'));
+  document.body.append(editor);
+};
+window.stream=(item)=>{if(subscription)editor.contentWindow.postMessage({action:'reply',original:subscription,data:{item:structuredClone(item)}},'*');};
+window.switchNote=uuid=>{activeUuid=uuid;stream(notes[uuid]);};
+window.addEventListener('message',event=>{
+  if(!editor||event.source!==editor.contentWindow)return;
+  let message=event.data;if(typeof message==='string'){try{message=JSON.parse(message);}catch{return;}}
+  if(!message||message.sessionKey!=='synthetic-session'||message.api!=='component')return;
+  const target=event.source;const reply=data=>target.postMessage({action:'reply',original:message,data},'*');
+  if(message.action==='stream-context-item'){subscription=message;reply({item:structuredClone(notes[activeUuid])});}
+  else if(message.action==='set-component-data')preferences=structuredClone(message.data.componentData);
+  else if(message.action==='save-items'){
+    if(rejectSaves){reply({error:'save-error'});return;}
+    const item=structuredClone(message.data.items[0]);notes[item.uuid]=item;saves.push(item);
+    const finish=()=>{reply({});if(item.uuid===activeUuid)stream(item);};
+    if(holdAck)acks.push(finish);else finish();
+  }
+});
+</script></body></html>

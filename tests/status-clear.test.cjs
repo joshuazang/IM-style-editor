@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const clear=vm.runInNewContext(fs.readFileSync('next/src/status-clear.js','utf8')+';imClearStatuses');
-const f=vm.runInNewContext(fs.readFileSync('next/src/note-format.js','utf8')+';imFormat',{crypto,btoa});
+const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});
 const a={id:f.newId(),text:'Keep exact text\n\n🙂',createdAt:'2026-11-01T12:00:00Z',reactions:['⭐'],copied:true,exported:true,edited:true,forwarding:{sourceNoteId:'source',sourceMessageId:f.newId()}};
 const b={...a,id:f.newId(),replyTo:{id:a.id,noteId:'current',text:a.text}};
 const original=JSON.stringify([a,b]);
@@ -10,7 +10,7 @@ for(const flag of ['copied','exported','edited'])assert.ok(!Object.hasOwn(result
 assert.equal(result[0].importedStatusCleared,true);assert.equal(result[0].forwarding,a.forwarding);assert.equal(result[0].text,a.text);assert.equal(result[0].reactions,a.reactions);
 const parsed=f.inspect(f.portable(result,{pinnedMessageIds:[a.id]},'Draft'));
 assert.equal(parsed.messages[0].importedStatusCleared,true);assert.equal(parsed.draft,'Draft');assert.equal(parsed.messages[1].replyTo.id,a.id);
-const transfer=vm.runInNewContext(fs.readFileSync('next/src/message-transfer.js','utf8')+';imTransfer',{imFormat:f});
+const transfer=vm.runInNewContext(fs.readFileSync('shared/core/message-transfer.js','utf8')+';imTransfer',{imFormat:f});
 const payload=transfer.read(transfer.create([a],{},'source'));
 const once=transfer.merge([],payload);const hidden=clear(once.messages,['imported']);
 assert.equal(transfer.merge(hidden,payload).added.length,0);

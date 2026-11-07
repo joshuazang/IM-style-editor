@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const context=vm.createContext({crypto,btoa,Ed:value=>value?.slice(0,10)||'earlier'});
-for(const file of ['note-format','message-transfer','reply-ui','message-merge'])vm.runInContext(fs.readFileSync(`next/src/${file}.js`,'utf8'),context);
+for(const file of ['shared/core/note-format','shared/core/message-transfer','shared/core/reply-record','next/src/reply-ui','next/src/message-merge'])vm.runInContext(fs.readFileSync(file+'.js','utf8'),context);
 const {imFormat:f,imMergeSelected:merge,imReplyTarget:target,imMessagesByDay:days}=vm.runInContext('({imFormat,imMergeSelected,imReplyTarget,imMessagesByDay})',context);
 const plain=value=>JSON.parse(JSON.stringify(value));
 const messages=[' A\n\n🙂 ','untouched','B\n@@IM:BUBBLE\n','C'].map((text,i)=>({id:f.newId(),text,reactions:i%2?['📓']:['⭐'],createdAt:`2026-11-0${i+1}T12:00:00Z`,copied:true,exported:true}));

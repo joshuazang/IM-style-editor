@@ -26,7 +26,7 @@ function reference(existing,payload,newId){
   return {messages,added,skipped};
 }
 let sequence=0,checks=0;
-const source=fs.readFileSync('next/src/message-transfer.js','utf8');
+const source=fs.readFileSync('shared/core/message-transfer.js','utf8');
 const context={imFormat:{newId:()=>`generated-${sequence++}`},count:()=>checks++};
 const transfer=vm.runInNewContext(source.replace('const forwarded = candidate.forwarding;','count();const forwarded = candidate.forwarding;')+';imTransfer',context);
 let seed=4567;

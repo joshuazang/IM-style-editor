@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const requests=[];let encodedBytes=0;
-const api=vm.runInNewContext(fs.readFileSync('next/src/note-storage.js','utf8')+';({save:imPersistNote,snapshot:imNoteSnapshot})',{
+const api=vm.runInNewContext(fs.readFileSync('shared/core/note-storage.js','utf8')+';({save:imPersistNote,snapshot:imNoteSnapshot})',{
   JSON:{parse:JSON.parse,stringify:value=>{const result=JSON.stringify(value);encodedBytes+=Buffer.byteLength(result);return result;}},
   pf:{jsonObjectForItem:note=>({...note,parent:null,children:null}),postMessage:(action,data,callback)=>requests.push({data,callback})},
   imReleaseHostReply:()=>{},setTimeout:()=>0,clearTimeout:()=>{}

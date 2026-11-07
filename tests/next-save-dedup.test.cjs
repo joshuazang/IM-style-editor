@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const requests=[],timers=[];const pf={sentMessages:[],jsonObjectForItem:note=>note,postMessage:(action,data,callback)=>{
   const message={action,data,messageId:String(requests.length)};api.track(pf,message,callback);requests.push({data,callback:pf.sentMessages.at(-1)?.callback});
 }};
-const api=vm.runInNewContext(fs.readFileSync('next/src/host-bridge.js','utf8')+'\n'+fs.readFileSync('next/src/note-storage.js','utf8')+';({save:imPersistNote,received:imNoteReceived,pending:imNoteSavePending,track:imTrackHostReply})',{
+const api=vm.runInNewContext(fs.readFileSync('shared/core/host-bridge.js','utf8')+'\n'+fs.readFileSync('shared/core/note-storage.js','utf8')+';({save:imPersistNote,received:imNoteReceived,pending:imNoteSavePending,track:imTrackHostReply})',{
   pf,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout:()=>{}
 });
 const note={uuid:'a',content:{text:'Host version',title:'Title',appData:{other:true}}};

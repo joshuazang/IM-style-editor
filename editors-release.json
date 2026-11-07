@@ -1,0 +1,8 @@
+{
+  "format": 3,
+  "im_version": "4.1.6",
+  "mosaic_version": "1.0.1",
+  "shared_core_sha256": "4f813d7242d7ab7d76dea706c2b70fe279a8b016f77dd475bacbdaf87c6f9778",
+  "im_manifest": "im-style-editor-next.ext.json",
+  "mosaic_manifest": "mosaic.ext.json"
+}

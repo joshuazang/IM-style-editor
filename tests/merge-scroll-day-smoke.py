@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8022')
 HOST=Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = '/index.html';","editor.src = '/next/index.html';")
-JS="""const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('next/src/note-format.js','utf8')+';imFormat',{crypto,btoa});
+JS="""const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});
 const messages=Array.from({length:180},(_,i)=>({id:f.newId(),text:`Message ${i}: `+'Keep this thought. '.repeat(i%7+1),createdAt:`2026-11-${i<90?'01':'02'}T12:00:00Z`,reactions:i%2?[]:['⭐'],copied:true,exported:true}));
 messages[2].replyTo={id:messages[0].id,noteId:'test',text:messages[0].text};
 console.log(JSON.stringify({messages,text:f.portable(messages,{bubbleTheme:'iris',reactionOrder:['⭐'],pinnedMessageIds:[messages[178].id]},'Unsent draft')}));"""

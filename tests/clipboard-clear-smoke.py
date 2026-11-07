@@ -4,6 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
+from browser_engine import chromium_options
 
 BASE = os.environ.get('IM_STYLE_EDITOR_BASE_URL', 'http://127.0.0.1:8033')
 HOST = Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = '/index.html';", "editor.src = '/next/index.html';editor.setAttribute('sandbox','allow-scripts allow-modals allow-forms allow-downloads');")
@@ -13,11 +14,11 @@ HOST = HOST.replace("const reply = data => editor.contentWindow.postMessage({act
 # The original reply string's target origin was replaced above.
 HOST = HOST.replace("const reply = data => editor.contentWindow.postMessage({action: 'reply', original: message, data}, '*');", "const target=event.source;const reply=data=>{const send=()=>target.postMessage({action:'reply',original:message,data},'*');if(holdAck&&message.action==='save-items'&&!data?.error)acks.push(send);else send()};")
 HOST += '<button id="host-focus" style="position:fixed;left:0;top:0;width:32px;height:20px;z-index:99999">Host</button>'
-JS = """const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const {f,t}=vm.runInNewContext(fs.readFileSync('next/src/note-format.js','utf8')+'\\n'+fs.readFileSync('next/src/message-transfer.js','utf8')+';({f:imFormat,t:imTransfer})',{crypto,btoa});const initial=f.portable([{id:f.newId(),text:'Keep this existing bubble',reactions:[],copied:true,exported:true}],{},'Preserve this unsent draft');const cases=Array.from({length:3},(_,i)=>t.create([{id:f.newId(),text:'Imported clipboard case '+i,reactions:[],createdAt:'2026-11-06T12:00:00Z'}],{},'source'));console.log(JSON.stringify({initial,cases}));"""
+JS = """const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const {f,t}=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+'\\n'+fs.readFileSync('shared/core/message-transfer.js','utf8')+';({f:imFormat,t:imTransfer})',{crypto,btoa});const initial=f.portable([{id:f.newId(),text:'Keep this existing bubble',reactions:[],copied:true,exported:true}],{},'Preserve this unsent draft');const cases=Array.from({length:3},(_,i)=>t.create([{id:f.newId(),text:'Imported clipboard case '+i,reactions:[],createdAt:'2026-11-06T12:00:00Z'}],{},'source'));console.log(JSON.stringify({initial,cases}));"""
 data = json.loads(subprocess.run(['node', '-e', JS], check=True, capture_output=True, text=True).stdout)
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path='/usr/bin/chromium', headless=True)
+    browser = p.chromium.launch(**chromium_options())
     for width in [320, 390, 1100]:
         context = browser.new_context(viewport={'width': width, 'height': 844})
         context.grant_permissions(['clipboard-read', 'clipboard-write'], origin=BASE)

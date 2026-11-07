@@ -23,3 +23,23 @@ function imApplyNoteMetadata(note,update){
   if(Number.isFinite(incoming)&&(!Number.isFinite(current)||incoming>=current))note.updated_at=update.updated_at;
   if(note.created_at==null&&Number.isFinite(timestamp(update.created_at)))note.created_at=update.created_at;
 }
+/* Full host items can update native fields without changing editor text. These
+ * helpers must never be used for isMetadataUpdate notifications, whose content
+ * may be an older snapshot. Derived previews continue to follow local text. */
+function imNoteNativeSignature(note){
+  const {text,preview_plain,preview_html,...content}=note.content||{};
+  return JSON.stringify({content,clientData:note.clientData},function(key,value){
+    return value&&typeof value==='object'&&!Array.isArray(value)
+      ? Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value;
+  });
+}
+function imApplyNoteNative(note,host){
+  if(!note||host?.isMetadataUpdate===true||note.uuid!==host.uuid)return;
+  const local=note.content||{},content={...host.content,text:local.text};
+  for(const name of ['preview_plain','preview_html'])if(Object.hasOwn(local,name))content[name]=local[name];
+  note.content=content;
+  if(host.clientData!==undefined)note.clientData=JSON.parse(JSON.stringify(host.clientData));
+  else delete note.clientData;
+  if(host.deleted)note.deleted=true;else delete note.deleted;
+  imApplyNoteMetadata(note,{...host,isMetadataUpdate:true});
+}

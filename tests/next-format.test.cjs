@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-const source=fs.readFileSync('next/src/note-format.js','utf8');
+const source=fs.readFileSync('shared/core/note-format.js','utf8');
 const context={crypto,btoa,parses:0,encodes:0,bubbleEncodes:0};
 const measured=source.replace('function parseDocument(text) {','function parseDocument(text) {parses++;')
   .replace('    const text=messages.map(bubble)', '    encodes++;const text=messages.map(bubble)')
@@ -65,7 +65,7 @@ assert.equal(f.inspect(changedText).messages[510].text,changed[510].text);
 assert.throws(()=>f.portable([...changed,changed[0]],settings),/duplicate/);
 assert.throws(()=>f.portable([...changed,{...changed[0],id:f.newId(),reactions:null}],settings),/metadata/);
 console.log('PASS: editing 1 of 1,000 bubbles encodes exactly 1 block; output matches a fresh serializer; full validation remains');
-const indexedTransfer=vm.runInNewContext(fs.readFileSync('next/src/message-transfer.js','utf8')+';imTransfer',{imFormat:f});
+const indexedTransfer=vm.runInNewContext(fs.readFileSync('shared/core/message-transfer.js','utf8')+';imTransfer',{imFormat:f});
 const incomingMessage={id:f.newId(),text:'Imported text',reactions:[]};
 const merged=indexedTransfer.merge(changed,{ok:true,sourceNoteId:'source',messages:[incomingMessage]},'fixed');
 assert.equal(merged.messages[0],changed[0]);assert.notEqual(merged.added[0],incomingMessage);

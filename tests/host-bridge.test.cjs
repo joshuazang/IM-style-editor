@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const api=vm.runInNewContext(fs.readFileSync('next/src/host-bridge.js','utf8')+';({track:imTrackHostReply,release:imReleaseHostReply})');
+const api=vm.runInNewContext(fs.readFileSync('shared/core/host-bridge.js','utf8')+';({track:imTrackHostReply,release:imReleaseHostReply})');
 const bridge={sentMessages:[]};let calls=0;
 for(let i=0;i<1000;i++)api.track(bridge,{action:'key-down',messageId:String(i),data:{key:'a'}},undefined);
 assert.equal(bridge.sentMessages.length,0);

@@ -7,7 +7,7 @@ HOST=Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = 
 HOST=HOST.replace('window.saves = [];','window.saves=[];window.saveCount=0;')
 HOST=HOST.replace('saves.push(structuredClone(item));','saveCount++;saves.length=0;saves.push(structuredClone(item));')
 HOST=HOST.replace('const message = event.data;',"const message=typeof event.data==='string'?JSON.parse(event.data):event.data;")
-js="const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('next/src/note-format.js','utf8')+';imFormat',{crypto,btoa});console.log(JSON.stringify(f.portable(Array.from({length:5000},(_,i)=>({id:f.newId(),text:'Message '+i+': '+'A thought worth keeping. '.repeat(4),reactions:[],createdAt:'2026-11-01T00:00:00Z'})),{})));"
+js="const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});console.log(JSON.stringify(f.portable(Array.from({length:5000},(_,i)=>({id:f.newId(),text:'Message '+i+': '+'A thought worth keeping. '.repeat(4),reactions:[],createdAt:'2026-11-01T00:00:00Z'})),{})));"
 text=json.loads(subprocess.check_output(['node','-e',js],text=True))
 new_html=Path('next/index.html').read_text()
 # The immutable 4.0.6 asset is retained in the repository; no git-history depth

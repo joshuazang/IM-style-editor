@@ -15,6 +15,23 @@ function imNoteSnapshot(note) {
 const imSameNoteSnapshot=(a,b)=>!!a&&a.text===b.text&&a.metadataText===b.metadataText;
 /* A streamed host note is already persisted. Keep only the current note's baseline. */
 function imNoteReceived(note){imConfirmedNote={note,snapshot:imNoteSnapshot(note)};}
+function imNoteUnconfirmed(note){imConfirmedNote={note,snapshot:null};}
+/* Rebase only the waiting job. A snapshot already sent remains immutable. */
+function imRebaseQueuedNote(uuid,host){
+  const job=imNoteSaves.get(uuid)?.next;
+  if(!job)return false;
+  const item={...job.snapshot.item,content:{...job.snapshot.item.content}};
+  imApplyNoteNative(item,host);job.snapshot=imNoteSnapshot(item);return true;
+}
+/* A conflicting host update must stop obsolete waiting writes. The in-flight
+ * request cannot be unsent; the UI retains both versions for explicit review. */
+function imCancelQueuedNoteSaves(uuid){
+  const state=imNoteSaves.get(uuid);if(!state?.next)return;
+  state.next=null;const current=state.current?.version||0;
+  const cancelled=state.waiters.filter(waiter=>waiter.version>current);
+  state.waiters=state.waiters.filter(waiter=>waiter.version<=current);
+  for(const waiter of cancelled)waiter.reject(new Error('A newer host version paused queued saving'));
+}
 function imNoteMetadataReceived(note,update){
   if(!note||update?.isMetadataUpdate!==true||note.uuid!==update.uuid)return;
   imApplyNoteMetadata(note,update);

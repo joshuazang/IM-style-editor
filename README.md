@@ -1,5 +1,21 @@
 An IM-style editor for Standard Notes
 
+This repository now contains two separately installable interfaces built from
+one shared format-3 core:
+
+- **[IM-style-editor 4.1.6](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.0.1](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+
+Both can open the same format-3 note without conversion. The original
+[Mosaic install link](https://joshuazang.github.io/Mosaic/mosaic.ext.json)
+continues to work. Each interface bundles the shared code; neither downloads
+code from the other at runtime. Archive remains separate and unchanged.
+
+Build both with `python3 tools/package-editors.py`; validate with
+`python3 tools/check-editors.py`. A shared-code change is checked against both
+interfaces, including editor switching. See [maintenance](docs/shared-editors.md)
+and [security boundaries](docs/editor-security.md).
+
 - **IM-style-editor Archive** keeps the existing editor and format-2 notes. Its install manifest remains [im-style-editor.ext.json](im-style-editor.ext.json).
 - **IM-style-editor 4** is a separate plugin with format-3 notes and an independent install manifest: [im-style-editor-next.ext.json](im-style-editor-next.ext.json). Both can be installed together.
 
@@ -42,3 +58,12 @@ cancelling keeps the clipboard, and rejected imports never initiate clearing.
 Clearing uses an explicit click through the existing clipboard compatibility path.
 Timed clearing is not offered because the official-style sandbox blocks it without
 a fresh user gesture. This clears the current clipboard, not clipboard-manager history.
+
+IM 4.1.6 / Mosaic 1.0.1 consolidate the modern parser, save queue, transfer,
+clipboard and reply helpers under `shared/core`. Mosaic retains failed saves
+across note switches in the same live editor, applies late clipboard statuses to
+the latest matching message, and preserves refreshed native note fields. Drafts
+reuse their cached message section after adding/editing cards. Newly created
+replies keep bounded quoted context rather than recursively copying the entire
+chain; existing saved replies are preserved. Both interfaces request that browser
+spellchecking, autocomplete, autocorrection and writing suggestions stay off.

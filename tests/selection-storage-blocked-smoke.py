@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8016')
 HOST=Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = '/index.html';","editor.src = '/next/index.html';")
-js="const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('next/src/note-format.js','utf8')+';imFormat',{crypto,btoa});console.log(JSON.stringify(f.portable(Array.from({length:3},(_,i)=>({id:f.newId(),text:'Message '+i,reactions:[]})),{})));"
+js="const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});console.log(JSON.stringify(f.portable(Array.from({length:3},(_,i)=>({id:f.newId(),text:'Message '+i,reactions:[]})),{})));"
 text=json.loads(subprocess.check_output(['node','-e',js],text=True))
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)

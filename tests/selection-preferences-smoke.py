@@ -3,7 +3,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8014')
 HOST=Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = '/index.html';","editor.src = '/next/index.html';")
-js="const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('next/src/note-format.js','utf8')+';imFormat',{crypto,btoa});const messages=Array.from({length:10},(_,i)=>({id:f.newId(),text:'Private fixture message '+i,reactions:[]}));console.log(JSON.stringify({messages,text:f.portable(messages,{})}));"
+js="const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const messages=Array.from({length:10},(_,i)=>({id:f.newId(),text:'Private fixture message '+i,reactions:[]}));console.log(JSON.stringify({messages,text:f.portable(messages,{})}));"
 data=json.loads(subprocess.check_output(['node','-e',js],text=True));prefix='im-style-editor.next.selection.v1:'
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)

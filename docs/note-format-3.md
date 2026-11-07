@@ -1,5 +1,12 @@
 # Format 3: independent editor 4
 
+The modern parser and writer now live in `shared/core/note-format.js` and are
+compiled into both IM-style-editor 4.1.6 and Mosaic 1.0.1. The format is unchanged;
+both views edit the same `content.text`, including draft, settings and metadata.
+See [shared maintenance](shared-editors.md). New replies retain a direct quote
+and one level of quoted context, using references for deeper context rather than
+repeatedly embedding the full chain. Existing saved replies are preserved.
+
 The reader accepts format 3 only. Format 2 remains in **IM-style-editor Archive**; neither plugin rewrites the other's format. Ordinary `#!im-style-forward 2` message exports remain a shared clipboard interchange protocol. This is not a format-2 note reader or an automatic note migration.
 
 The header is `#!im-style-editor 3`, followed by `#!encoding utf-8`. Settings, optional pending reply and optional unsent draft precede bubbles, as in the existing document structure. IDs, timestamps, presence-based statuses, omitted empty reactions, extra metadata/settings and reserved-line escaping retain their meanings.

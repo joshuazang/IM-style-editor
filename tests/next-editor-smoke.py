@@ -2,6 +2,7 @@
 import json, os, re, statistics, subprocess
 from pathlib import Path
 from playwright.sync_api import expect, sync_playwright
+from browser_engine import chromium_options
 
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8010').rstrip('/')
 HOST=Path('tests/editor-roundtrip-host.html').read_text().replace(
@@ -20,7 +21,7 @@ def fixture(source,count,reply=False):
     return json.loads(subprocess.run(['node','-e',JS],input=json.dumps(dict(source=source,count=count,reply=reply)),capture_output=True,text=True,check=True).stdout)
 
 small=fixture('src/note-format.js',30)
-large=fixture('next/src/note-format.js',5000,True)
+large=fixture('shared/core/note-format.js',5000,True)
 html=Path('next/index.html').read_text()
 bundle='next/'+re.search(r'src="\./([^"?]+\.js)',html)[1]
 script=Path(bundle).read_text().replace('function parseDocument(text) {','function parseDocument(text) {window.__fullParses=(window.__fullParses||0)+1;')
@@ -28,7 +29,7 @@ script=script.replace('if (!bubbleText.has(original)) {','if (!bubbleText.has(or
 assert json.loads(Path('im-style-editor.ext.json').read_text())['identifier']!=json.loads(Path('im-style-editor-next.ext.json').read_text())['identifier']
 
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)
+    browser=p.chromium.launch(**chromium_options())
     page=browser.new_page(viewport={'width':900,'height':850})
     errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
     page.add_init_script("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{parent.testClipboard=text},readText:async()=>parent.testClipboard||''}})")
@@ -48,6 +49,8 @@ with sync_playwright() as p:
     page.evaluate('()=>{editorPath="/next/index.html";notes.new={uuid:"new",content_type:"Note",content:{title:"New",text:""}};openIM("new")}')
     field=e.get_by_role('textbox',name='Message',exact=True)
     expect(field).to_be_visible()
+    assert field.evaluate('n=>n.spellcheck') is False
+    assert field.get_attribute('autocomplete')=='off' and field.get_attribute('writingsuggestions')=='false'
     e.get_by_role('button',name='More options',exact=True).click()
     e.get_by_role('button',name='Import from clipboard',exact=True).click()
     expect(e.get_by_role('dialog')).to_contain_text('30 messages ready to import')
@@ -143,7 +146,7 @@ with sync_playwright() as p:
     assert not errors,errors
     page.close()
     # Touch-sized viewport checks do not emulate the operating system's native keyboard.
-    mobile=fixture('next/src/note-format.js',300)
+    mobile=fixture('shared/core/note-format.js',300)
     delayed=HOST.replace('window.rejectSaves = false;', 'window.rejectSaves=false;window.rejectSend=false;window.holdAck=false;window.acks=[];window.releaseAcks=()=>acks.splice(0).forEach(fn=>fn());')
     delayed=delayed.replace("const reply = data => editor.contentWindow.postMessage({action: 'reply', original: message, data}, location.origin);",
         "const target=event.source;const reply=data=>{const send=()=>target.postMessage({action:'reply',original:message,data},location.origin);if(holdAck&&message.action==='save-items')acks.push(send);else send()};")

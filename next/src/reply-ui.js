@@ -1,24 +1,4 @@
-/* Local reply references and SVG controls. Quotes are text, never HTML. */
-function imReplySnapshot(message,noteId){
-  const {id,text,createdAt,...metadata}=JSON.parse(JSON.stringify(message));
-  if(!metadata.reactions?.length)delete metadata.reactions;
-  return {id,noteId,text,...(createdAt?{createdAt}:{}),...(Object.keys(metadata).length?{metadata}:{})};
-}
-function imReplyRecord(reply){return {...reply.metadata,id:reply.id,text:reply.text,reactions:reply.metadata?.reactions||[],...(reply.createdAt?{createdAt:reply.createdAt}:{})};}
-
-function imReplyTarget(messages,reply,noteId){
-  return messages.find(message=>{
-    if(message.id===reply.id&&(reply.noteId===noteId||(message.text===reply.text&&message.createdAt===reply.createdAt)))return true;
-    const sources=[message,...(Array.isArray(message.mergeSources)?message.mergeSources:[])];
-    for(const record of sources){
-      if(!record||typeof record!=='object')continue;
-      if(record.id===reply.id&&record.noteId===reply.noteId)return true;
-      let source=record.forwarding;
-      while(source){if(source.sourceMessageId===reply.id&&source.sourceNoteId===reply.noteId)return true;source=source.previous;}
-    }
-    return false;
-  });
-}
+/* Reply controls use the common reply-record helpers. */
 function ImReplyIcon({kind}){
   const paths={show:'M5 20 2 22l1-5a10 10 0 1 1 4 4M7 12h11m-5-5 5 5-5 5',
     another:'M3 3h7v7H3ZM14 14h7v7h-7ZM14 4h3a3 3 0 0 1 3 3v3m-3-3 3 3 3-3M10 20H7a3 3 0 0 1-3-3v-3m-3 3 3-3 3 3',

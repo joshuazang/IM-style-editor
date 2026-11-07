@@ -7,7 +7,7 @@ function harness({legacy=true,modern=false,data=true,throws=false}={}){
     const event={preventDefault(){this.prevented=true},clipboardData:data?{clearData:()=>events.push(['clearData']),setData:(type,value)=>events.push(['setData',type,value])}:null};
     for(const fn of listeners)fn(event);assert.equal(event.prevented,true);return true;
   };
-  const api=vm.runInNewContext(fs.readFileSync('next/src/transfer-ui.js','utf8')+';imLegacyCopy=simulate;({clear:imClearClipboard})',context);
+  const api=vm.runInNewContext(fs.readFileSync('shared/core/privacy.js','utf8')+fs.readFileSync('shared/core/clipboard.js','utf8')+';imLegacyCopy=simulate;({clear:imClearClipboard})',context);
   return {api,listeners,events,writes};
 }
 (async()=>{

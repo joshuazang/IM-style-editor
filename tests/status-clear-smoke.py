@@ -3,7 +3,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8010')
 HOST=Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = '/index.html';","editor.src = '/next/index.html';")
-js="""const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('next/src/note-format.js','utf8')+';imFormat',{crypto,btoa});const messages=[0,1,2].map(i=>({id:f.newId(),text:'Keep message '+i,reactions:['⭐'],createdAt:'2026-11-01T12:00:00Z',copied:true,edited:true,exported:true,forwarding:{sourceNoteId:'old',sourceMessageId:f.newId()}}));console.log(JSON.stringify({text:f.portable(messages,{pinnedMessageIds:[messages[0].id]},'Keep draft'),messages}));"""
+js="""const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const messages=[0,1,2].map(i=>({id:f.newId(),text:'Keep message '+i,reactions:['⭐'],createdAt:'2026-11-01T12:00:00Z',copied:true,edited:true,exported:true,forwarding:{sourceNoteId:'old',sourceMessageId:f.newId()}}));console.log(JSON.stringify({text:f.portable(messages,{pinnedMessageIds:[messages[0].id]},'Keep draft'),messages}));"""
 data=json.loads(subprocess.run(['node','-e',js],capture_output=True,text=True,check=True).stdout)
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True)

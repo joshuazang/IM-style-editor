@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const requests=[];const pf={sentMessages:[],jsonObjectForItem:note=>note,postMessage:(action,data,callback)=>requests.push({data,callback})};
-const api=vm.runInNewContext(fs.readFileSync('next/src/host-bridge.js','utf8')+'\n'+fs.readFileSync('next/src/note-storage.js','utf8')+';({apply:imApplyNoteMetadata,metadata:imNoteMetadataReceived,received:imNoteReceived,save:imPersistNote,pending:imNoteSavePending})',{pf,setTimeout:()=>0,clearTimeout:()=>{}});
+const api=vm.runInNewContext(fs.readFileSync('shared/core/host-bridge.js','utf8')+'\n'+fs.readFileSync('shared/core/note-storage.js','utf8')+';({apply:imApplyNoteMetadata,metadata:imNoteMetadataReceived,received:imNoteReceived,save:imPersistNote,pending:imNoteSavePending})',{pf,setTimeout:()=>0,clearTimeout:()=>{}});
 (async()=>{
  const content={text:'Latest sent bubble; draft is empty',title:'Keep title'},clientData={other:{keep:true}};
  const note={uuid:'a',content_type:'Note',content,clientData,created_at:'2026-11-01T00:00:00Z',updated_at:'2026-11-02T00:00:00Z'};
