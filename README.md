@@ -4,7 +4,7 @@ This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
 - **[IM-style-editor 4.2.1](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.1.2](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[Mosaic 1.1.3](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -155,3 +155,8 @@ CSS-only adjustment with no changes to note content, typing or saving.
 Mosaic 1.1.2 shows read-only emoji-tag badges below the body in opened cards.
 Clicking a badge has no action; the existing context menu still edits tags.
 Cards without tags reserve no tag row. IM remains at 4.2.1.
+
+Mosaic 1.1.3 places emoji tags in separate pills that straddle the bottom edge
+of board and opened cards. Tags no longer take an internal row. Wrapped badge
+clearance is included in masonry positioning and visible-card lookup; opened
+cards reserve viewport clearance and retain read-only badge clicks. IM is unchanged.

@@ -312,7 +312,7 @@ function rebuildLayout() {
 }
 function findAnchor() {
   const top=viewport.getBoundingClientRect().top,origin=board.getBoundingClientRect().top;
-  const item=MosaicModel.visible(layout,top-origin,top-origin+viewport.clientHeight).find(p=>p.y+origin+p.height>top&&p.y+origin<top+viewport.clientHeight);
+  const item=MosaicModel.visible(layout,top-origin,top-origin+viewport.clientHeight).find(p=>p.y+origin+p.height+(p.overhang||0)>top&&p.y+origin<top+viewport.clientHeight);
   return item?{id:item.message.id,y:item.y}:null;
 }
 function scheduleWindow() {if(!frame)frame=requestAnimationFrame(()=>{frame=0;renderWindow();});}
@@ -333,9 +333,10 @@ function renderWindow() {
   // real heights on future layouts rather than leaving guessed empty space.
   let changed=false;const selecting=!!active?.view.selecting;
   for(const {node,item} of measurements){
-    const height=Math.ceil(node.getBoundingClientRect().height);
-    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize);
-    if(measured&&height!==item.height)changed=true;
+    const rect=node.getBoundingClientRect(),height=Math.ceil(rect.height),tags=node.querySelector('.card-tags');
+    const overhang=tags?Math.max(0,Math.ceil(tags.getBoundingClientRect().bottom-rect.bottom)):0;
+    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize,overhang);
+    if(measured&&(height!==item.height||overhang!==item.overhang))changed=true;
   }
   if(changed){
     const anchor=findAnchor(),s=active,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
@@ -577,6 +578,7 @@ function closeModal(force=false) {
   if(!force&&modalState?.busy)return;
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
+  modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
   hideMenu();if(modal.open)modal.close();modalState=null;
 }
 function stashEdit() {
@@ -597,6 +599,12 @@ function renderEditorTags(d){
   if(!d.tagBadges)return;
   d.tagBadges.replaceChildren();d.tagBadges.hidden=!d.tags.size;
   for(const tag of d.tags){const badge=el('span','card-tag',tag);badge.setAttribute('role','listitem');d.tagBadges.append(badge);}
+  positionEditorTags(d);
+}
+function positionEditorTags(d){
+  if(modalState!==d||!d.tagBadges)return;
+  const extra=d.tagBadges.hidden?0:Math.max(0,Math.ceil(d.tagBadges.getBoundingClientRect().height)-13),value=extra+'px';
+  if(modal.style.getPropertyValue('--tag-overhang')!==value)modal.style.setProperty('--tag-overhang',value);
 }
 function refreshEditorMetadata() {
   const d=modalState,s=active;if(d?.kind!=='edit'||d.uuid!==s?.note.uuid||!d.meta)return;
@@ -632,7 +640,8 @@ function editorDialog(id=null) {
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
   d.root.append(titlePreview,title,pin,body);
   d.unlockTitle=()=>{d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';hideMenu();title.focus();};
-  d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');d.root.append(d.tagBadges);
+  d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');modal.append(d.tagBadges);
+  d.tagObserver=new ResizeObserver(()=>positionEditorTags(d));d.tagObserver.observe(d.tagBadges);
   d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);};
   d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');d.root.append(d.meta);
   const footer=el('div','card-detail-tools');
@@ -644,6 +653,7 @@ function editorDialog(id=null) {
   title.addEventListener('input',change);body.addEventListener('input',change);
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
+  bindContextMenu(d.tagBadges,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
   d.commit=saveEditor;
   async function saveEditor(closeAfter=true) {
     if(active!==s||modalState!==d)return false;

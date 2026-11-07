@@ -44,7 +44,7 @@ try:
    choose('Font size','Medium')
    a=e.locator('[data-id="'+data['messages'][78]['id']+'"]');b=e.locator('[data-id="'+data['messages'][79]['id']+'"]')
    a.scroll_into_view_if_needed();page.wait_for_timeout(100)
-   gap=b.bounding_box()['height']-a.bounding_box()['height'];assert 25<=gap<=35,gap
+   gap=b.bounding_box()['height']-a.bounding_box()['height'];assert abs(gap)<=1,gap
    assert a.evaluate('n=>parseFloat(getComputedStyle(n).paddingTop)')<=14
    tag=b.locator('.card-tag');assert tag.evaluate('n=>getComputedStyle(n).borderTopStyle')=='solid'
    assert tag.evaluate('n=>getComputedStyle(n).backdropFilter')=='blur(10px)'

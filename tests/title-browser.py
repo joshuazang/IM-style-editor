@@ -64,7 +64,7 @@ try:
      final=parse(page.evaluate('notes.a.content.text'));assert final['messages'][3]['title']=='Opened card title\nSecond title line' and final['messages'][3]['text']==data['messages'][3]['text'];assert not final['messages'][3].get('edited')
      card.click();expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();expect(e.locator('.detail-title')).to_have_text(final['messages'][3]['title']);e.get_by_role('button',name='Close',exact=True).click()
      fill_search(e,'');page.wait_for_timeout(200)
-     assert e.locator('.card').evaluate_all('ns=>ns.every(n=>{const last=n.lastElementChild,r=n.getBoundingClientRect(),l=last.getBoundingClientRect();return r.bottom-l.bottom<=15})')
+     assert e.locator('.card').evaluate_all('ns=>ns.every(n=>{const last=n.querySelector(".card-body")||n.querySelector(".card-title"),r=n.getBoundingClientRect(),l=last.getBoundingClientRect();return r.bottom-l.bottom<=15})')
      if width==390:page.screenshot(path='/tmp/mosaic-body-first-titles.png')
      print(f'PASS {width}px: opened-card title field requires menu action, multiline editing, preserved detail controls and compact tagged/untagged previews',flush=True)
     context.close()

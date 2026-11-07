@@ -350,3 +350,11 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog:has(.detail-title:not([hidden]),.editor-title:not([hidden])) .editor-body{padding-right:0}
 .card-detail-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;flex:none;max-height:20dvh;overflow:auto;--card-ink:var(--edit-card-ink,var(--ink));--card-color:var(--edit-card-color,var(--surface));color:var(--card-ink)}
 .card-detail-tags .card-tag{cursor:default;max-width:100%;overflow-wrap:anywhere}
+/* Separate reaction pills straddle the surface edge, outside the text layout. */
+.card{overflow:visible;--card-edge-width:1px}
+.card.selected{--card-edge-width:2px}
+.card .card-tags{position:absolute;top:calc(100% - 13px + var(--card-edge-width));left:calc(8px - var(--card-edge-width));right:calc(8px - var(--card-edge-width));display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start;gap:6px;margin:0;padding:0;min-height:0;overflow:visible}
+.card .card-tag,.card-detail-tags .card-tag{border-radius:999px;background:var(--surface);color:var(--ink);border-color:color-mix(in srgb,var(--ink) 20%,transparent);box-shadow:0 1px 3px #00000014;max-width:100%;overflow-wrap:anywhere}
+.card-detail-tags{position:absolute;top:calc(100% - 13px);left:20px;right:20px;margin:0;justify-content:flex-end;align-items:flex-start;z-index:2}
+.card-edit-dialog[open]{overflow:visible;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
+.card-edit-dialog #modal-content{border-radius:inherit;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}

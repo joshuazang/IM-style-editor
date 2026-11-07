@@ -32,7 +32,7 @@ try:
     assert len(positions)==2,positions
    assert e.locator('body').evaluate('n=>n.scrollWidth<=innerWidth')
    page.wait_for_timeout(100)
-   clipped=e.locator('.card').evaluate_all('nodes=>nodes.filter(n=>n.lastElementChild.getBoundingClientRect().bottom>n.getBoundingClientRect().bottom-2).map(n=>n.dataset.id)')
+   clipped=e.locator('.card').evaluate_all('nodes=>nodes.filter(n=>(n.querySelector(".card-body")||n.querySelector(".card-title")).getBoundingClientRect().bottom>n.getBoundingClientRect().bottom-2).map(n=>n.dataset.id)')
    assert not clipped,clipped
    # Keep focus, send with Enter, reveal the new card even while reading farther down.
    e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight/2');field.fill('Sent from Enter')

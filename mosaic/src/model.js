@@ -129,10 +129,10 @@ const MosaicModel = (() => {
     return lines;
   }
   const heightKey=(width,pinned,selecting,fontSize)=>width+':'+pinned+':'+selecting+':'+fontSize;
-  function measure(message,width,pinned,selecting,height,fontSize='large') {
+  function measure(message,width,pinned,selecting,height,fontSize='large',overhang=0) {
     const key=heightKey(width,pinned,selecting,fontSize),previous=measured.get(message);
-    if(previous?.key===key&&previous.height===height)return false;
-    measured.set(message,{key,height});return true;
+    if(previous?.key===key&&previous.height===height&&previous.overhang===overhang)return false;
+    measured.set(message,{key,height,overhang});return true;
   }
   function cardHeight(message,width,pinned,selecting,fontSize) {
     const compact=width<230,font=fontSizes[fontSize],key=heightKey(width,pinned,selecting,fontSize),actual=measured.get(message),cached=heights.get(message);
@@ -140,8 +140,15 @@ const MosaicModel = (() => {
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
     const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,3):0,bodyLines=parts.body?previewLines(parts.body,columns,7):0;
-    const height=(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.reactions.length?34:0)+(message.replyTo?36:0);
+    const height=Math.max(selecting?44:0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0));
     heights.set(message,{key,height});return height;
+  }
+  function cardOverhang(message,width,pinned,selecting,fontSize){
+    if(!message.reactions.length)return 0;
+    const actual=measured.get(message),key=heightKey(width,pinned,selecting,fontSize);
+    if(actual?.key===key)return actual.overhang;
+    const columns=Math.max(1,Math.floor((width-16+6)/35)),rows=Math.ceil(Math.min(10,message.reactions.length)/columns);
+    return rows*26+(rows-1)*6-13;
   }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
@@ -154,11 +161,11 @@ const MosaicModel = (() => {
       if(name==='Pinned'||headings.length){headings.push({label:name,y:base});base+=36;}
       const heights=Array(columns).fill(base);
       for(const message of group){
-        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize);
+        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize),overhang=cardOverhang(message,cardWidth,pinIds.has(message.id),selecting,fontSize);
         const column=heights.indexOf(Math.min(...heights));
-        const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,order:items.length};
+        const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,overhang,order:items.length};
         items.push(item);columnItems[column].push(item);byId.set(message.id,item);
-        heights[column]+=height+gap;
+        heights[column]+=height+overhang+gap;
       }
       base=Math.max(...heights)+12;
     }
@@ -168,7 +175,7 @@ const MosaicModel = (() => {
     const result=[];
     for(const column of layout.columns||[]){
       let a=0,b=column.length;
-      while(a<b){const middle=(a+b)>>1,item=column[middle];if(item.y+item.height<low)a=middle+1;else b=middle;}
+      while(a<b){const middle=(a+b)>>1,item=column[middle];if(item.y+item.height+(item.overhang||0)<low)a=middle+1;else b=middle;}
       for(let i=a;i<column.length&&column[i].y<=high;i++)result.push(column[i]);
     }
     return result.sort((a,b)=>a.order-b.order);

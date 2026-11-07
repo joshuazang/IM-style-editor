@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.2](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.2.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.1.3](https://joshuazang.github.io/IM-style-editor/Mosaic-1.1.3.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -193,6 +193,9 @@ unfinished text. Title-only changes do not mark the body Edited. Search includes
 titles, Export/Import preserves them, and Merge keeps the first title while
 including later titles in the combined body so their words remain visible.
 
-Opened cards display their emoji tags as read-only badges below the body.
+Board and opened cards show separate emoji pills hanging from the bottom edge.
+These badges do not occupy an internal tag row. Multiple tags have visible gaps
+and wrap when needed; the layout reserves clearance to prevent overlap or clipping.
+Opened-card badges remain read-only.
 Clicking a badge does nothing; the context menu still adds/removes tags, and
 its changes appear immediately in the badges. Untagged cards have no tag row.

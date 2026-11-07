@@ -75,3 +75,11 @@ const damaged={content:{text:initial.replace('@@IM:CONTENT','@@BROKEN')}};
 assert.throws(()=>f.write(damaged,[],{}),/Malformed/);assert.equal(damaged.content.text,initial.replace('@@IM:CONTENT','@@BROKEN'));
 
 console.log('PASS: transfer/duplicate detection, selective statuses, merge navigation, nonmutating 5,000-card layout, malformed-note refusal and shared-core checksums');
+
+const untagged={id:f.newId(),text:'Same body',reactions:[]},tagged={...untagged,id:f.newId(),reactions:['📍']};
+const pair=m.layout([untagged,tagged],{},350);assert.equal(pair.items[0].height,pair.items[1].height,'Hanging tags do not add an internal row');assert.equal(pair.byId.get(tagged.id).overhang,13);
+m.measure(tagged,170,false,false,90,'large',45);const hanging=m.layout([tagged],{},350).items[0];assert.equal(hanging.height,90);assert.equal(hanging.overhang,45);
+assert.equal(m.visible({columns:[[hanging]]},hanging.y+100,hanging.y+110)[0],hanging,'Keep a card mounted when only its hanging badges are visible');
+const packed=Array.from({length:80},(_,i)=>({...untagged,id:f.newId(),reactions:i%2?Array(8).fill('📍'):[]}));
+for(const width of [280,350,1100])for(const column of m.layout(packed,{},width).columns)for(let i=1;i<column.length;i++)assert.ok(column[i].y>=column[i-1].y+column[i-1].height+column[i-1].overhang+8,'Wrapped pills clear the next card');
+console.log('PASS: hanging-tag body heights, measured/wrapped clearance and indexed visibility through badge-only viewport intersections');
