@@ -244,3 +244,10 @@ dialogs now have separate 44px label targets. Mosaic retains distinct text
 previews in selection accessibility labels and shows a compact `+N` button
 when a card has more than ten tags. It opens Card view without altering tags
 or drafts. Card typography and selection layout are unchanged.
+
+Mosaic 1.3.4 sizes opened cards to their text instead of reserving a fixed body
+height. Cards grow and shrink while editing, up to the viewport limit; longer
+bodies then scroll inside the card with Close still reachable. Width changes
+remeasure wrapped text without changing the note format or save behavior.
+Desktop and phone viewport regressions cover growth, shrinkage, scrolling,
+resizing and saving; native iPhone keyboard behavior still needs device testing.

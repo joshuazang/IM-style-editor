@@ -233,7 +233,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog #modal-content{position:relative;padding:24px}
 .card-edit-dialog .dialog-heading{display:none}
 .card-edit-dialog .editor-title{width:calc(100% - 46px);font-size:24px;line-height:1.45;color:inherit;letter-spacing:-.3px}
-.card-edit-dialog .editor-body{min-height:240px;max-height:55dvh;font-size:16px;line-height:1.75;color:inherit;resize:vertical}
+.card-edit-dialog .editor-body{font-size:16px;line-height:1.75;color:inherit}
 .detail-pin{position:absolute;right:20px;top:23px;background:transparent;color:inherit}
 .detail-pin[aria-pressed=true]{color:var(--accent);background:var(--accent-soft)}
 .card-detail-meta{display:flex;justify-content:flex-end;flex-wrap:wrap;align-items:center;gap:4px;margin-top:18px;font-size:11px;line-height:1.5;opacity:.8;text-align:right}
@@ -243,13 +243,13 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .detail-close{padding:10px 13px;border:0;border-radius:10px;background:transparent;color:inherit;font-size:15px;font-weight:600}
 .detail-close:hover{background:#80808016}
 .color-menu{color:var(--ink)}
-@media(max-width:650px){.inline-composer{width:calc(100% - 32px)}.card-edit-dialog #modal-content{padding:18px}.detail-pin{right:12px;top:17px}.card-edit-dialog .editor-body{min-height:210px}.card-edit-dialog .editor-title{font-size:22px}.board-content{padding-top:8px}}
+@media(max-width:650px){.inline-composer{width:calc(100% - 32px)}.card-edit-dialog #modal-content{padding:18px}.detail-pin{right:12px;top:17px}.card-edit-dialog .editor-title{font-size:22px}.board-content{padding-top:8px}}
 /* Keep the finish action reachable when the phone keyboard reduces the view. */
 .card-edit-dialog[open]{display:flex;flex-direction:column;overflow:hidden}
 .card-edit-dialog #modal-content{display:flex;flex-direction:column;max-height:calc(100dvh - 24px);overflow:auto}
 .card-edit-dialog .editor-title,.card-detail-meta,.card-detail-tools{flex:none}
-.card-edit-dialog .editor-body{flex:1 1 240px;min-height:90px;overflow:auto;resize:none}
-@media(max-height:520px){.card-edit-dialog #modal-content{padding:12px}.card-edit-dialog .editor-title{font-size:20px;line-height:28px;padding:6px 0}.card-edit-dialog .editor-body{min-height:45px;flex-basis:130px;padding:4px 0}.card-detail-meta{margin-top:6px;font-size:10px}.card-detail-tools{margin-top:6px}.card-detail-tools .icon-button{height:36px;width:36px}.detail-close{padding:8px 12px}.detail-pin{top:11px;right:10px}}
+.card-edit-dialog .editor-body{flex:0 1 auto;min-height:calc(1lh + 16px);max-height:none;overflow:auto;resize:none}
+@media(max-height:520px){.card-edit-dialog #modal-content{padding:12px}.card-edit-dialog .editor-title{font-size:20px;line-height:28px;padding:6px 0}.card-edit-dialog .editor-body{min-height:calc(1lh + 8px);padding:4px 0}.card-detail-meta{margin-top:6px;font-size:10px}.card-detail-tools{margin-top:6px}.card-detail-tools .icon-button{height:36px;width:36px}.detail-close{padding:8px 12px}.detail-pin{top:11px;right:10px}}
 /* Cards scroll behind these floating controls; only the controls paint a surface. */
 .board-toolbar{position:absolute;left:10px;right:10px;top:calc(var(--notice-height,0px) + 6px);z-index:25;min-height:38px;padding:0;background:transparent;pointer-events:none}
 .board-toolbar .ui-selection-toolbar,.board-toolbar .ui-selection-actions{pointer-events:none}
