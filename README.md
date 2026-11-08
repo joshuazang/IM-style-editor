@@ -42,11 +42,7 @@ Editor 4.1.0 adds **Merge selected** to the selection three-dot menu, with a com
 
 Reading older messages now stays anchored when messages change below. Near the bottom, new messages follow smoothly; otherwise the down-arrow shows how many new messages are below. Date boundaries have doubled separator margins, and clicking a date’s selection control selects that day’s messages in the current view, including off-screen filter matches. **Iris blue** is `rgb(78, 92, 240)` with white text.
 
-Editor 4.1.1 adds **Occult field journal** in **Appearance → Artwork**: a dense vector wallpaper combining mysterious expeditions, lost observatories, enchanted natural history, nocturnal scholars and ocean secrets. Existing artwork choices and note settings are retained. See [artwork details](docs/artwork.md).
-
 Editor 4.1.2 makes date separators more prominent with about 40% more space at day boundaries, larger bold date labels, stronger contrast and clearer divider lines. Same-day message spacing is unchanged.
-
-Editor 4.1.3 redraws Occult field journal with smooth SVG curves, enlarges its drawing scale by 10%, and adds an upright, taller composition with matching edge details. The wallpaper joins without mirrored or upside-down copies.
 
 Editor 4.1.4 removes the forced draft-only save before Send. When a newer draft is
 waiting behind an unfinished save, the final message can replace that queued draft.
@@ -230,29 +226,9 @@ Measured virtual anchoring skips unchanged scrollTop assignments to avoid
 interrupting native momentum. Mosaic and the shared note/save format are unchanged.
 
 
-IM 4.3.0 overhauls **Occult Field Journal** with six large, flowing drawings
-and sixty smaller curiosities: occult scholars, cryptids, sea creatures, ruins
-and natural history. Long, slender and broad silhouettes create a varied scale;
-smaller drawings fit around their contours. Complete drawings wrap across all
-four edges by exact translation. There are no joined picture panels, blank
-border strips, reflected drawings or upside-down motifs.
 
-The warm, low-contrast 660 × 990 CSS-pixel tile is true SVG: smooth Bezier paths,
-internal vector reuse, and no bitmap, fonts, scripts, filters, external resources
-or runtime drawing dependencies. Richer artwork makes the asset larger than the
-previous minimal icon pattern; the static SVG is cached separately from notes.
-The parser, saving, selection behavior and Mosaic remain unchanged. Build
-provenance is in `artwork/occult-field-journal-v3.json`; the optional development
-converter is `tools/build-occult-journal-v3.py`.
-
-
-IM 4.3.1 adds **Everyday Objects 2** beside the original Classic · Everyday
-objects option. The original file, default choice and 420px tile are unchanged.
-V2 keeps its thirteen familiar drawings and adds twenty-eight directly authored
-SVG illustrations, including long pencils, trailing plants, tall umbrellas,
-broad bicycles and headphones. Varied silhouettes and gentle tilts fit around
-each other on a continuous field, with exact translated edge continuations.
-The soft line color stays close to the original. The static SVG is about 37 KB,
-uses reusable vector definitions, and has no bitmap or runtime dependencies.
-A separate saved `artwork` value selects V2; note content, drafts, the shared
-format and Mosaic remain unchanged.
+IM 4.3.2 removes Everyday Objects 2 and Occult Field Journal from the artwork
+choices and current plugin package, along with their previews and drawing tools.
+Classic · Everyday objects and Engraved garden remain. Existing notes with a
+removed artwork value display the original Classic background, without rewriting
+note text or drafts when opened. The original artwork is unchanged.
