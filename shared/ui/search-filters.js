@@ -1,5 +1,31 @@
 /* Shared, view-only date navigation. Local calendar days include DST changes.
  * This never changes a message, writes storage, or filters the note. */
+function imSearchPanelBounds(top,viewport){
+ const margin=Math.min(8,viewport.height/2),bottom=viewport.top+viewport.height-margin;
+ const start=Math.max(viewport.top+margin,Math.min(top,bottom-Math.min(96,Math.max(0,viewport.height-2*margin))));
+ return {shift:start-top,height:Math.max(0,bottom-start)};
+}
+/* Only open panels observe geometry. Resize work is coalesced into one frame;
+ * it never focuses an input, remounts a native picker or changes note data. */
+function imWatchSearchPanel(panel){
+ let shift=0,frame=0,closed=false;
+ const visual=window.visualViewport;
+ const update=()=>{
+  if(closed||!panel.isConnected||!panel.getClientRects().length)return;
+  const rect=panel.getBoundingClientRect(),bounds=imSearchPanelBounds(rect.top-shift,{top:visual?.offsetTop||0,height:visual?.height||innerHeight});
+  shift=bounds.shift;
+  for(const [name,value] of [['--ui-search-shift',shift+'px'],['--ui-search-height',bounds.height+'px']])if(panel.style.getPropertyValue(name)!==value)panel.style.setProperty(name,value);
+ };
+ const schedule=()=>{if(!closed&&!frame)frame=requestAnimationFrame(()=>{frame=0;update();});};
+ const sizes=new ResizeObserver(schedule);sizes.observe(panel);
+ const roots=new Set([panel.offsetParent,panel.closest('.editor-shell')].filter(Boolean));
+ const changes=new MutationObserver(schedule);
+ for(const root of roots){sizes.observe(root);changes.observe(root,{childList:true,attributes:true,attributeFilter:['class','style']});}
+ window.addEventListener('resize',schedule,{passive:true});
+ visual?.addEventListener('resize',schedule,{passive:true});visual?.addEventListener('scroll',schedule,{passive:true});
+ update();
+ return {update,destroy(){closed=true;cancelAnimationFrame(frame);sizes.disconnect();changes.disconnect();window.removeEventListener('resize',schedule);visual?.removeEventListener('resize',schedule);visual?.removeEventListener('scroll',schedule);panel.style.removeProperty('--ui-search-shift');panel.style.removeProperty('--ui-search-height');}};
+}
 function imDateInput(value){
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
  const [year,month,day]=value.split('-').map(Number),date=new Date(0);date.setFullYear(year,month-1,day);date.setHours(0,0,0,0);

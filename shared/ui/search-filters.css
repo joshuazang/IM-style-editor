@@ -11,7 +11,7 @@
 .ui-date-panel button:hover,.editor-shell .ui-date-panel button:hover,.ui-date-panel button[aria-pressed=true],.editor-shell .ui-date-panel button[aria-pressed=true]{background:#e5eee6!important;border-color:#7a9c85}
 .ui-date-panel button:focus-visible{outline:2px solid #285b89!important;outline-offset:-2px}
 .ui-date-apply{margin-top:10px;width:100%}.ui-date-error{font-size:12px;color:#a62c30;margin:8px 0 0}
-.board-search-panel,.editor-shell .search-tags-panel{max-height:calc(100dvh - 76px);overflow:auto;overscroll-behavior:contain}
+.board-search-panel,.editor-shell .search-tags-panel{max-height:var(--ui-search-height,calc(100dvh - 76px));transform:translateY(var(--ui-search-shift,0px));overflow:auto;overscroll-behavior:contain}
 
 /* Focus changes paint only, keeping the input's size and content position fixed. */
 .ui-search-row:focus-within,.editor-shell .ui-search-row:focus-within{border-color:#202124;box-shadow:0 0 0 1px #202124}

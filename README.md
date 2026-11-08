@@ -237,3 +237,10 @@ IM 4.3.3 / Mosaic 1.3.2 constrain native date fields to their surrounding panels
 and retain their 44px height. Native date selection and explicit navigation are
 unchanged. The [UI/UX review](docs/ui-ux-review.md) records the tested layout
 bounds, remaining issues, proposed fixes and iPhone verification limitation.
+
+IM 4.3.4 / Mosaic 1.3.3 keep open search panels within the visible viewport,
+including when save warnings reduce the available space. Both status-clearing
+dialogs now have separate 44px label targets. Mosaic retains distinct text
+previews in selection accessibility labels and shows a compact `+N` button
+when a card has more than ten tags. It opens Card view without altering tags
+or drafts. Card typography and selection layout are unchanged.

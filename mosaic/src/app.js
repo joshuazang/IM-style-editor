@@ -10,7 +10,7 @@ function button(label, icon, handler, className='icon-button') {
 }
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
 let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
-let mounted=new Map(), selectionPreferences=Object.create(null);
+let mounted=new Map(), selectionPreferences=Object.create(null), searchPanelFit=null;
 const viewMemory=new Map(), unfinishedEdits=new Map();
 // Only unconfirmed sessions and deferred status intents survive note switches.
 // Both are working memory; no text or recovery copy is written to browser storage.
@@ -358,7 +358,8 @@ function renderSearchControls() {
   renderDateControls();
   const s=active,selecting=!!s?.view.selecting,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned);
   $('search-tags-panel').hidden=!searchOpen||selecting;$('search-button').setAttribute('aria-expanded',String(searchOpen&&!selecting));$('change-filter').setAttribute('aria-expanded',String(searchOpen&&!selecting));
-  if(searchOpen){const header=document.querySelector('.board-toolbar');$('search-tags-panel').style.top=(header.offsetTop+header.offsetHeight+6)+'px';}
+  if(searchOpen&&!selecting){const header=document.querySelector('.board-toolbar'),panel=$('search-tags-panel');panel.style.top=(header.offsetTop+header.offsetHeight+6)+'px';if(!searchPanelFit)searchPanelFit=imWatchSearchPanel(panel);else searchPanelFit.update();}
+  else if(searchPanelFit){searchPanelFit.destroy();searchPanelFit=null;}
   $('search-button').hidden=!!filtered||selecting;$('more-button').hidden=!!filtered||selecting;$('filter-pill').hidden=!filtered||selecting;
   const change=$('change-filter');change.replaceChildren();
   const symbol=el('span','filter-symbol ui-filter-symbol');
@@ -387,14 +388,15 @@ function cardNode(message) {
   const node=el('article','card'+(pinned?' is-pinned':'')+(s.view.selected.has(message.id)?' selected':''));
   if(s.locatedId===message.id)node.classList.add('located');
   const color=MosaicModel.color(message);node.style.setProperty('--card-color',color.background);node.style.setProperty('--card-ink',color.ink);
-  node.dataset.id=message.id;node.setAttribute('role','listitem');node.tabIndex=0;node.setAttribute('aria-label',parts.title||parts.body.slice(0,70)||'Empty card');
-  if(s.view.selecting){const check=el('span','selection-check');if(s.view.selected.has(message.id))check.append(mosaicIcon('check'));node.append(check);node.setAttribute('aria-label',(s.view.selected.has(message.id)?'Selected: ':'Select: ')+(parts.title||'Untitled card'));}
+  node.dataset.id=message.id;node.setAttribute('role','listitem');node.tabIndex=0;node.setAttribute('aria-label',MosaicModel.label(message));
+  if(s.view.selecting){const check=el('span','selection-check');if(s.view.selected.has(message.id))check.append(mosaicIcon('check'));node.append(check);node.setAttribute('aria-label',(s.view.selected.has(message.id)?'Selected: ':'Select: ')+MosaicModel.label(message));}
+  const activate=()=>{if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);};
   if(parts.title)node.append(el('h2','card-title',parts.title));
   if(message.replyTo)node.append(el('div','card-reply',message.replyTo.text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
   if(parts.body)node.append(el('p','card-body',parts.body));
   if(message.reactions.length){
     const tags=el('div','card-tags');
-    for(const tag of message.reactions.slice(0,10)){
+    for(const tag of message.reactions.slice(0,MosaicModel.boardTagLimit)){
       const badge=button('Filter messages by '+tag,null,()=>{
         if(active!==s)return;
         if(s.view.selecting){toggleSelection(message.id);return;}
@@ -410,15 +412,17 @@ function cardNode(message) {
       }
       badge.append(el('span','emoji-tag-emoji',tag));tags.append(badge);
     }
+    const remaining=message.reactions.length-MosaicModel.boardTagLimit;
+    if(remaining>0){const more=button('Show '+remaining+' more tag'+(remaining===1?'':'s'),null,activate,'card-tag card-tag-overflow');more.textContent='+'+remaining;tags.append(more);}
     node.append(tags);
   }
-  node.addEventListener('click',()=>{if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);});
+  node.addEventListener('click',activate);
   node.addEventListener('keydown',event=>{if(event.target!==node)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
   bindContextMenu(node,event=>{const current=s.messages.find(m=>m.id===message.id);if(current)cardMenu(current,event);},()=>active===s&&!s.view.selecting);
   return node;
 }
 function toggleSelection(id) {const v=active.view,entering=!v.selecting;v.selecting=true;searchOpen=false;v.selected.has(id)?v.selected.delete(id):v.selected.add(id);rememberSelection();if(entering)renderAll();else{refreshSelectionCards();renderSelection();}}
-function refreshSelectionCards(){for(const [id,node] of mounted){const selected=active.view.selected.has(id);node.classList.toggle('selected',selected);const check=node.querySelector('.selection-check');if(check){check.replaceChildren();if(selected)check.append(mosaicIcon('check'));}const message=layout.byId?.get(id)?.message;if(message)node.setAttribute('aria-label',(selected?'Selected: ':'Select: ')+(MosaicModel.preview(message).title||'Untitled card'));}}
+function refreshSelectionCards(){for(const [id,node] of mounted){const selected=active.view.selected.has(id);node.classList.toggle('selected',selected);const check=node.querySelector('.selection-check');if(check){check.replaceChildren();if(selected)check.append(mosaicIcon('check'));}const message=layout.byId?.get(id)?.message;if(message)node.setAttribute('aria-label',(selected?'Selected: ':'Select: ')+MosaicModel.label(message));}}
 function startSelection(id) {active.view.selecting=true;searchOpen=false;if(id)active.view.selected.add(id);rememberSelection();renderAll();}
 function cancelSelection() {if(!active)return;active.view.selecting=false;active.view.selected.clear();rememberSelection();renderAll();}
 function selectedRecords() {return active.messages.filter(m=>active.view.selected.has(m.id));}

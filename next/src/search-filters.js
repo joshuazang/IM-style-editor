@@ -5,8 +5,10 @@ function ImDatePicker({jump,close}){
  return x.jsx('div',{ref:root});
 }
 function ImSearchRow({query,change,disabled,jumpToDate,dateOpen,setDateOpen}){
+ const row=dt.useRef(null);
+ dt.useLayoutEffect(()=>{const fit=imWatchSearchPanel(row.current.closest('.search-tags-panel'));return()=>fit.destroy();},[]);
  return x.jsxs(x.Fragment,{children:[
-  x.jsxs('div',{className:'ui-search-row',children:[x.jsx('input',{value:query,onChange:e=>change(e.target.value),placeholder:'Search this note','aria-label':'Search messages',disabled}),x.jsx('button',{type:'button',className:'ui-search-filters','aria-label':'Jump to date',title:'Jump to date','aria-expanded':dateOpen,'aria-controls':'date-picker',disabled,onClick:()=>setDateOpen(!dateOpen),children:x.jsx(ImToolbarIcon,{name:'calendarSearch'})})]}),
+  x.jsxs('div',{ref:row,className:'ui-search-row',children:[x.jsx('input',{value:query,onChange:e=>change(e.target.value),placeholder:'Search this note','aria-label':'Search messages',disabled}),x.jsx('button',{type:'button',className:'ui-search-filters','aria-label':'Jump to date',title:'Jump to date','aria-expanded':dateOpen,'aria-controls':'date-picker',disabled,onClick:()=>setDateOpen(!dateOpen),children:x.jsx(ImToolbarIcon,{name:'calendarSearch'})})]}),
   dateOpen&&x.jsx(ImDatePicker,{jump:jumpToDate,close:()=>setDateOpen(false)})
  ]});
 }

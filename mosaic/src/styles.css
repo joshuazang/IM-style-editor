@@ -331,6 +331,8 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card .card-tag:focus-visible svg{fill:color-mix(in srgb,var(--accent) 18%,var(--accent-soft))}
 @media(hover:hover) and (pointer:fine){#board:not(.is-scrolling) .card .card-tag:hover svg{fill:color-mix(in srgb,var(--accent) 18%,var(--accent-soft))}}
 .card .card-tag:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.card .card-tag.card-tag-overflow{min-height:22px;min-width:26px;padding:2px 5px;border-radius:6px;background:var(--accent-soft);color:var(--ink);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+@media(hover:hover) and (pointer:fine){#board:not(.is-scrolling) .card .card-tag-overflow:hover{background:color-mix(in srgb,var(--accent) 18%,var(--accent-soft))}}
 #search:focus{outline:none!important}
 #search:focus::placeholder{opacity:0!important}
 

@@ -1,4 +1,4 @@
-# UI/UX review: IM 4.3.3 and Mosaic 1.3.2
+# UI/UX review: IM 4.3.4 and Mosaic 1.3.3
 
 This review uses synthetic notes in the opaque Standard Notes test host. It
 checks both interfaces at 280–390 CSS pixels wide, a desktop width, and a short
@@ -6,7 +6,7 @@ checks both interfaces at 280–390 CSS pixels wide, a desktop width, and a shor
 viewport is a layout stress test, not a reproduction of the iOS keyboard.
 Physical iPhone/Safari testing has not been performed in this environment.
 
-## Fixed in this release: native date-field sizing
+## Previously fixed in IM 4.3.3 / Mosaic 1.3.2: native date-field sizing
 
 The shared date field now uses a shrinkable grid track, explicit border-box
 sizing, and an inline-size limit on the panel, label and input. WebKit's native
@@ -27,16 +27,35 @@ stays at least 44 pixels tall, and keeps 16-pixel text. The existing navigation,
 native-picker lifecycle, note isolation and zero-note-writes checks remain.
 These passing Chromium checks do not establish a physical iPhone result.
 
-## Confirmed follow-up issues
+## Follow-up issues fixed in IM 4.3.4 / Mosaic 1.3.3
 
-These findings are not silently changed by this date-field patch.
+The original measurements below are retained to explain the problems. The
+follow-up release implements all four corrections without changing note format,
+draft saving, encryption, card typography or selection geometry.
 
-| Priority | Finding and evidence | Proposed correction |
+| Priority | Finding and evidence | Implemented correction |
 | --- | --- | --- |
-| High | Mosaic's search popup can extend below a short viewport when a persistent failed-save banner moves the toolbar down. At 390 × 430, the popup ended at y=504. Even after scrolling the popup to its maximum, the Pinned cards control occupied y=449–491, below the visible screen. | Size the popup against its actual top and the visible viewport's bottom. Recompute on warning, viewport and keyboard-related size changes. Keep its own vertical scrolling so every control remains reachable. Check IM's popup placement with the same bounds. |
-| Medium | The Clear message statuses labels are only 20 pixels tall in IM and 25 in Mosaic. They are much smaller than the 44-pixel rows already used for many other controls. | Make the entire label row at least 44 pixels tall, keeping the checkbox visually small and adjacent rows separate. Verify tapping the label and the checkbox activates only that option. |
-| Medium | Mosaic gives body-only cards the same accessible name in selection mode: `Select: Untitled card` or `Selected: Untitled card`. Their normal labels contain distinct body previews. | Reuse the body-preview fallback in selection mode, retaining a clear selected/unselected announcement. Test multiple untitled cards with keyboard and screen-reader navigation. |
-| Low | Mosaic's Board view silently shows at most ten tags. A synthetic card with twelve stored tags displayed ten on the board and all twelve in Card view. The tags are preserved; the board does not indicate the omission. | Consider a compact `+2` overflow badge that opens Card view. Keep the compact card layout and update height estimation with the rendering change. This is a design choice to agree on before implementation. |
+| High | Mosaic's search popup could extend below a short viewport when a persistent failed-save banner moved the toolbar down. At 390 × 430, the popup ended at y=504. Even after scrolling the popup to its maximum, the Pinned cards control occupied y=449–491, below the visible screen. | Both editors share one open-panel geometry controller. It bounds the panel against its actual top and the visible viewport, updating on warning/layout changes, window resizing and VisualViewport resize/scroll events. The panel scrolls internally. In the original Mosaic reproduction it now ends at y=422 and the Pinned cards control is reachable at y=367–409. |
+| Medium | The Clear message statuses labels were only 20 pixels tall in IM and 25 in Mosaic. | Both use separate label rows at least 44 pixels tall, with a compact 4-pixel gap and the original small checkbox. Clicking the empty right side of a row toggles only that row. |
+| Medium | Mosaic gave body-only cards the same accessible name in selection mode: `Select: Untitled card` or `Selected: Untitled card`. Their normal labels contained distinct body previews. | Normal and selection labels now use the same optional-title/body-preview fallback. Selecting a card retains its distinguishing text and adds the selected-state announcement. Visible card content is unchanged. |
+| Low | Mosaic's Board view silently showed at most ten tags. A synthetic card with twelve stored tags displayed ten on the board and all twelve in Card view. | A compact `+N` button follows the first ten tags and opens Card view to show them all. In selection mode it selects/deselects the card like its other tags. Height estimation includes the overflow button, while actual measured card heights remain authoritative. |
+
+`tests/ui-layout-regressions.py` verifies these corrections with synthetic
+notes at 320 × 568, 390 × 430 and 1100 × 900, including Extra large Mosaic
+text. It checks row tapping, keyboard selection, unchanged visible text and
+selection geometry, tag overflow, no overlapping cards, failed-save banners,
+short windows, simulated VisualViewport resize/scroll, and preservation of the
+mounted native date field. Repeated open/close cycles verify viewport listeners
+are removed. All test interactions preserve the stored note and make no external
+requests. Simulated viewport events do not validate the native iOS keyboard or
+actual VoiceOver announcements.
+
+The geometry controller observes only open search panels, batches asynchronous
+updates into animation frames, and disconnects when closed. It has no idle
+timer, persistence, telemetry or note-content scanning. Screen-reader support
+continues to use HTML semantics and short labels; no screen-reader engine is
+bundled. Accessibility overhead has not been benchmarked, so no percentage
+performance claim is made.
 
 ## Review process improvements
 

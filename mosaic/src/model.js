@@ -67,6 +67,8 @@ const MosaicModel = (() => {
     const value={byId,counts,tags,untagged,lastQuery:null};indexes.set(messages,value);latestIndex=value;return value;
   }
   const preview = message => prepare(message).parts;
+  const label = message => {const {title,body}=preview(message);return title||body.slice(0,70).replace(/\s+/g,' ').trim()||'Empty card';};
+  const boardTagLimit=10;
   const matches = (message, query, tag, pinned, pinIds) =>
     (!query || prepare(message).search.includes(query.toLocaleLowerCase())) &&
     (!tag || (tag==='__untagged__' ? prepare(message).tags.size===0 : prepare(message).tags.has(tag))) &&
@@ -140,7 +142,8 @@ const MosaicModel = (() => {
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
     const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,3):0,bodyLines=parts.body?previewLines(parts.body,columns,7):0;
-    const tagRows=Math.ceil(Math.min(10,message.reactions.length)/Math.max(1,Math.floor((width-padding+6)/37)));
+    const tagSlots=Math.min(boardTagLimit,message.reactions.length)+(message.reactions.length>boardTagLimit?1:0);
+    const tagRows=Math.ceil(tagSlots/Math.max(1,Math.floor((width-padding+6)/37)));
     const height=Math.max(0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0));
     heights.set(message,{key,height});return height;
   }
@@ -174,5 +177,5 @@ const MosaicModel = (() => {
     }
     return result.sort((a,b)=>a.order-b.order);
   }
-  return {split,join,normalized,pins,tags,index,preview,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
+  return {split,join,normalized,pins,tags,index,preview,label,boardTagLimit,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
 })();

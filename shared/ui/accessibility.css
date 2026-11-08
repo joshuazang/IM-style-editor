@@ -12,6 +12,9 @@ input:focus-visible,textarea:focus-visible{outline:2px solid currentColor!import
 #capture-input:focus,.card-edit-dialog .editor-title:focus,.card-edit-dialog .editor-body:focus{outline:none!important}
 #capture-input:focus::placeholder,.editor-shell .composer textarea:focus::placeholder{opacity:0!important}
 .dialog-heading .icon-button{width:44px;height:44px}
+.status-clear-options,.status-options{gap:4px}
+.status-clear-options label,.status-options label{min-height:44px;cursor:pointer}
+.status-clear-options input,.status-options input{flex:none}
 .board-search-panel input::placeholder{color:var(--muted);opacity:1}
 .card-edit-dialog .editor-title::placeholder,.card-edit-dialog .editor-body::placeholder{color:inherit;opacity:.9}
 .editor-shell .ui-selection-toolbar,.editor-shell .ui-selection-status{--selection-ink:#172033;--frost-tint:72%}
