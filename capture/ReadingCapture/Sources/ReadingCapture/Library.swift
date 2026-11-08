@@ -70,10 +70,10 @@ final class Vault {
     let directory: URL
     private let key: SymmetricKey
     private static let magic = Data("RCV1".utf8)
-    static func open() throws -> Vault {
-        let folder = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("ReadingCapture", isDirectory: true)
+    static func open(directory: URL? = nil, service: String = "ReadingCapture.Vault.v1") throws -> Vault {
+        let folder = try directory ?? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("ReadingCapture", isDirectory: true)
         let exists = FileManager.default.fileExists(atPath: folder.path) ? try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil).contains { $0.pathExtension == "rcclip" } : false
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "ReadingCapture.Vault.v1", kSecAttrAccount as String: "encryption-key", kSecAttrSynchronizable as String: false]
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: "encryption-key", kSecAttrSynchronizable as String: false]
         var lookup = query; lookup[kSecReturnData as String] = true; lookup[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?; let status = SecItemCopyMatching(lookup as CFDictionary, &result)
         let data: Data

@@ -1,5 +1,6 @@
 import XCTest
 import CryptoKit
+import Security
 @testable import ReadingCapture
 
 final class LibraryTests: XCTestCase {
@@ -17,6 +18,22 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try vault.load(), [changed]); XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: url.path).count, 1)
         var damaged = try Data(contentsOf: file); damaged[damaged.count - 1] ^= 1; try damaged.write(to: file)
         XCTAssertThrowsError(try vault.load()); XCTAssertEqual(try Data(contentsOf: file), damaged)
+    }
+    func testKeychainReopenAndMissingKeyRefusesReplacement() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let service = "ReadingCapture.Tests." + UUID().uuidString
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: "encryption-key"]
+        defer { SecItemDelete(query as CFDictionary); try? FileManager.default.removeItem(at: url) }
+        let first = try Vault.open(directory: url, service: service), clip = try sample()
+        try first.save(clip)
+        XCTAssertEqual(try Vault.open(directory: url, service: service).load(), [clip])
+        let file = url.appendingPathComponent(clip.id).appendingPathExtension("rcclip"), original = try Data(contentsOf: file)
+        XCTAssertEqual(SecItemDelete(query as CFDictionary), errSecSuccess)
+        XCTAssertThrowsError(try Vault.open(directory: url, service: service))
+        XCTAssertEqual(try Data(contentsOf: file), original)
+        var lookup = query; lookup[kSecReturnData as String] = true
+        var result: CFTypeRef?
+        XCTAssertEqual(SecItemCopyMatching(lookup as CFDictionary, &result), errSecItemNotFound)
     }
     func testArchivePreservesExactTextAndRejectsDuplicates() throws {
         var clip = try sample(); clip.comment = "Line one\nLine two"

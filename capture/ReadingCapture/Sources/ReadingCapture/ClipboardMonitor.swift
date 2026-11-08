@@ -15,6 +15,7 @@ import AppKit
     }
     func stop() { timer?.invalidate(); timer = nil }
     private func poll() {
+        guard timer != nil else { return }
         let board = NSPasteboard.general, count = board.changeCount
         guard count != seen else { return }; seen = count
         guard let app = NSWorkspace.shared.frontmostApplication, let bundle = app.bundleIdentifier, allowed.contains(bundle) else { return }
