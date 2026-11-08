@@ -228,3 +228,19 @@ finger movement and list position. Touch tap highlights are suppressed on
 message surfaces, while deliberate selection and menu feedback are preserved.
 Measured virtual anchoring skips unchanged scrollTop assignments to avoid
 interrupting native momentum. Mosaic and the shared note/save format are unchanged.
+
+
+IM 4.3.0 overhauls **Occult Field Journal** with six large, flowing drawings
+and sixty smaller curiosities: occult scholars, cryptids, sea creatures, ruins
+and natural history. Long, slender and broad silhouettes create a varied scale;
+smaller drawings fit around their contours. Complete drawings wrap across all
+four edges by exact translation. There are no joined picture panels, blank
+border strips, reflected drawings or upside-down motifs.
+
+The warm, low-contrast 660 × 990 CSS-pixel tile is true SVG: smooth Bezier paths,
+internal vector reuse, and no bitmap, fonts, scripts, filters, external resources
+or runtime drawing dependencies. Richer artwork makes the asset larger than the
+previous minimal icon pattern; the static SVG is cached separately from notes.
+The parser, saving, selection behavior and Mosaic remain unchanged. Build
+provenance is in `artwork/occult-field-journal-v3.json`; the optional development
+converter is `tools/build-occult-journal-v3.py`.

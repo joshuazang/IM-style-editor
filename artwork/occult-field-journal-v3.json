@@ -1,0 +1,31 @@
+{
+  "canvas": [
+    1254,
+    1881
+  ],
+  "major_illustrations": 66,
+  "detail_placements": 450,
+  "edge_crossing_major_illustrations": {
+    "horizontal": 11,
+    "vertical": 6
+  },
+  "bytes": 679077,
+  "sha256": "a55d9a266cbe10402a04221d9ca0155ce6069f90dd697be252c8cef6215ee302",
+  "source_sha256": [
+    "5e2ba5b4ff9b7e84a66b0259ca26837680f17178e112a7a83bceaaaa799b6c95",
+    "e12d8b2ea84951b61fcd0b74fa2025f6cd7dc3a0997092fd8dc65b3fe2bdc2aa",
+    "7f64ec0ff9605ad2c5a1862df6818766fed6e86c78360e29336c0e51537b8378"
+  ],
+  "asset": "next/assets/occult-field-journal-v3.svg",
+  "display_tile_css_pixels": [
+    660,
+    990
+  ],
+  "composition": "Six sweeping long, slender and broad primary silhouettes plus sixty smaller curiosities at varied scales. Actual silhouettes interlock on one wrapping field. No picture panels or border strips.",
+  "vectorizer": {
+    "name": "node-potrace 2.1.8",
+    "commit": "80c8e76a49590cd7f382d1fbeee1aecb98771242",
+    "development_only": true
+  },
+  "runtime_dependencies": []
+}

@@ -93,7 +93,7 @@ styles = ':root{color-scheme:light}\n' + (ROOT / css_path).read_text() + '''
 .selection-more-menu button:hover{background:#17203310}
 .selection-more-menu button:disabled{opacity:.45;cursor:default}
 .merge-preview{max-height:35dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border:1px solid #b7c2d2;border-radius:12px;background:var(--surface);color:#172033}
-.chat-wallpaper.artwork-journal .messages{background-image:url(./occult-field-journal-v2.svg);background-size:660px 990px;background-position:17px 29px}
+.chat-wallpaper.artwork-journal .messages{background-image:url(./occult-field-journal-v3.svg);background-size:660px 990px;background-position:center 29px}
 .jump-to-bottom .new-message-count{position:absolute;right:-3px;top:-7px;min-width:20px;height:20px;padding:1px 5px;border:2px solid var(--surface);border-radius:12px;background:#21653d;color:white;font-size:11px;font-weight:750;line-height:14px;text-align:center;pointer-events:none}
 @supports(backdrop-filter:blur(1px)){
  .selection-more-menu,.day-divider .day-select{background:color-mix(in srgb,var(--surface) var(--frost-tint),transparent);backdrop-filter:blur(var(--frost-blur));-webkit-backdrop-filter:blur(var(--frost-blur))}
@@ -115,7 +115,7 @@ for path in (ROOT / 'assets').iterdir():
         files['assets/' + path.name] = data
         (ASSETS / path.name).write_bytes(data)
 # New artwork belongs to the independent editor; Archive's assets remain immutable.
-for name in ['occult-field-journal-v2.svg']:
+for name in ['occult-field-journal-v3.svg']:
     files['assets/' + name] = (ASSETS / name).read_bytes()
 html = re.sub(r'src="\./assets/[^"?]+\.js"', f'src="./{js_name}"', old_html)
 html = re.sub(r'href="\./assets/[^"?]+\.css"', f'href="./{css_name}"', html)
