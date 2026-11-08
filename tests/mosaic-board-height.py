@@ -38,6 +38,7 @@ try:
     assert heights[2]>heights[1],(width,font,heights)
     assert heights[2]>7*minimum,(width,font,'Long cards must use the expanded 8x budget',heights)
     assert all(h<=8*minimum+1 for h in heights),(width,font,heights,minimum)
+    for index in [2,3,4,5,6]:assert abs(heights[index]-8*minimum)<1,(width,font,index,'Truncated cards share the maximum height',heights)
     for card in cards:
      assert card.evaluate('n=>[...n.children].filter(c=>!c.classList.contains("selection-check")).every(c=>c.getBoundingClientRect().bottom<=n.getBoundingClientRect().bottom-2)'),(width,font,card.inner_text())
     body=cards[2].locator('.card-body');assert body.evaluate('n=>n.scrollHeight>n.clientHeight&&getComputedStyle(n).webkitLineClamp!=="none"')
@@ -49,6 +50,9 @@ try:
     fill_search(e,'Hidden ending');expect(e.locator('.card')).to_have_count(1)
     assert cards[2].bounding_box()['height']<=8*minimum+1
     assert page.evaluate('saves.length')==0
+    cards[2].click();e.get_by_role('textbox',name='Card body',exact=True).fill('Shortened')
+    e.get_by_role('button',name='Close',exact=True).click();fill_search(e,'Shortened');expect(e.locator('.card')).to_have_count(1)
+    assert cards[2].bounding_box()['height']<2*minimum,'A shortened card must lose its full-height presentation'
     print(f'PASS {width}px {font}: proportional heights, eight-times cap, clamped full-text previews, tags/reply/title fit and intact opened text',flush=True)
     context.close()
   browser.close()

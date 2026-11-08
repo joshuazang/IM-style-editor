@@ -32,7 +32,7 @@ try:
     assert any(frame[0].get('opacity')=='0' for frame in frames),frames
     moving=e.locator('.card').evaluate_all('ns=>ns.filter(n=>n.getAnimations().some(a=>{const f=a.effect.getKeyframes();return f[0].transform!==f[f.length-1].transform})).length')
     assert moving>1,moving
-   page.wait_for_timeout(300)
+   e.locator('#board').evaluate('async n=>{await Promise.all([...n.querySelectorAll(".card")].flatMap(c=>c.getAnimations()).filter(a=>a.effect.getKeyframes().some(f=>f.transform)).map(a=>a.finished.catch(()=>{})))}')
    original_texts=[m['text'] for m in saved['messages']];original_ids=[m['id'] for m in saved['messages']]
    cdp=context.new_cdp_session(page)
    def touch(kind,x=0,y=0):cdp.send('Input.dispatchTouchEvent',{'type':kind,'touchPoints':[] if kind in ['touchEnd','touchCancel'] else [{'x':x,'y':y}]})
@@ -43,8 +43,8 @@ try:
     else:
      page.mouse.move(x,y);page.mouse.down();page.mouse.move(x+15,y+5)
     expect(e.locator('.board-drag-ghost')).to_be_visible();return x,y
-   def move_to(target):
-    box=target.bounding_box();x=box['x']+box['width']/2;y=box['y']+box['height']-10
+   def move_to(target,after=True):
+    box=target.bounding_box();x=box['x']+box['width']/2;y=box['y']+(box['height']-10 if after else box['height']*.2)
     if width<600:touch('touchMove',x,y)
     else:page.mouse.move(x,y,steps=6)
     page.wait_for_timeout(650)
@@ -70,10 +70,13 @@ try:
    source=e.locator('[data-id="'+data['messages'][10]['id']+'"]');count=page.evaluate('saves.length');before=page.evaluate('notes.a.content.text')
    begin(source);move_to(e.locator('[data-id="'+new_id+'"]'));page.keyboard.press('Escape');release()
    expect(e.locator('.board-drag-ghost')).to_have_count(0);assert page.evaluate('notes.a.content.text')==before and page.evaluate('saves.length')==count
+   page.wait_for_timeout(450)
    # A failed drop retains its arrangement for Retry, without clearing a draft.
    field.fill('Preserve my unsent draft');expect(field).to_have_value('Preserve my unsent draft');page.wait_for_timeout(60)
    page.evaluate('rejectSaves=true');count=page.evaluate('saves.length')
-   begin(e.locator('[data-id="'+new_id+'"]'));move_to(e.locator('[data-id="'+data['messages'][11]['id']+'"]'));release()
+   begin(e.locator('[data-id="'+new_id+'"]'));move_to(e.locator('[data-id="'+reordered['settings']['mosaicCardOrder'][0]+'"]'),False)
+   assert e.locator('#board').evaluate('n=>MosaicModel.ordered(active.messages,dragPreview.settings)[0].id')==new_id
+   release()
    expect(e.locator('#notice')).to_contain_text('Saving was not confirmed');expect(field).to_have_value('Preserve my unsent draft')
    assert page.evaluate('saves.length')==count
    page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(e.locator('#notice')).to_be_hidden()
@@ -88,14 +91,14 @@ try:
    first=e.locator('[data-id="'+new_id+'"]');first.focus();first.press('Alt+ArrowDown')
    assert parse(page.evaluate('notes.a.content.text'))['settings']['mosaicCardOrder'][0]!=new_id
    count=page.evaluate('saves.length');first.dispatch_event('keydown',{'key':'ArrowDown','altKey':True,'repeat':True});assert page.evaluate('saves.length')==count
-   page.wait_for_timeout(300)
+   e.locator('#board').evaluate('async n=>{await Promise.all([...n.querySelectorAll(".card")].flatMap(c=>c.getAnimations()).filter(a=>a.effect.getKeyframes().some(f=>f.transform)).map(a=>a.finished.catch(()=>{})))}')
    # Fast swipes remain scrolling; a stationary hold still opens on release.
    if width<600:
-    e.locator('#viewport').evaluate('n=>n.scrollTop=0');count=page.evaluate('saves.length')
+    e.locator('#viewport').evaluate('n=>n.scrollTop=0');page.wait_for_timeout(150);count=page.evaluate('saves.length')
     source=e.locator('[data-id="'+new_id+'"]');box=source.bounding_box();x=box['x']+30;y=box['y']+20
     touch('touchStart',x,y);touch('touchMove',x,y-90);touch('touchEnd');page.wait_for_timeout(100)
     expect(e.locator('.board-drag-ghost')).to_have_count(0);assert page.evaluate('saves.length')==count
-    e.locator('#viewport').evaluate('n=>n.scrollTop=0');box=source.bounding_box();x=box['x']+30;y=box['y']+20
+    page.wait_for_timeout(450);e.locator('#viewport').evaluate('n=>n.scrollTop=0');page.wait_for_timeout(150);box=source.bounding_box();x=box['x']+30;y=box['y']+20
     touch('touchStart',x,y);page.wait_for_timeout(560);expect(e.locator('#menu')).to_be_hidden();touch('touchEnd');expect(e.locator('#menu')).to_be_visible();page.keyboard.press('Escape')
    # Incoming host content cancels an active preview; it is never overwritten.
    count=page.evaluate('saves.length');begin(e.locator('[data-id="'+new_id+'"]'))
@@ -107,7 +110,7 @@ try:
    # A sparse board accepts a drop into its otherwise empty bottom area.
    for text in ['First short card','Second short card']:
     e.locator('#capture-input').fill(text);e.locator('#capture-input').press('Enter');expect(e.locator('#capture-input')).to_have_value('')
-   page.wait_for_timeout(300);small=parse(page.evaluate('notes.b.content.text'));small_id=small['messages'][-1]['id'];count=page.evaluate('saves.length')
+   e.locator('#board').evaluate('async n=>{await Promise.all([...n.querySelectorAll(".card")].flatMap(c=>c.getAnimations()).filter(a=>a.effect.getKeyframes().some(f=>f.transform)).map(a=>a.finished.catch(()=>{})))}');small=parse(page.evaluate('notes.b.content.text'));small_id=small['messages'][-1]['id'];count=page.evaluate('saves.length')
    begin(e.locator('[data-id="'+small_id+'"]'))
    if width<600:touch('touchMove',60,650)
    else:page.mouse.move(60,650,steps=6)

@@ -273,3 +273,7 @@ Mosaic 1.4.1 raises the Board preview budget to 8× and stabilizes drag placemen
 400ms neighbor/280ms landing animation. Release commits the visible placeholder;
 settings-only saves preserve message references and measured geometry. Added
 mouse/touch boundary, intended-target, noise and exact landing regressions.
+
+Mosaic 1.4.2 aligns truncated Board cards at the shared 8× maximum height,
+including titled cards. Short cards keep their natural height; leftover space
+from whole-line clamping stays below the preview content.

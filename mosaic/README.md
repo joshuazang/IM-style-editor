@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.1](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.1.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.2](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.2.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -251,3 +251,7 @@ Release commits the displayed placeholder, without selecting an unseen target.
 The destination marker stays fixed while neighboring cards animate around it.
 Settings-only saves retain measured card geometry to avoid landing jumps.
 Date navigation retains its destination position while taller previews are measured.
+
+Mosaic 1.4.2 fills the shared 8× height for truncated title/body previews,
+leaving residual line-fitting space below the content. Untruncated cards keep
+their natural compact height. Note text, typography and save behavior are unchanged.

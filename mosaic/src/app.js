@@ -398,8 +398,13 @@ function renderWindow() {
   // Measure only newly mounted/resized previews, in one read batch. Reuse those
   // real heights on future layouts rather than leaving guessed empty space.
   let changed=false;const selecting=!!active?.view.selecting;
-  for(const {node,item} of measurements){
-    const height=Math.ceil(node.getBoundingClientRect().height);
+  const sizes=measurements.map(({node,item})=>{
+    const truncated=[...node.querySelectorAll('.card-title,.card-body')].some(field=>field.scrollHeight>field.clientHeight+1);
+    return {node,item,truncated,height:truncated?MosaicModel.boardBounds(item.width,fontSize).maximum:Math.ceil(node.getBoundingClientRect().height)};
+  });
+  for(const {node,item,truncated,height} of sizes){
+    node.classList.toggle('is-truncated',truncated);
+    if(truncated)node.style.height=height+'px';
     const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize);
     if(measured&&(height!==item.height))changed=true;
   }
@@ -409,7 +414,7 @@ function renderWindow() {
     board.style.height=layout.height+'px';
     for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
     for(const [id,node] of mounted){const item=layout.byId.get(id);if(item)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
-    if(s.locatedId&&!boardDrag.dragging&&locatedY!=null){const next=layout.byId.get(s.locatedId);if(next)viewport.scrollTop+=next.y-locatedY;}
+    if(s.locatedId&&!boardDrag.dragging&&locatedY!=null){const next=layout.byId.get(s.locatedId);if(next&&Math.abs(next.y-locatedY)>.5)viewport.scrollTop+=next.y-locatedY;}
     else if(!s.locatedId&&!boardDrag.dragging){
       if(atBottom)viewport.scrollTop=viewport.scrollHeight;
       else if(anchor){const next=layout.byId.get(anchor.id);if(next&&Math.abs(next.y-anchor.y)>.5)viewport.scrollTop+=next.y-anchor.y;}
