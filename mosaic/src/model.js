@@ -131,6 +131,20 @@ const MosaicModel = (() => {
     return lines;
   }
   const heightKey=(width,pinned,selecting,fontSize)=>width+':'+pinned+':'+fontSize;
+  function boardBounds(width,fontSize='large') {
+    const compact=width<230,font=fontSizes[fontSize],padding=compact?22:28;
+    const bodyLine=compact?font.compactBodyLine:font.bodyLine;
+    return {minimum:padding+bodyLine,maximum:5*(padding+bodyLine),bodyLine,padding};
+  }
+  function boardTagCount(message,width,fontSize='large') {
+    const bounds=boardBounds(width,fontSize),font=fontSizes[fontSize],parts=preview(message);
+    const title=parts.title?(width<230?font.compactTitleLine:font.titleLine):0;
+    const reserved=bounds.padding+title+(parts.body?bounds.bodyLine:0)+(title&&parts.body?8:0)+(message.replyTo?44:0)+8;
+    const rows=Math.max(1,Math.floor((bounds.maximum-reserved+6)/28));
+    // Leave room for the overflow button, including wide native emoji glyphs.
+    const slots=rows*Math.max(1,Math.floor((width-bounds.padding+6)/46));
+    return message.reactions.length<=Math.min(boardTagLimit,slots)?message.reactions.length:Math.max(1,Math.min(boardTagLimit,slots-1));
+  }
   function measure(message,width,pinned,selecting,height,fontSize='large') {
     const key=heightKey(width,pinned,selecting,fontSize),previous=measured.get(message);
     if(previous?.key===key&&previous.height===height)return false;
@@ -141,10 +155,11 @@ const MosaicModel = (() => {
     if(actual?.key===key)return actual.height;
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
-    const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,3):0,bodyLines=parts.body?previewLines(parts.body,columns,7):0;
-    const tagSlots=Math.min(boardTagLimit,message.reactions.length)+(message.reactions.length>boardTagLimit?1:0);
+    const bounds=boardBounds(width,fontSize),lineLimit=Math.ceil(bounds.maximum/bounds.bodyLine);
+    const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,lineLimit):0,bodyLines=parts.body?previewLines(parts.body,columns,lineLimit):0;
+    const tagCount=boardTagCount(message,width,fontSize),tagSlots=tagCount+(message.reactions.length>tagCount?1:0);
     const tagRows=Math.ceil(tagSlots/Math.max(1,Math.floor((width-padding+6)/37)));
-    const height=Math.max(0,(compact?20:24)+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*(compact?font.compactBodyLine:font.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0));
+    const height=Math.min(bounds.maximum,Math.max(bounds.minimum,bounds.padding+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*bounds.bodyLine+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0)));
     heights.set(message,{key,height});return height;
   }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
@@ -177,5 +192,5 @@ const MosaicModel = (() => {
     }
     return result.sort((a,b)=>a.order-b.order);
   }
-  return {split,join,normalized,pins,tags,index,preview,label,boardTagLimit,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
+  return {split,join,normalized,pins,tags,index,preview,label,boardTagLimit,boardBounds,boardTagCount,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
 })();

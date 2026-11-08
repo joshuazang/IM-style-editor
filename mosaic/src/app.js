@@ -321,13 +321,36 @@ function renderWindow() {
   for(const item of MosaicModel.visible(layout,low,high)){
     visible.add(item.message.id);
     let node=mounted.get(item.message.id);
-    if(!node){node=cardNode(item.message);mounted.set(item.message.id,node);board.append(node);}
+    if(!node){node=cardNode(item.message,item.width);mounted.set(item.message.id,node);board.append(node);}
     node.classList.toggle('is-compact',item.width<230);
     const geometry=item.width+':'+fontSize;
     Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
-    if(node.dataset.geometry!==geometry){node.dataset.geometry=geometry;measurements.push({node,item});}
+    if(node.dataset.geometry!==geometry){
+      node.dataset.geometry=geometry;node.style.removeProperty('--board-title-lines');node.style.removeProperty('--board-body-lines');
+      measurements.push({node,item});
+    }
   }
   for(const [id,node] of mounted)if(!visible.has(id)){node.remove();mounted.delete(id);}
+  // Reserve real tag/reply heights before clamping text. Batch all reads before
+  // writes; this only runs for newly mounted cards or changed width/font size.
+  const previewLimit=({node,item})=>{
+    const title=node.querySelector('.card-title'),body=node.querySelector('.card-body'),style=getComputedStyle(node);
+    const occupied=[...node.children].filter(n=>n!==title&&n!==body&&n.className!=='selection-check').reduce((sum,n)=>sum+n.getBoundingClientRect().height+parseFloat(getComputedStyle(n).marginTop),0);
+    const maximum=MosaicModel.boardBounds(item.width,fontSize).maximum;
+    const padding=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom)+2;
+    const bodyStyle=body&&getComputedStyle(body),titleStyle=title&&getComputedStyle(title);
+    const bodyLine=bodyStyle?parseFloat(bodyStyle.lineHeight):0,titleLine=titleStyle?parseFloat(titleStyle.lineHeight):0;
+    const gap=(bodyStyle?parseFloat(bodyStyle.marginTop):0)+(titleStyle?parseFloat(titleStyle.marginTop):0);
+    const available=maximum-padding-occupied-gap;
+    const titleLines=title?Math.max(1,Math.min(Math.ceil(title.scrollHeight/titleLine),Math.floor((available-bodyLine)/titleLine))):0;
+    return {node,titleLines,bodyLines:body?Math.max(1,Math.floor((available-titleLines*titleLine)/bodyLine)):0,crowded:available<titleLine+bodyLine};
+  };
+  let limits=measurements.map(previewLimit);
+  const crowded=limits.filter(({node,crowded})=>crowded&&node.collapseTags);
+  // Custom tags can be wider than emoji estimates. Fall back to one tag plus
+  // +N rather than pushing the text or tags outside the five-times budget.
+  if(crowded.length){for(const {node} of crowded)node.collapseTags();limits=measurements.map(previewLimit);}
+  for(const {node,titleLines,bodyLines} of limits){node.style.setProperty('--board-title-lines',titleLines);node.style.setProperty('--board-body-lines',bodyLines);}
   // Measure only newly mounted/resized previews, in one read batch. Reuse those
   // real heights on future layouts rather than leaving guessed empty space.
   let changed=false;const selecting=!!active?.view.selecting;
@@ -383,7 +406,7 @@ function renderDateControls(){
 $('date-filter-button').append(mosaicToolbarIcon('calendarSearch'));
 $('date-filter-button').addEventListener('click',()=>{dateOpen=!dateOpen;renderDateControls();});
 function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
-function cardNode(message) {
+function cardNode(message,width) {
   const s=active,parts=MosaicModel.preview(message),pinned=MosaicModel.pins(s.settings).includes(message.id);
   const node=el('article','card'+(pinned?' is-pinned':'')+(s.view.selected.has(message.id)?' selected':''));
   if(s.locatedId===message.id)node.classList.add('located');
@@ -396,7 +419,8 @@ function cardNode(message) {
   if(parts.body)node.append(el('p','card-body',parts.body));
   if(message.reactions.length){
     const tags=el('div','card-tags');
-    for(const tag of message.reactions.slice(0,MosaicModel.boardTagLimit)){
+    const tagCount=MosaicModel.boardTagCount(message,width,MosaicModel.appearance(s.settings).fontSize);
+    for(const tag of message.reactions.slice(0,tagCount)){
       const badge=button('Filter messages by '+tag,null,()=>{
         if(active!==s)return;
         if(s.view.selecting){toggleSelection(message.id);return;}
@@ -412,8 +436,14 @@ function cardNode(message) {
       }
       badge.append(el('span','emoji-tag-emoji',tag));tags.append(badge);
     }
-    const remaining=message.reactions.length-MosaicModel.boardTagLimit;
-    if(remaining>0){const more=button('Show '+remaining+' more tag'+(remaining===1?'':'s'),null,activate,'card-tag card-tag-overflow');more.textContent='+'+remaining;tags.append(more);}
+    let more;
+    const overflow=remaining=>{
+      const label='Show '+remaining+' more tag'+(remaining===1?'':'s');
+      if(!more){more=button(label,null,activate,'card-tag card-tag-overflow');tags.append(more);}
+      more.textContent='+'+remaining;more.setAttribute('aria-label',label);more.title=label;
+    };
+    const remaining=message.reactions.length-tagCount;if(remaining>0)overflow(remaining);
+    if(message.reactions.length>1)node.collapseTags=()=>{for(const badge of [...tags.children].slice(1))if(badge!==more)badge.remove();overflow(message.reactions.length-1);};
     node.append(tags);
   }
   node.addEventListener('click',activate);

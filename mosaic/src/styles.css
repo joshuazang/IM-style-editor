@@ -46,9 +46,9 @@ input,textarea{min-width:0;color:var(--ink)}
 .card{position:absolute;left:0;top:0;display:flex;flex-direction:column;padding:20px 20px 15px;border:1px solid #dce1d7;border-radius:17px;background:var(--card-color,#fff);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;outline:none;contain:layout style;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 @media(hover:hover) and (pointer:fine){#board:not(.is-scrolling) .card:not(.selected):hover{box-shadow:0 8px 22px #2f443414;border-color:#b9c6b7}}
 .card:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
-.card-title{font-size:17px;font-weight:650;line-height:25px;margin:0 25px 0 0;letter-spacing:-.25px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;flex:none;white-space:pre-wrap}
+.card-title{font-size:17px;font-weight:650;line-height:25px;margin:0 25px 0 0;letter-spacing:-.25px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--board-title-lines,20);overflow:hidden;flex:none;white-space:pre-wrap}
 .card-title.empty-title{font-weight:500;color:var(--muted);font-style:italic}
-.card-body{font-size:13px;line-height:23px;color:#202124;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;overflow:hidden;margin:12px 0 0;flex:none}
+.card-body{font-size:13px;line-height:23px;color:#202124;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--board-body-lines,20);overflow:hidden;margin:12px 0 0;flex:none}
 .card-actions{position:absolute;top:9px;right:8px;display:flex;align-items:center;gap:0;opacity:0;background:var(--card-color);border-radius:10px}
 .card-actions .icon-button{width:29px;height:32px;border-radius:9px}
 .card-actions svg{width:16px;height:16px}

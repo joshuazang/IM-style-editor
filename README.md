@@ -251,3 +251,9 @@ bodies then scroll inside the card with Close still reachable. Width changes
 remeasure wrapped text without changing the note format or save behavior.
 Desktop and phone viewport regressions cover growth, shrinkage, scrolling,
 resizing and saving; native iPhone keyboard behavior still needs device testing.
+
+Mosaic 1.3.5 gives Board cards a shared height budget of five times a basic
+one-line card at the current font size and column width. Previews grow with
+content and end in an ellipsis at that budget; opening, searching, and exporting
+still use the complete text. Dense tag groups use the existing +N overflow
+button to keep the text, reply preview and tags within the same height budget.
