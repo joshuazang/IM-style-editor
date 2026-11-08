@@ -28,11 +28,11 @@ const MosaicModel = (() => {
     {id:'rose',name:'Rose',light:'#f5dfd9'},
     {id:'sand',name:'Sand',light:'#e9e3d1'},
     {id:'stone',name:'Stone',light:'#eeeef0'},
-    {id:'iris',name:'Iris blue',light:'#4e5cf0',ink:'#ffffff'}
+    {id:'iris',name:'Iris blue',light:'#919bf5'}
   ];
   const color = (message) => {
     const preset=colors.find(item=>item.id===message.cardColor)||colors[0];
-    return {id:preset.id,background:preset.light||'var(--surface)',ink:preset.ink||(preset.id==='default'?'var(--ink)':'#27332f')};
+    return {id:preset.id,background:preset.light||'var(--surface)',ink:'#202124'};
   };
   const normalized = text => text.replace(/\r\n?/g, '\n');
   function split(text) {

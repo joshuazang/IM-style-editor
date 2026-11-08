@@ -1,4 +1,0 @@
-/* IM appearance only; Mosaic always uses its selected light palette. */
-@media(prefers-color-scheme:dark){.editor-shell .ui-context-menu{--menu-surface:#202925;--menu-ink:#e1e9df;--menu-line:#364238;--menu-hover:#2b4033;--menu-danger:#f18c88}}
-@media(prefers-color-scheme:dark){.editor-shell .ui-selection-status>span{text-shadow:none}}
-@media(prefers-color-scheme:dark){.editor-shell{--focus-ring:#285b89;--danger:#f18c88}}

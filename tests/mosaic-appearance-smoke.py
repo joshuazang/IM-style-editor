@@ -67,6 +67,14 @@ try:
     for name in ['Sage','Paper','Sand']:
      choose('Color palette',name);assert e.locator('.card-body').first.evaluate(contrast)>=4.5
      assert e.locator('.card-body').first.evaluate(contrast)>=4.5
+     assert e.locator('.card-body').first.evaluate('n=>getComputedStyle(n).color')=='rgb(32, 33, 36)'
+     card=e.locator('.card').first
+     for value in ['iris','coral','default']:
+      card.evaluate('(n,value)=>{const color=MosaicModel.color({cardColor:value});n.style.setProperty("--card-color",color.background);n.style.setProperty("--card-ink",color.ink)}',value)
+      assert card.locator('.card-body').evaluate('n=>getComputedStyle(n).color')=='rgb(32, 33, 36)'
+      assert card.locator('.card-body').evaluate(contrast)>=4.5
+     card.click();body=e.get_by_role('textbox',name='Card body',exact=True);assert body.evaluate('n=>getComputedStyle(n).color')=='rgb(32, 33, 36)'
+     e.get_by_role('button',name='Close',exact=True).click()
      if scheme=='dark':
       assert e.locator('html').evaluate('n=>getComputedStyle(n).colorScheme')=='light'
       assert e.locator('html').evaluate('n=>getComputedStyle(n).backgroundColor')=={'Sage':'rgb(248, 249, 245)','Paper':'rgb(247, 248, 250)','Sand':'rgb(250, 241, 231)'}[name]

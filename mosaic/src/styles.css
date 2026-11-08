@@ -48,7 +48,7 @@ input,textarea{min-width:0;color:var(--ink)}
 .card:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
 .card-title{font-size:17px;font-weight:650;line-height:25px;margin:0 25px 0 0;letter-spacing:-.25px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;flex:none;white-space:pre-wrap}
 .card-title.empty-title{font-weight:500;color:var(--muted);font-style:italic}
-.card-body{font-size:13px;line-height:23px;color:color-mix(in srgb,var(--ink) 80%,transparent);white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;overflow:hidden;margin:12px 0 0;flex:none}
+.card-body{font-size:13px;line-height:23px;color:#202124;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;overflow:hidden;margin:12px 0 0;flex:none}
 .card-actions{position:absolute;top:9px;right:8px;display:flex;align-items:center;gap:0;opacity:0;background:var(--card-color);border-radius:10px}
 .card-actions .icon-button{width:29px;height:32px;border-radius:9px}
 .card-actions svg{width:16px;height:16px}
@@ -187,7 +187,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card{padding:18px 18px 14px;color:var(--card-ink,var(--ink))}
 .card-title{margin:0;letter-spacing:-.2px}
 .card.is-pinned .card-title{margin-right:26px}
-.card .card-body{margin-top:10px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 88%,transparent)}
+.card .card-body{margin-top:10px;color:#202124}
 .card .card-meta{margin-top:10px;padding-top:0;min-height:12px;line-height:12px;color:color-mix(in srgb,var(--card-ink,var(--ink)) 72%,transparent)}
 .card .card-reply{margin-top:8px;color:inherit;border-left-color:currentColor}
 .card>.pin-card{position:absolute;right:6px;top:6px;width:30px;height:30px;border-radius:9px;opacity:0;pointer-events:none;background:var(--card-color)}
@@ -336,3 +336,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 
 /* Selection is an overlay: text, padding, colors and masonry positions stay put. */
 .card.selected{border-color:#202124;background:var(--card-color,var(--surface));box-shadow:inset 0 0 0 1px #202124}
+
+/* Note content uses solid charcoal in every palette and card color. */
+.card .card-title,.card .card-body,.card-edit-dialog .editor-title,.card-edit-dialog .editor-body,.reader-title,.reader-body,#capture-input{color:#202124}

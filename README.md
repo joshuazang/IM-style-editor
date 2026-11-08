@@ -205,3 +205,16 @@ only changes the view: it does not rewrite notes, touch drafts, add storage, or
 change encryption. The search fields retain their precise black focus emphasis
 without resizing; IM uses its 22% frosted surface with 10px blur, while Mosaic's
 field stays solid.
+
+
+IM 4.2.8 / Mosaic 1.3.1 keep the native date picker and separate date choice
+from the explicit **Jump to date** action. Opening the panel dismisses an active
+text keyboard without calling focus or showPicker on the date field; selecting
+a date keeps the field mounted until confirmation. This avoids competing iOS
+keyboard/picker requests and mid-selection dismissal.
+
+Both active editors now ship light-only styling and advertise a light color
+scheme. Mosaic note bodies, titles and capture text use solid dark charcoal
+across palettes and card colors. Its Iris blue display tint is lighter for dark
+text contrast; stored color IDs and the shared note format are unchanged.
+IM's 960px column and Mosaic's 1440px board limits are unchanged.

@@ -55,8 +55,8 @@ for(const width of [280,350,700,1300]){
   const visible=grid.items.filter(item=>item.y<1600&&item.y+item.height>0);assert.ok(visible.length<70);
   assert.equal(m.layout(many,{},width,'','📓').count,1667);assert.equal(m.layout(many,{},width,'','__untagged__').count,3333);
 }
-assert.equal(m.color({cardColor:'iris'}).background,'#4e5cf0');
-assert.equal(m.color({cardColor:'iris'}).ink,'#ffffff');
+assert.equal(m.color({cardColor:'iris'}).background,'#919bf5');
+assert.equal(m.color({cardColor:'iris'}).ink,'#202124');
 assert.deepEqual(plain(m.appearance({})),{palette:'sage',fontSize:'large'});
 assert.deepEqual(plain(m.appearance({mosaicPalette:'paper',mosaicFontSize:'medium'})),{palette:'paper',fontSize:'medium'});
 for(const invalid of ['url(https://example.invalid)',null,{},[],{toString:'invalid'},'__proto__'])assert.equal(m.appearance({mosaicPalette:invalid,mosaicFontSize:invalid}).fontSize,'large');

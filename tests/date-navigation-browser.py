@@ -32,6 +32,9 @@ try:
      return field
     def picker():
      open_search();e.get_by_role('button',name='Jump to date',exact=True).click();return e.get_by_label('Date',exact=True)
+    def choose(value):
+     field=picker();field.fill(value);expect(field).to_be_visible()
+     e.get_by_role('group',name='Jump to date',exact=True).get_by_role('button',name='Jump to date',exact=True).click()
     def target(index):return e.locator(('.card[data-id="' if mosaic else '.message-wrap[data-message-id="')+data['messages'][index]['id']+'"]')
     def visible_destination(index):
      expect(target(index)).to_be_visible();page.wait_for_timeout(450)
@@ -42,21 +45,31 @@ try:
     open_search();button=e.get_by_role('button',name='Jump to date',exact=True);vectors.append(button.locator('svg').inner_html());assert button.locator('circle').count()==1
     row=button.locator('..');open_search().focus();assert row.evaluate('n=>getComputedStyle(n).boxShadow')=='rgb(32, 33, 36) 0px 0px 0px 1px';assert row.evaluate('n=>getComputedStyle(n).backdropFilter')==('none' if mosaic else 'blur(10px)')
     assert e.get_by_role('button',name='Date filters',exact=True).count()==0
+    if not mosaic:
+     light=e.locator('.editor-shell').evaluate('n=>getComputedStyle(n).backgroundColor')
+     page.emulate_media(color_scheme='dark');assert e.locator('html').evaluate('n=>getComputedStyle(n).colorScheme')=='light'
+     assert e.locator('.editor-shell').evaluate('n=>getComputedStyle(n).backgroundColor')==light
+     page.emulate_media(color_scheme='light')
     # Search would hide this destination. The jump must reveal the full note.
-    open_search().fill('Date item 119');date=picker();date.fill('2026-11-01');visible_destination(28)
+    open_search().fill('Date item 119');choose('2026-11-01');visible_destination(28)
     if not mosaic:
      assert e.locator('.messages').evaluate('(n,ids)=>ids.every(id=>n.imVirtual.has(id))',[m['id'] for m in data['messages']])
     # Both neighboring dates remain available: navigate through normal scrolling.
     scroll=e.locator('#viewport' if mosaic else '.messages');old=scroll.evaluate('n=>n.scrollTop');scroll.evaluate('n=>n.scrollTop+=300');page.wait_for_timeout(150);assert scroll.evaluate('n=>n.scrollTop')>old
     scroll.evaluate('n=>n.scrollTop-=600');page.wait_for_timeout(150);assert scroll.evaluate('n=>n.scrollTop')<old
     # Missing date falls forward. Beyond the note falls back, never hides data.
-    date=picker();date.fill('2026-11-30');visible_destination(56);expect(e.locator('#toast' if mosaic else '.transfer-notice')).to_contain_text('No messages on that date')
-    date=picker();date.fill('2030-01-01');visible_destination(119)
-    date=picker();date.fill('2020-01-01');visible_destination(0)
-    date=picker();e.get_by_role('button',name='Jump to date',exact=True).last.click();expect(e.get_by_role('alert').filter(has_text='Choose a valid date')).to_be_visible()
+    choose('2026-11-30');visible_destination(56);expect(e.locator('#toast' if mosaic else '.transfer-notice')).to_contain_text('No messages on that date')
+    choose('2030-01-01');visible_destination(119)
+    choose('2020-01-01');visible_destination(0)
+    open_search().focus()
+    search=e.locator('#search' if mosaic else '[aria-label="Search messages"]')
+    search.evaluate('n=>{window.nativePickerCalls=0;window.dateFocusCalls=0;const show=HTMLInputElement.prototype.showPicker;HTMLInputElement.prototype.showPicker=function(){window.nativePickerCalls++;return show?.call(this)};const focus=HTMLElement.prototype.focus;HTMLElement.prototype.focus=function(...args){if(this.matches("input[type=date]"))window.dateFocusCalls++;return focus.apply(this,args)}}')
+    date=picker();assert date.evaluate('n=>document.activeElement!==n&&!document.activeElement?.matches("input,textarea")');assert date.evaluate('()=>window.nativePickerCalls===0&&window.dateFocusCalls===0')
+    date.fill('2028-02-29');expect(date).to_be_visible();expect(e.get_by_role('group',name='Jump to date',exact=True)).to_be_visible()
+    date.fill('');e.get_by_role('button',name='Jump to date',exact=True).last.click();expect(e.get_by_role('alert').filter(has_text='Choose a valid date')).to_be_visible()
     if width==390:page.screenshot(path='/tmp/date-jump-'+('mosaic' if mosaic else 'im')+'.png')
     page.evaluate('switchNote("b")');page.wait_for_timeout(150);open_search();expect(e.get_by_role('group',name='Jump to date',exact=True)).not_to_be_visible()
     expect(e.locator('#capture-input' if mosaic else '#append-text')).to_have_value(data['draft']);assert page.evaluate('saves.length')==0;assert page.evaluate('notes.a.content.text')==data['note']['content']['text']
-   assert vectors[0]==vectors[1];assert not errors,errors;print(f'PASS {width}px: shared calendar vector, focus/frost, virtual date jumps, neighboring dates scrollable, cleared search, missing-date fallbacks, validation and note isolation; zero note writes',flush=True);context.close()
+   assert vectors[0]==vectors[1];assert not errors,errors;print(f'PASS {width}px: shared calendar vector, focus/frost, native picker without forced focus/showPicker or mid-selection dismissal, confirmed date jumps, neighboring dates scrollable, cleared search, missing-date fallbacks, validation and note isolation; zero note writes',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

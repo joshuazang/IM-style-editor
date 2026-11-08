@@ -48,7 +48,7 @@ script = (core_source() + ui_script() + private_fields('\n'.join(helpers)) + '\n
           private_fields((TARGET / 'src/editor-runtime.js').read_text()))
 old_html = (ROOT / 'index.html').read_text()
 css_path = re.search(r'href="\./(assets/[^"?]+\.css)', old_html)[1]
-styles = (ROOT / css_path).read_text() + '''
+styles = ':root{color-scheme:light}\n' + (ROOT / css_path).read_text() + '''
 /* Windowed rows retain full scroll space; anchoring is handled with measured offsets. */
 .selection-actions{display:flex;justify-content:space-between;grid-template-columns:repeat(5,1fr)}
 .status-clear-options{display:flex;flex-direction:column;gap:14px;margin:20px 0}
@@ -118,6 +118,7 @@ for name in ['occult-field-journal-v2.svg']:
 html = re.sub(r'src="\./assets/[^"?]+\.js"', f'src="./{js_name}"', old_html)
 html = re.sub(r'href="\./assets/[^"?]+\.css"', f'href="./{css_name}"', html)
 html = re.sub(r'name="im-style-editor-version" content="[^"]+"', f'name="im-style-editor-version" content="{VERSION}"', html)
+html = html.replace('</head>', '<meta name="color-scheme" content="light">\n</head>')
 html = html.replace('</head>', f'<meta name="im-shared-core" content="{core_digest()}">\n<meta name="im-shared-ui" content="{ui_digest()}">\n  </head>')
 html = html.replace('<title>IM-style-editor Archive</title>', '<title>IM-style-editor</title>')
 (TARGET / 'index.html').write_text(html)

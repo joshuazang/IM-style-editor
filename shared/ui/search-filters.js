@@ -32,11 +32,12 @@ function imCreateDateJumpPanel({onJump,onClose}){
   if(onJump(input.value)===false){error.textContent='There are no dated messages in this note.';error.hidden=false;return;}
   onClose();
  };
- input.addEventListener('change',apply);input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.stopPropagation();apply();}});
+ input.addEventListener('change',()=>{error.hidden=true;});input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.stopPropagation();apply();}});
  const button=document.createElement('button');button.type='button';button.className='ui-date-apply';button.textContent='Jump to date';button.addEventListener('click',apply);
  label.append(input);root.append(label,error,button);
- // Native pickers differ between desktop/mobile hosts; the visible date input
- // remains usable when an embedded host disallows programmatic showPicker().
- root.openPicker=()=>{input.focus({preventScroll:true});try{input.showPicker?.();}catch{}};
+ // Let the user's tap open the native picker. Combining focus()/showPicker()
+ // with an active text keyboard causes competing UI in iOS embedded editors.
+ // Date changes stay local until Jump/Enter; do not unmount a live native picker.
+ root.openPicker=()=>{const focused=document.activeElement;if(focused?.matches('input,textarea,[contenteditable="true"]'))focused.blur();};
  return root;
 }

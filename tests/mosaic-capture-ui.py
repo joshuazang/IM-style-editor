@@ -59,7 +59,8 @@ try:
    palette.get_by_role('button',name='Iris blue',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
    page.wait_for_function('notes.a.content.text.includes("cardColor")');saved=parse(page.evaluate('notes.a.content.text'))
    source=saved['messages'][192];assert source['cardColor']=='iris' and source['text']==small['messages'][192]['text'] and not source.get('edited')
-   assert card.evaluate('n=>getComputedStyle(n).color')=='rgb(255, 255, 255)'
+   assert card.evaluate('n=>getComputedStyle(n).color')=='rgb(32, 33, 36)'
+   assert card.locator('.card-body').evaluate('n=>getComputedStyle(n).color')=='rgb(32, 33, 36)'
    card.click(button='right')
    assert e.get_by_role('button',name='Add label',exact=True).count()==0
    e.get_by_role('button',name='Tag 📍',exact=True).click();saved=parse(page.evaluate('notes.a.content.text'))
