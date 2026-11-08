@@ -1,0 +1,25 @@
+name: Reading Capture macOS
+on:
+  push:
+    paths: ['capture/**', '.github/workflows/reading-capture.yml']
+  pull_request:
+    paths: ['capture/**', '.github/workflows/reading-capture.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-app:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Native encryption and archive tests
+        working-directory: capture/ReadingCapture
+        run: CAPTURE_EXPORT_FIXTURE="$RUNNER_TEMP/capture-export.txt" swift test
+      - name: Test actual export with both editors' shared importer
+        run: node capture/ReadingCapture/scripts/check-interchange.cjs "$RUNNER_TEMP/capture-export.txt"
+      - name: Build standalone app
+        run: bash capture/ReadingCapture/scripts/build-app.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ReadingCapture-macOS
+          path: capture/ReadingCapture/dist/ReadingCapture-macOS.zip
