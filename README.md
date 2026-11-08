@@ -244,3 +244,15 @@ previous minimal icon pattern; the static SVG is cached separately from notes.
 The parser, saving, selection behavior and Mosaic remain unchanged. Build
 provenance is in `artwork/occult-field-journal-v3.json`; the optional development
 converter is `tools/build-occult-journal-v3.py`.
+
+
+IM 4.3.1 adds **Everyday Objects 2** beside the original Classic · Everyday
+objects option. The original file, default choice and 420px tile are unchanged.
+V2 keeps its thirteen familiar drawings and adds twenty-eight directly authored
+SVG illustrations, including long pencils, trailing plants, tall umbrellas,
+broad bicycles and headphones. Varied silhouettes and gentle tilts fit around
+each other on a continuous field, with exact translated edge continuations.
+The soft line color stays close to the original. The static SVG is about 37 KB,
+uses reusable vector definitions, and has no bitmap or runtime dependencies.
+A separate saved `artwork` value selects V2; note content, drafts, the shared
+format and Mosaic remain unchanged.

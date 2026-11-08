@@ -1,11 +1,11 @@
 """Real touch drags do not paint press/selection feedback or open a hold menu."""
-import functools,http.server,json,subprocess,threading
+import functools,http.server,json,os,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 from browser_engine import chromium_options
 ROOT=Path(__file__).resolve().parents[1];scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
-data=scope['fixture'](180);data['draft']='';data['settings'].pop('pinnedMessageIds',None);data['settings'].update(wallpaper=True,artwork='journal')
+data=scope['fixture'](180);data['draft']='';data['settings'].pop('pinnedMessageIds',None);data['settings'].update(wallpaper=True,artwork=os.environ.get('IM_TEST_ARTWORK','journal'))
 for i,m in enumerate(data['messages']):
  identity=m['id'];m.clear();m.update(id=identity,text=f'Message {i}. '+('Readable text. '*(1+i%6)),reactions=[],createdAt='2026-11-07T12:00:00Z')
 data['note']['content']['text']=subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(f.portable(d.messages,d.settings,d.draft));"],cwd=ROOT,input=json.dumps(data),text=True)
