@@ -218,3 +218,13 @@ scheme. Mosaic note bodies, titles and capture text use solid dark charcoal
 across palettes and card colors. Its Iris blue display tint is lighter for dark
 text contrast; stored color IDs and the shared note format are unchanged.
 IM's 960px column and Mosaic's 1440px board limits are unchanged.
+
+
+IM 4.2.9 removes touch-down message emphasis and its React state updates, so a
+finger beginning a scroll no longer paints a selected-looking row or redraws
+visible messages. Long presses remain release-only and are cancelled when the
+list scrolls, including after a hold has armed. Final release also verifies
+finger movement and list position. Touch tap highlights are suppressed on
+message surfaces, while deliberate selection and menu feedback are preserved.
+Measured virtual anchoring skips unchanged scrollTop assignments to avoid
+interrupting native momentum. Mosaic and the shared note/save format are unchanged.

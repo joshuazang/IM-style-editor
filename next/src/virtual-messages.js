@@ -80,10 +80,13 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1,selecting=
     const node=scroller.current;if(!node)return;
     const saved=anchor.current;anchor.current=null;
     if(saved){
+      // Assigning an unchanged scrollTop can interrupt native iOS momentum.
+      // Keep measured anchoring, but only reposition when it actually moves.
+      const position=top=>{const bounded=Math.max(0,Math.min(top,node.scrollHeight-node.clientHeight));if(Math.abs(node.scrollTop-bounded)>.5)node.scrollTop=bounded;};
       if(saved.bottom){
-        if(!node.imScroll?.following){if(saved.appended&&node.imScroll)node.imScroll.follow();else node.scrollTop=node.scrollHeight;}
+        if(!node.imScroll?.following){if(saved.appended&&node.imScroll)node.imScroll.follow();else position(node.scrollHeight);}
       }
-      else if(model.indices.has(saved.id))node.scrollTop=(parseFloat(getComputedStyle(node).paddingTop)||0)+model.offsets[model.indices.get(saved.id)]+saved.offset;
+      else if(model.indices.has(saved.id))position((parseFloat(getComputedStyle(node).paddingTop)||0)+model.offsets[model.indices.get(saved.id)]+saved.offset);
     }
     node.imVirtual={
       has:id=>modelRef.current.indices.has(id),

@@ -70,7 +70,9 @@ styles = ':root{color-scheme:light}\n' + (ROOT / css_path).read_text() + '''
 .clipboard-import-actions{flex-wrap:wrap}
 .clipboard-import-actions button{min-width:0;white-space:normal}
 .silent-timer-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.messages{overflow-anchor:none}
+.messages{overflow-anchor:none;touch-action:pan-y pinch-zoom}
+.editor-shell .message-row,.editor-shell .message-wrap,.editor-shell .message-bubble{-webkit-tap-highlight-color:transparent}
+@media(hover:none),(pointer:coarse){.editor-shell .message-reactions button:hover{transform:none;box-shadow:none}}
 .message-row{min-height:44px}
 .selection-touch-row{touch-action:pan-y}
 .editor-shell .message-row.selection-touch-row>.selection-check,.editor-shell .message-row.selection-touch-row>.selection-check.checked{display:grid;place-items:center;left:-10px;top:50%;transform:translateY(-50%);margin:0;width:44px;height:44px;padding:0;border:0!important;box-shadow:none!important;background:transparent!important;font-size:13px;line-height:1}
