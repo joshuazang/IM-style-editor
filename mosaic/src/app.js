@@ -377,32 +377,26 @@ function renderWindow() {
     }
   }
   for(const [id,node] of mounted)if(!visible.has(id)){node.remove();mounted.delete(id);}
-  // Reserve real tag/reply heights before clamping text. Batch all reads before
-  // writes; this only runs for newly mounted cards or changed width/font size.
+  // Body text owns the standard preview allowance. Titles, replies and tags
+  // add height outside it; they never change the body's visible line count.
   const previewLimit=({node,item})=>{
-    const title=node.querySelector('.card-title'),body=node.querySelector('.card-body'),style=getComputedStyle(node);
-    const occupied=[...node.children].filter(n=>n!==title&&n!==body&&n.className!=='selection-check').reduce((sum,n)=>sum+n.getBoundingClientRect().height+parseFloat(getComputedStyle(n).marginTop),0);
-    const maximum=MosaicModel.boardBounds(item.width,fontSize).maximum;
-    const padding=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom)+2;
+    const title=node.querySelector('.card-title'),body=node.querySelector('.card-body');
+    const bounds=MosaicModel.boardBounds(item.width,fontSize),available=bounds.maximum-bounds.padding;
     const bodyStyle=body&&getComputedStyle(body),titleStyle=title&&getComputedStyle(title);
     const bodyLine=bodyStyle?parseFloat(bodyStyle.lineHeight):0,titleLine=titleStyle?parseFloat(titleStyle.lineHeight):0;
-    const gap=(bodyStyle?parseFloat(bodyStyle.marginTop):0)+(titleStyle?parseFloat(titleStyle.marginTop):0);
-    const available=maximum-padding-occupied-gap;
-    const titleLines=title?Math.max(1,Math.min(Math.ceil(title.scrollHeight/titleLine),Math.floor((available-bodyLine)/titleLine))):0;
-    return {node,titleLines,bodyLines:body?Math.max(1,Math.floor((available-titleLines*titleLine)/bodyLine)):0,crowded:available<titleLine+bodyLine};
+    const titleLines=title?Math.max(1,Math.floor(available/titleLine)):0;
+    return {node,titleLines,bodyLines:body?Math.max(1,Math.floor(available/bodyLine)):0};
   };
-  let limits=measurements.map(previewLimit);
-  const crowded=limits.filter(({node,crowded})=>crowded&&node.collapseTags);
-  // Custom tags can be wider than emoji estimates. Fall back to one tag plus
-  // +N rather than pushing the text or tags outside the preview height budget.
-  if(crowded.length){for(const {node} of crowded)node.collapseTags();limits=measurements.map(previewLimit);}
+  const limits=measurements.map(previewLimit);
   for(const {node,titleLines,bodyLines} of limits){node.style.setProperty('--board-title-lines',titleLines);node.style.setProperty('--board-body-lines',bodyLines);}
   // Measure only newly mounted/resized previews, in one read batch. Reuse those
   // real heights on future layouts rather than leaving guessed empty space.
   let changed=false;const selecting=!!active?.view.selecting;
   const sizes=measurements.map(({node,item})=>{
     const truncated=[...node.querySelectorAll('.card-title,.card-body')].some(field=>field.scrollHeight>field.clientHeight+1);
-    return {node,item,truncated,height:truncated?MosaicModel.boardBounds(item.width,fontSize).maximum:Math.ceil(node.getBoundingClientRect().height)};
+    const body=node.querySelector('.card-body'),bodyTruncated=body&&body.scrollHeight>body.clientHeight+1;
+    const bounds=MosaicModel.boardBounds(item.width,fontSize),filler=bodyTruncated?Math.max(0,bounds.maximum-bounds.padding-body.clientHeight):0;
+    return {node,item,truncated,height:Math.ceil(node.getBoundingClientRect().height+filler)};
   });
   for(const {node,item,truncated,height} of sizes){
     node.classList.toggle('is-truncated',truncated);
@@ -489,14 +483,8 @@ function cardNode(message,width) {
       }
       badge.append(el('span','emoji-tag-emoji',tag));tags.append(badge);
     }
-    let more;
-    const overflow=remaining=>{
-      const label='Show '+remaining+' more tag'+(remaining===1?'':'s');
-      if(!more){more=button(label,null,activate,'card-tag card-tag-overflow');tags.append(more);}
-      more.textContent='+'+remaining;more.setAttribute('aria-label',label);more.title=label;
-    };
-    const remaining=message.reactions.length-tagCount;if(remaining>0)overflow(remaining);
-    if(message.reactions.length>1)node.collapseTags=()=>{for(const badge of [...tags.children].slice(1))if(badge!==more)badge.remove();overflow(message.reactions.length-1);};
+    const remaining=message.reactions.length-tagCount;
+    if(remaining>0){const more=button('Show '+remaining+' more tag'+(remaining===1?'':'s'),null,activate,'card-tag card-tag-overflow');more.textContent='+'+remaining;tags.append(more);}
     node.append(tags);
   }
   node.addEventListener('click',activate);

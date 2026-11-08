@@ -136,15 +136,7 @@ const MosaicModel = (() => {
     const bodyLine=compact?font.compactBodyLine:font.bodyLine;
     return {minimum:padding+bodyLine,maximum:8*(padding+bodyLine),bodyLine,padding};
   }
-  function boardTagCount(message,width,fontSize='large') {
-    const bounds=boardBounds(width,fontSize),font=fontSizes[fontSize],parts=preview(message);
-    const title=parts.title?(width<230?font.compactTitleLine:font.titleLine):0;
-    const reserved=bounds.padding+title+(parts.body?bounds.bodyLine:0)+(title&&parts.body?8:0)+(message.replyTo?44:0)+8;
-    const rows=Math.max(1,Math.floor((bounds.maximum-reserved+6)/28));
-    // Leave room for the overflow button, including wide native emoji glyphs.
-    const slots=rows*Math.max(1,Math.floor((width-bounds.padding+6)/46));
-    return message.reactions.length<=Math.min(boardTagLimit,slots)?message.reactions.length:Math.max(1,Math.min(boardTagLimit,slots-1));
-  }
+  const boardTagCount=message=>Math.min(boardTagLimit,message.reactions.length);
   function measure(message,width,pinned,selecting,height,fontSize='large') {
     const key=heightKey(width,pinned,selecting,fontSize),previous=measured.get(message);
     if(previous?.key===key&&previous.height===height)return false;
@@ -155,11 +147,11 @@ const MosaicModel = (() => {
     if(actual?.key===key)return actual.height;
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
-    const bounds=boardBounds(width,fontSize),lineLimit=Math.ceil(bounds.maximum/bounds.bodyLine);
-    const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,lineLimit):0,bodyLines=parts.body?previewLines(parts.body,columns,lineLimit):0;
+    const bounds=boardBounds(width,fontSize),bodyArea=bounds.maximum-bounds.padding,bodyLimit=Math.floor(bodyArea/bounds.bodyLine),titleLine=compact?font.compactTitleLine:font.titleLine;
+    const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,Math.max(1,Math.floor(bodyArea/titleLine))):0,bodyLines=parts.body?previewLines(parts.body,columns,bodyLimit+1):0;
     const tagCount=boardTagCount(message,width,fontSize),tagSlots=tagCount+(message.reactions.length>tagCount?1:0);
     const tagRows=Math.ceil(tagSlots/Math.max(1,Math.floor((width-padding+6)/37)));
-    const height=Math.min(bounds.maximum,Math.max(bounds.minimum,bounds.padding+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*bounds.bodyLine+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0)));
+    const height=bounds.padding+titleLines*titleLine+(bodyLines>bodyLimit?bodyArea:bodyLines*bounds.bodyLine)+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0);
     heights.set(message,{key,height});return height;
   }
   function ordered(messages,settings) {

@@ -1,4 +1,4 @@
-"""Proportional Board previews with a eight-times one-line height budget."""
+"""Proportional Board previews with an eight-times body preview budget."""
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
@@ -29,7 +29,7 @@ try:
    for font in ['small','medium','large','extra-large']:
     data['settings']['mosaicFontSize']=font
     data['note']['content']['text']=json.loads(subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(JSON.stringify(f.portable(d.messages,d.settings,'')));"],cwd=ROOT,input=json.dumps(data),text=True))
-    context=browser.new_context(viewport={'width':width,'height':1400},is_mobile=width<600,has_touch=width<600);page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+    context=browser.new_context(viewport={'width':width,'height':2400},is_mobile=width<600,has_touch=width<600);page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('(note)=>{notes.a=note;openEditor("a","/mosaic/index.html",true)}',data['note'])
     e=page.frame_locator('#editor');expect(e.locator('.card')).to_have_count(7);page.wait_for_timeout(100)
     cards=[e.locator('[data-id="'+m['id']+'"]') for m in data['messages']]
@@ -37,8 +37,10 @@ try:
     assert heights[1]>minimum+20,(width,font,heights)
     assert heights[2]>heights[1],(width,font,heights)
     assert heights[2]>7*minimum,(width,font,'Long cards must use the expanded 8x budget',heights)
-    assert all(h<=8*minimum+1 for h in heights),(width,font,heights,minimum)
-    for index in [2,3,4,5,6]:assert abs(heights[index]-8*minimum)<1,(width,font,index,'Truncated cards share the maximum height',heights)
+    for index in [2,3]:assert abs(heights[index]-8*minimum)<1,(width,font,index,'Plain truncated bodies share the standard maximum',heights)
+    for index in [4,5,6]:assert heights[index]>8*minimum,(width,font,index,'Titles and tags add height outside the body budget',heights)
+    body_heights=[cards[index].locator('.card-body').evaluate('n=>n.clientHeight') for index in [2,3,5,6]]
+    assert len(set(body_heights))==1,(width,font,'Metadata must not reduce body text',body_heights)
     for card in cards:
      assert card.evaluate('n=>[...n.children].filter(c=>!c.classList.contains("selection-check")).every(c=>c.getBoundingClientRect().bottom<=n.getBoundingClientRect().bottom-2)'),(width,font,card.inner_text())
     body=cards[2].locator('.card-body');assert body.evaluate('n=>n.scrollHeight>n.clientHeight&&getComputedStyle(n).webkitLineClamp!=="none"')
@@ -53,7 +55,7 @@ try:
     cards[2].click();e.get_by_role('textbox',name='Card body',exact=True).fill('Shortened')
     e.get_by_role('button',name='Close',exact=True).click();fill_search(e,'Shortened');expect(e.locator('.card')).to_have_count(1)
     assert cards[2].bounding_box()['height']<2*minimum,'A shortened card must lose its full-height presentation'
-    print(f'PASS {width}px {font}: proportional heights, eight-times cap, clamped full-text previews, tags/reply/title fit and intact opened text',flush=True)
+    print(f'PASS {width}px {font}: proportional heights, eight-times body allowance, additive titles/tags/replies and intact opened text',flush=True)
     context.close()
   browser.close()
 finally:server.shutdown()

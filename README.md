@@ -282,3 +282,8 @@ IM 4.3.5 / Mosaic 1.4.3 use one shared composer typography rule and the note’s
 existing IM text scale. The default size is 17.92px in both. Mosaic uses 10px
 vertical padding and a 46px minimum field height; existing input corner shapes
 remain intact. Mosaic’s font-size menu continues to size cards and opened cards.
+
+Mosaic 1.4.4 applies the standard 8× allowance to the body preview alone.
+Titles, reply previews and tag rows add height outside it; adding them does not
+reduce body lines. Truncated bodies retain their consistent standard height,
+and short bodies stay compact. Titles have an independent preview allowance.
