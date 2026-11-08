@@ -11,6 +11,33 @@ function button(label, icon, handler, className='icon-button') {
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
 let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null), searchPanelFit=null;
+let dragPreview=null;
+const boardMotion=new MosaicBoardMotion(board,viewport);
+const boardDrag=new MosaicBoardDrag({board,viewport,
+  canStart:()=>writable()&&!active.view.selecting&&!modal.open&&menu.hidden,
+  canContinue:()=>!!dragPreview&&dragPreview.session===active&&writable()&&!active.view.selecting&&!modal.open&&menu.hidden,
+  onClearCapture:()=>{outsideCapture=null;window.getSelection()?.removeAllRanges();},
+  onStart:id=>{if(!writable())return false;dragPreview={session:active,id,settings:active.settings,pins:new Set(MosaicModel.pins(active.settings))};return true;},
+  getLayout:()=>layout,
+  candidates:y=>{const nearby=MosaicModel.visible(layout,y-400,y+400);return nearby.length?nearby:y<0?layout.items.slice(0,3):layout.items.slice(-3);},
+  getBounds:()=>{const bounds=viewport.getBoundingClientRect();return {top:bounds.top,bottom:Math.min(bounds.bottom,$('capture-composer').getBoundingClientRect().top-8)};},
+  sameSection:(id,target)=>dragPreview.pins.has(id)===dragPreview.pins.has(target),
+  getSlot:id=>{const item=layout.byId?.get(id),origin=board.getBoundingClientRect();return item?{left:origin.left+item.x,top:origin.top+item.y}:null;},
+  onPreview:(id,target,after)=>{
+    const s=active,settings=MosaicModel.moveCard(s.messages,dragPreview.settings,id,target,after);
+    if(settings===dragPreview.settings)return;
+    const before=boardMotion.snapshot(mounted);dragPreview.settings=settings;reflowBoard();boardMotion.move(before,mounted);
+  },
+  onDrop:()=>{
+    const preview=dragPreview;dragPreview=null;
+    if(preview?.session!==active||!writable())return;
+    const current=MosaicModel.ordered(active.messages,active.settings),next=MosaicModel.ordered(active.messages,preview.settings);
+    if(next.some((message,i)=>message.id!==current[i].id))safeRun(()=>update(active,{settings:preview.settings}));
+    else renderWindow();
+  },
+  onCancel:redraw=>{const before=redraw?boardMotion.snapshot(mounted):null;dragPreview=null;if(redraw){reflowBoard();boardMotion.move(before,mounted);}},
+  onSettled:()=>renderWindow()
+});
 const viewMemory=new Map(), unfinishedEdits=new Map();
 // Only unconfirmed sessions and deferred status intents survive note switches.
 // Both are working memory; no text or recovery copy is written to browser storage.
@@ -115,6 +142,7 @@ function receiveNativeFields(s,note){
 }
 function receive(note, force=false) {
   if(!note||!note.uuid)return;
+  if(active&&(active.note.uuid!==note.uuid||!note.isMetadataUpdate&&active.note.content.text!==(note.content?.text||'')&&!knownSessionText(active,note.content?.text||''))){boardDrag.reset();boardMotion.reset();}
   if(note.isMetadataUpdate===true){const s=active?.note.uuid===note.uuid?active:retainedSessions.get(note.uuid);if(s)imNoteMetadataReceived(s.note,note);return;}
   if(active?.note.uuid===note.uuid&&!force){
     const s=active,text=note.content?.text||'';
@@ -176,12 +204,17 @@ function persist(s) {
 }
 function update(s, change, redraw=true) {
   if(!writable(s))throw new Error('Saving is paused. Your original note is unchanged.');
+  boardDrag.cancel(false);
+  const previousIds=redraw?new Set(s.messages.map(m=>m.id)):null;
+  const added=redraw&&change.messages?change.messages.filter(m=>!previousIds.has(m.id)).map(m=>m.id):[];
+  const before=added.length?boardMotion.snapshot(mounted):null;
+  if(added.length)boardMotion.queue(added);
   const messages=change.messages??s.messages,settings=change.settings??s.settings;
   const draft=Object.hasOwn(change,'draft')?change.draft:s.draft,reply=Object.hasOwn(change,'reply')?change.reply:s.reply;
   imFormat.write(s.note,messages,settings,draft,reply);
   Object.assign(s,{messages:imFormat.readMessages(s.note),settings:imFormat.readSettings(s.note),draft:imFormat.readDraft(s.note),reply:imFormat.readReply(s.note)});
   const promise=persist(s);
-  if(s===active){if(redraw)renderAll();else renderCapture();}
+  if(s===active){if(redraw){renderAll(!!before);if(before)boardMotion.move(before,mounted);}else renderCapture();}
   return promise;
 }
 function retrySave() {if(active)safeRun(()=>persist(active));}
@@ -282,13 +315,14 @@ function renderTags() {
   const tags=MosaicModel.tags(s.messages,s.settings),pos=Number.isInteger(s.settings.untaggedPosition)?Math.max(0,Math.min(tags.length,s.settings.untaggedPosition)):tags.length;
   tags.splice(pos,0,'__untagged__');for(const tag of tags)add(tag,tag,tag==='__untagged__'?'untagged':null);
 }
-function renderAll() {
+function renderAll(inserting=false) {
+  boardDrag.cancel(false);
   const s=active;renderAppearance();renderStatus();renderNotice();renderCapture();renderTags();
   $('welcome').hidden=!!s;$('more-button').disabled=!s;$('search-button').disabled=!s;$('pinned-filter').disabled=!s;$('search').disabled=!s;
   $('pinned-filter').setAttribute('aria-pressed',String(!!s?.view.pinned));
   renderSearchControls();refreshEditorMetadata();
   $('app').classList.toggle('selection-mode',!!s?.view.selecting);
-  rebuildLayout();renderSelection();
+  rebuildLayout(inserting);renderSelection();
 }
 function renderAppearance() {
   const root=document.documentElement,{palette,fontSize}=MosaicModel.appearance(active?.settings),font=MosaicModel.fontSizes[fontSize];
@@ -299,14 +333,21 @@ function renderAppearance() {
     if(root.style.getPropertyValue(name)!==next)root.style.setProperty(name,next);
   }
 }
-function rebuildLayout() {
-  const anchor=findAnchor();
+function rebuildLayout(inserting=false) {
+  const anchor=inserting?null:findAnchor();
   layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned,active.view.selecting):{items:[],headings:[],height:0,count:0};
   board.style.height=layout.height+'px';board.replaceChildren();mounted.clear();
   for(const heading of layout.headings){const node=el('div','section-heading',heading.label);node.style.top=heading.y+'px';board.append(node);}
   const filtered=active&&(active.view.query||active.view.tag||active.view.pinned);
   $('empty').hidden=!active||!!layout.count||active.damaged||!filtered;
   if(anchor){const next=layout.byId?.get(anchor.id);if(next)viewport.scrollTop+=next.y-anchor.y;}
+  renderWindow();
+}
+function reflowBoard() {
+  const s=active;if(!s)return;
+  layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting);
+  board.style.height=layout.height+'px';
+  for(const [i,node] of [...board.querySelectorAll('.section-heading')].entries())if(layout.headings[i])node.style.top=layout.headings[i].y+'px';
   renderWindow();
 }
 function findAnchor() {
@@ -322,6 +363,7 @@ function renderWindow() {
     visible.add(item.message.id);
     let node=mounted.get(item.message.id);
     if(!node){node=cardNode(item.message,item.width);mounted.set(item.message.id,node);board.append(node);}
+    node.classList.toggle('is-drag-placeholder',!!boardDrag.placeholder(item.message.id));
     node.classList.toggle('is-compact',item.width<230);
     const geometry=item.width+':'+fontSize;
     Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
@@ -361,16 +403,17 @@ function renderWindow() {
   }
   if(changed){
     const anchor=findAnchor(),s=active,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
-    layout=MosaicModel.layout(s.messages,s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting);
+    layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting);
     board.style.height=layout.height+'px';
     for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
     for(const [id,node] of mounted){const item=layout.byId.get(id);if(item)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
-    if(!s.locatedId){
+    if(!s.locatedId&&!boardDrag.dragging){
       if(atBottom)viewport.scrollTop=viewport.scrollHeight;
       else if(anchor){const next=layout.byId.get(anchor.id);if(next&&Math.abs(next.y-anchor.y)>.5)viewport.scrollTop+=next.y-anchor.y;}
     }
     scheduleWindow();
   }
+  boardMotion.reveal(mounted);
 }
 function metaText(message) {
   const bits=[];if(message.copied)bits.push('Copied');if(message.exported)bits.push('Exported');if(MosaicModel.isImported(message))bits.push('Imported');
@@ -447,8 +490,18 @@ function cardNode(message,width) {
     node.append(tags);
   }
   node.addEventListener('click',activate);
-  node.addEventListener('keydown',event=>{if(event.target!==node)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
-  bindContextMenu(node,event=>{const current=s.messages.find(m=>m.id===message.id);if(current)cardMenu(current,event);},()=>active===s&&!s.view.selecting);
+  node.addEventListener('keydown',event=>{
+    if(event.target!==node)return;
+    if(event.altKey&&['ArrowUp','ArrowDown'].includes(event.key)&&!s.view.selecting&&writable(s)){
+      event.preventDefault();
+      if(event.repeat)return;
+      const pinned=new Set(MosaicModel.pins(s.settings)),items=layout.items.filter(item=>pinned.has(item.message.id)===pinned.has(message.id)),i=items.findIndex(item=>item.message.id===message.id),direction=event.key==='ArrowUp'?-1:1,target=items[i+direction];
+      if(target){const before=boardMotion.snapshot(mounted),settings=MosaicModel.moveCard(s.messages,s.settings,message.id,target.message.id,direction>0);safeRun(()=>update(s,{settings}));boardMotion.move(before,mounted);mounted.get(message.id)?.focus({preventScroll:true});}
+      return;
+    }
+    if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}
+  });
+  bindContextMenu(node,event=>{const current=s.messages.find(m=>m.id===message.id);if(current)cardMenu(current,event);},()=>active===s&&!s.view.selecting&&!boardDrag.placeholder(message.id));
   return node;
 }
 function toggleSelection(id) {const v=active.view,entering=!v.selecting;v.selecting=true;searchOpen=false;v.selected.has(id)?v.selected.delete(id):v.selected.add(id);rememberSelection();if(entering)renderAll();else{refreshSelectionCards();renderSelection();}}
@@ -560,6 +613,7 @@ function mainMenu(event) {
   showMenu([['Import from clipboard','import',()=>importDialog()],['Export all cards','export',()=>exportRecords(s,s.messages)],['Select cards','select',()=>startSelection()],
     ['Clear message statuses','select',()=>statusDialog(null)],['Clear clipboard','trash',()=>clearClipboardDialog()],null,
     ['Color palette','palette',()=>appearanceDialog('palette')],['Font size','textSize',()=>appearanceDialog('fontSize')],['Arrange tags','tag',()=>arrangeTagsDialog()],null,
+    ...(Array.isArray(s.settings.mosaicCardOrder)?[['Reset card order','mosaic',()=>{const before=boardMotion.snapshot(mounted),settings={...s.settings};delete settings.mosaicCardOrder;safeRun(()=>update(s,{settings}));boardMotion.move(before,mounted);}]]:[]),
     ...(latestUnfinished(s.note.uuid)?[['Resume unfinished edit','edit',()=>editCard(latestUnfinished(s.note.uuid).id)]]:[]),['About Mosaic','info',()=>aboutDialog()]],event);
 }
 function arrangeTagsDialog(){
@@ -892,6 +946,7 @@ function aboutDialog() {
   d.root.append(el('p','about-copy','Each card is the same message your IM-style editor reads. All text is body text unless you explicitly add a title from its context menu. There is no separate copy of your notes.'));
   d.root.append(el('p','about-copy','Your note content is saved through Standard Notes. Mosaic has no analytics, independent cloud service, or browser-storage copy. Saving still submits a complete note; very large active notes can reach Standard Notes’ sync limits.'));
   d.root.append(el('p','about-copy','New-card drafts save as you type. Click a card to edit. Enter adds a line; Close saves. Use Close before switching editors. Unfinished edits remain available while this editor stays open.'));
+  d.root.append(el('p','about-copy','Drag Board cards to arrange them. On a phone, hold still, then drag; release without moving to open the menu. With a card focused, Alt+Up/Down also changes its position. Pinned cards stay in their section. The arrangement affects Mosaic only and saves once on drop. Reset card order restores newest-first order.'));
   const p=el('p','about-copy'),a=el('a','','Source, installation & privacy details');a.href='https://github.com/joshuazang/IM-style-editor/tree/main/mosaic';a.target='_blank';a.rel='noopener noreferrer';p.append(a);d.root.append(p);
 }
 function demo() {

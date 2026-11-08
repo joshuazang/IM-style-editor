@@ -305,6 +305,10 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 /* Body-first previews fit their content; controls remain in opened cards only. */
 .card .card-title{margin:0;white-space:pre-wrap}
 .card .card-body{margin:0}
+.card.is-drag-placeholder{background:var(--accent-soft);border:1px dashed var(--accent);box-shadow:inset 0 0 0 1px #28654f18}
+.card.is-drag-placeholder>*{opacity:0}
+.board-drag-ghost{position:fixed!important;z-index:1000!important;pointer-events:none!important;cursor:grabbing;box-shadow:0 12px 32px #172c382e!important;opacity:.97;transform-origin:center;will-change:transform}
+#board.is-dragging{cursor:grabbing}
 .card .card-title+.card-body,.card .card-title+.card-reply,.card .card-reply+.card-body{margin-top:8px}
 .card.is-pinned .card-title{margin-right:0}
 .card-edit-dialog .detail-title{white-space:pre-wrap;font-size:var(--type-edit-title,26px);line-height:1.45;font-weight:650;margin:8px 46px 8px 0;overflow-wrap:anywhere;flex:none}

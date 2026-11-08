@@ -1,6 +1,6 @@
 /* Presentation helpers. A card is still one format-3 message, never a second copy. */
 const MosaicModel = (() => {
-  const heights=new WeakMap(),measured=new WeakMap(),prepared=new WeakMap(),indexes=new WeakMap(),pinCache=new WeakMap();
+  const heights=new WeakMap(),measured=new WeakMap(),prepared=new WeakMap(),indexes=new WeakMap(),pinCache=new WeakMap(),orderCache=new WeakMap();
   let latestIndex=null;
   const palettes=[{id:'sage',name:'Sage',description:'Soft green and clear white'},
     {id:'paper',name:'Paper',description:'Clean white and charcoal'},
@@ -162,10 +162,29 @@ const MosaicModel = (() => {
     const height=Math.min(bounds.maximum,Math.max(bounds.minimum,bounds.padding+titleLines*(compact?font.compactTitleLine:font.titleLine)+bodyLines*bounds.bodyLine+(bodyLines&&titleLines?8:0)+(message.replyTo?36:0)+(tagRows?8+tagRows*22+(tagRows-1)*6:0)));
     heights.set(message,{key,height});return height;
   }
+  function ordered(messages,settings) {
+    const cached=orderCache.get(settings);if(cached?.messages===messages)return cached.result;
+    const byId=index(messages).byId,seen=new Set(),saved=[];
+    if(Array.isArray(settings.mosaicCardOrder))for(const id of settings.mosaicCardOrder){
+      if(typeof id==='string'&&byId.has(id)&&!seen.has(id)){saved.push(byId.get(id).message);seen.add(id);}
+    }
+    // Captures made since the last arrangement appear first, newest first.
+    const result=messages.filter(m=>!seen.has(m.id)).reverse().concat(saved);
+    orderCache.set(settings,{messages,result});return result;
+  }
+  function moveCard(messages,settings,id,targetId,after=false) {
+    if(id===targetId)return settings;
+    const order=ordered(messages,settings).map(m=>m.id),from=order.indexOf(id),target=order.indexOf(targetId);
+    if(from<0||target<0)return settings;
+    const pinned=new Set(pins(settings));if(pinned.has(id)!==pinned.has(targetId))return settings;
+    const next=order.filter(value=>value!==id);next.splice(next.indexOf(targetId)+(after?1:0),0,id);
+    return next.every((value,i)=>value===order[i])?settings:{...settings,mosaicCardOrder:next};
+  }
   function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
     const pinIds=new Set(pins(settings)),fontSize=appearance(settings).fontSize;
-    const matching=filtered(messages,settings,query,tag,pinnedOnly).slice().reverse();
+    const allowed=new Set(filtered(messages,settings,query,tag,pinnedOnly).map(m=>m.id));
+    const matching=ordered(messages,settings).filter(m=>allowed.has(m.id));
     const groups=[['Pinned',matching.filter(m=>pinIds.has(m.id))],['Other cards',matching.filter(m=>!pinIds.has(m.id))]];
     const items=[],headings=[],byId=new Map(),columnItems=Array.from({length:columns},()=>[]);let base=0;
     for(const [name,group] of groups){
@@ -192,5 +211,5 @@ const MosaicModel = (() => {
     }
     return result.sort((a,b)=>a.order-b.order);
   }
-  return {split,join,normalized,pins,tags,index,preview,label,boardTagLimit,boardBounds,boardTagCount,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
+  return {split,join,normalized,pins,tags,index,preview,label,boardTagLimit,boardBounds,boardTagCount,ordered,moveCard,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
 })();

@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.2.1](https://joshuazang.github.io/IM-style-editor/Mosaic-1.2.1.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.0](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.0.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -20,10 +20,23 @@ import them into a new format-3 note; keep the source until checked.
 Each message becomes a card. All its text is body text, including the first line.
 A title appears only after Add title is explicitly chosen. Titles are optional
 message metadata in the same plain-text note. Viewing a note does not rewrite it.
-Pins appear first, then newer cards. Board order does not rearrange the IM timeline.
+Pins appear first. Cards start newest-first and can be arranged by dragging;
+new captures still appear first. Board order does not rearrange the IM timeline.
 This is the current note's board, rather than an account-wide dashboard.
 
 - Responsive masonry with two columns on phones and only nearby previews mounted.
+- New captures animate in while neighbors move to their new positions. Drag a
+  card to arrange it within its pinned/unpinned section; a dashed placeholder
+  shows its destination. On phones, hold still then drag. Releasing a stationary
+  hold opens the normal menu, and immediate swipes still scroll. Near the edges,
+  the board scrolls automatically during a drag. Alt+Up/Down moves a focused card.
+  More → Reset card order restores newest-first order. Reduced-motion preferences
+  skip decorative animations while retaining drag feedback.
+- Drag previews are memory-only and save once on a changed drop. A cancelled or
+  unchanged drop does not save. Only a card-ID order is added to existing note
+  settings, using Standard Notes' existing encryption and save protections;
+  no additional stored text copies, browser persistence, telemetry or new service
+  are introduced.
 - Board previews have no pin/More buttons or empty footer rows. Their actions
   remain in right-click/long-press menus. Font sizes and line spacing are retained;
   blank lines in message text stay intact. Opened cards keep Pin and More.
@@ -38,8 +51,7 @@ This is the current note's board, rather than an account-wide dashboard.
   pins and selection. Filtering replaces the controls with a change/clear pill.
   These frosted controls float above the board; the surrounding strip is
   transparent and does not intercept touches on cards underneath.
-  In night appearance, their foreground and frosted surface follow the palette
-  and remain legible over both bright and dark cards.
+  Mosaic retains its light appearance regardless of the system's dark setting.
 - Cmd/Ctrl+F opens the board's whole-note search and selects its query. An open
   card keeps normal editing keyboard behavior.
 - More → **Arrange tags** adds, replaces, merges, deletes and reorders emoji

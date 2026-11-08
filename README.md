@@ -257,3 +257,13 @@ one-line card at the current font size and column width. Previews grow with
 content and end in an ellipsis at that budget; opening, searching, and exporting
 still use the complete text. Dense tag groups use the existing +N overflow
 button to keep the text, reply preview and tags within the same height budget.
+
+Mosaic 1.4.0 adds short entrance/reflow animations and Board drag-to-reorder.
+Phone users hold still, then drag; stationary holds retain the release-only
+context menu and ordinary swipes remain scrolling. The destination appears as
+a dashed placeholder, neighboring cards animate around it, and edge scrolling
+reaches off-screen cards. Alt+Up/Down and Reset card order provide alternatives.
+Only card IDs are saved in Mosaic settings, once per changed drop; IM message
+order, text, titles, tags and timestamps stay intact. Cancel, note switches and
+incoming content abort previews. Existing failed-save retry and conflict
+protections apply, and reduced-motion preferences skip decorative animation.
