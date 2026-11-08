@@ -158,7 +158,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .search-bar .icon-button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .tag-filters{width:100%;max-width:1440px;margin:0 auto;padding:0 36px 16px}
 .inline-composer{position:relative;flex:none;width:calc(100% - 72px);max-width:1368px;margin:0 auto 24px;padding:0 17px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 2px 6px #293d3210}
-#capture-input{display:block;width:100%;min-height:56px;max-height:min(180px,32dvh);padding:17px 0;border:0;border-radius:0;resize:none;background:transparent;font-size:15px;line-height:22px;box-shadow:none;outline:none;overflow-y:auto}
+#capture-input{display:block;width:100%;min-height:46px;max-height:min(180px,32dvh);padding:10px 0;border:0;border-radius:0;resize:none;background:transparent;box-shadow:none;outline:none;overflow-y:auto}
 #capture-input::placeholder{color:var(--muted)}
 #capture-reply{display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:3px 6px 3px 9px;background:var(--accent-soft);border-left:2px solid var(--accent);border-radius:8px}
 .inline-quote{flex:1;min-width:0;padding:7px 0;background:transparent;text-align:left;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -179,7 +179,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .search-bar .icon-button{width:36px;height:36px}
 .tag-filters{padding:0 16px 14px;gap:5px}
 .inline-composer{width:calc(100% - 32px);margin-bottom:22px;padding:0 15px}
-#capture-input{font-size:16px}
 .board-content{padding:0 16px 24px}
 
 }
@@ -289,8 +288,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card.is-compact .card-body{font-size:var(--type-body,15px);line-height:var(--type-compact-body-line,23px)}
 .card-edit-dialog .editor-title,.reader-title{font-size:var(--type-edit-title,26px)}
 .card-edit-dialog .editor-body,.reader-body{font-size:var(--type-edit-body,18px)}
-#capture-input{font-size:var(--type-capture,18px);line-height:1.5}
-@media(max-width:650px){.card-edit-dialog .editor-title,.reader-title{font-size:var(--type-compact-edit-title,24px)}#capture-input{font-size:max(16px,var(--type-capture,18px))}}
+@media(max-width:650px){.card-edit-dialog .editor-title,.reader-title{font-size:var(--type-compact-edit-title,24px)}}
 
 .tag-arrange-list{display:flex;flex-direction:column;gap:6px;max-height:50dvh;overflow:auto;padding:3px}
 .tag-arrange-row{display:grid;grid-template-columns:minmax(36px,1fr) repeat(4,44px);align-items:center;gap:4px;border-bottom:1px solid var(--line);padding:3px 0}

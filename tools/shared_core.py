@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CORE_FILES = ['note-format.js', 'host-bridge.js', 'note-storage.js', 'message-transfer.js',
               'privacy.js', 'clipboard.js', 'reply-record.js', 'emoji-tags.js']
-UI_FILES = ['icons.js', 'menu-position.js', 'menu.css', 'controls.css', 'selection.css', 'save-feedback.js', 'accessibility.css', 'search-filters.js', 'search-filters.css']
+UI_FILES = ['icons.js', 'menu-position.js', 'menu.css', 'controls.css', 'selection.css', 'save-feedback.js', 'accessibility.css', 'search-filters.js', 'search-filters.css', 'composer.css']
 
 def ui_digest():
     return hashlib.sha256(b''.join(name.encode()+b'\0'+(ROOT/'shared/ui'/name).read_bytes() for name in UI_FILES)).hexdigest()

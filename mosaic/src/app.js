@@ -252,7 +252,7 @@ function renderCapture() {
     quote.append(text,button('Cancel reply','close',()=>safeRun(()=>update(s,{reply:null},false)),'icon-button danger'));
   }
 }
-function growCapture(){const field=$('capture-input');field.style.height='0px';field.style.height=Math.min(180,Math.max(56,field.scrollHeight))+'px';scheduleWindow();}
+function growCapture(){const field=$('capture-input');field.style.height='0px';field.style.height=Math.min(180,Math.max(46,field.scrollHeight))+'px';scheduleWindow();}
 function inputCapture(){
   const s=active;if(!writable(s))return;
   const value=$('capture-input').value;
@@ -328,6 +328,8 @@ function renderAll(inserting=false) {
 }
 function renderAppearance() {
   const root=document.documentElement,{palette,fontSize}=MosaicModel.appearance(active?.settings),font=MosaicModel.fontSizes[fontSize];
+  const scale=typeof active?.settings.scale==='number'&&Number.isFinite(active.settings.scale)&&active.settings.scale>0?active.settings.scale:1.12;
+  root.style.setProperty('--scale',String(scale));
   if(root.dataset.mosaicPalette!==palette)root.dataset.mosaicPalette=palette;
   if(root.dataset.mosaicFontSize!==fontSize)root.dataset.mosaicFontSize=fontSize;
   for(const [key,value] of Object.entries(font))if(typeof value==='number'){

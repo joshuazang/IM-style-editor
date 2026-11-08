@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.2](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.2.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.3](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.3.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -255,3 +255,8 @@ Date navigation retains its destination position while taller previews are measu
 Mosaic 1.4.2 fills the shared 8× height for truncated title/body previews,
 leaving residual line-fitting space below the content. Untruncated cards keep
 their natural compact height. Note text, typography and save behavior are unchanged.
+
+Mosaic 1.4.3 shares composer typography with IM, following the note’s existing
+IM text scale (17.92px by default). The composer has 10px vertical padding and
+a 46px minimum field height, retaining its original 14px corner radius. Mosaic’s
+font-size choices continue to control Board and opened-card typography.

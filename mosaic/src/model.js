@@ -7,10 +7,10 @@ const MosaicModel = (() => {
     {id:'sand',name:'Sand',description:'Warm cream and dark brown'}];
   // Medium keeps the previous type sizes; Large is the default for readability.
   const fontSizes={
-    small:{name:'Small',title:15,compactTitle:14,titleLine:22,compactTitleLine:20,body:12,bodyLine:20,compactBodyLine:18,editTitle:22,compactEditTitle:20,editBody:14,capture:14},
-    medium:{name:'Medium',title:17,compactTitle:16,titleLine:25,compactTitleLine:22,body:13,bodyLine:23,compactBodyLine:20,editTitle:24,compactEditTitle:22,editBody:16,capture:15},
-    large:{name:'Large',title:19,compactTitle:18,titleLine:28,compactTitleLine:25,body:15,bodyLine:26,compactBodyLine:23,editTitle:26,compactEditTitle:24,editBody:18,capture:18},
-    'extra-large':{name:'Extra large',title:22,compactTitle:21,titleLine:32,compactTitleLine:29,body:18,bodyLine:30,compactBodyLine:27,editTitle:29,compactEditTitle:27,editBody:21,capture:20}
+    small:{name:'Small',title:15,compactTitle:14,titleLine:22,compactTitleLine:20,body:12,bodyLine:20,compactBodyLine:18,editTitle:22,compactEditTitle:20,editBody:14},
+    medium:{name:'Medium',title:17,compactTitle:16,titleLine:25,compactTitleLine:22,body:13,bodyLine:23,compactBodyLine:20,editTitle:24,compactEditTitle:22,editBody:16},
+    large:{name:'Large',title:19,compactTitle:18,titleLine:28,compactTitleLine:25,body:15,bodyLine:26,compactBodyLine:23,editTitle:26,compactEditTitle:24,editBody:18},
+    'extra-large':{name:'Extra large',title:22,compactTitle:21,titleLine:32,compactTitleLine:29,body:18,bodyLine:30,compactBodyLine:27,editTitle:29,compactEditTitle:27,editBody:21}
   };
   const appearance=(settings={})=>({palette:palettes.some(p=>p.id===settings.mosaicPalette)?settings.mosaicPalette:'sage',
     fontSize:typeof settings.mosaicFontSize==='string'&&Object.hasOwn(fontSizes,settings.mosaicFontSize)?settings.mosaicFontSize:'large'});
