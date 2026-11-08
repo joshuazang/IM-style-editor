@@ -267,3 +267,9 @@ Only card IDs are saved in Mosaic settings, once per changed drop; IM message
 order, text, titles, tags and timestamps stay intact. Cancel, note switches and
 incoming content abort previews. Existing failed-save retry and conflict
 protections apply, and reduced-motion preferences skip decorative animation.
+
+Mosaic 1.4.1 raises the Board preview budget to 8× and stabilizes drag placement:
+150ms steady hover, a midpoint dead band, a 420ms settling interval, and slower
+400ms neighbor/280ms landing animation. Release commits the visible placeholder;
+settings-only saves preserve message references and measured geometry. Added
+mouse/touch boundary, intended-target, noise and exact landing regressions.

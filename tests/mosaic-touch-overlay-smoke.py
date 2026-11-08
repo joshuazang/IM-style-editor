@@ -39,7 +39,7 @@ try:
    last=e.locator('.card').last.bounding_box();capture=e.locator('#capture-composer').bounding_box()
    assert last['y']+last['height']<=capture['y']-8,(last,capture)
    if width<600:
-    fill_search(e,'Thought 2');card=e.locator('[data-id="'+data['messages'][2]['id']+'"]');expect(card).to_be_visible()
+    fill_search(e,'Thought 2');viewport.evaluate('n=>n.scrollTop=n.scrollHeight');card=e.locator('[data-id="'+data['messages'][2]['id']+'"]');expect(card).to_be_visible()
     card.scroll_into_view_if_needed();page.wait_for_timeout(200)
     body=card.locator('.card-body');rect=body.bounding_box();x=rect['x']+18;y=rect['y']+12
     cdp=context.new_cdp_session(page)
@@ -63,7 +63,7 @@ try:
     assert page.evaluate('notes.a.content.text')==before
     menu.get_by_role('menuitem',name='Select',exact=True).tap()
    else:
-    fill_search(e,'Thought 2');e.locator('[data-id="'+data['messages'][2]['id']+'"]').click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
+    fill_search(e,'Thought 2');viewport.evaluate('n=>n.scrollTop=n.scrollHeight');e.locator('[data-id="'+data['messages'][2]['id']+'"]').click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
    expect(e.locator('#selection-toolbar')).to_be_visible();expect(e.locator('#selection-bar')).to_be_visible()
    assert e.locator('#search-button').is_hidden() and e.locator('#more-button').is_hidden()
    controls=e.locator('#selection-toolbar .ui-selection-action');assert controls.count()==5

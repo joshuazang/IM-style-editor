@@ -24,13 +24,14 @@ class MosaicBoardMotion {
     if(this.preference.matches)return;
     const moves=[];
     for(const [id,node] of nodes){
+      if(node.classList.contains('is-drag-placeholder'))continue;
       const previous=before.get(id);if(!previous||this.entering.has(id))continue;
       const next=node.getBoundingClientRect(),dx=previous.left-next.left,dy=previous.top-next.top;
       if(Math.abs(dx)+Math.abs(dy)>1)moves.push({node,dx,dy,transform:node.style.transform});
     }
     for(const {node,dx,dy,transform} of moves)this.play(node,[
       {transform:`${transform} translate(${dx}px,${dy}px)`},{transform}
-    ],260);
+    ],400);
   }
   reveal(nodes) {
     if(!this.entering.size)return;
@@ -113,15 +114,23 @@ class MosaicBoardDrag {
     let velocity=g.y<bounds.top+edge?-Math.min(16,(bounds.top+edge-g.y)*.24):g.y>bounds.bottom-edge?Math.min(16,(g.y-bounds.bottom+edge)*.24):0;
     const scroll=this.viewport.scrollTop;if(velocity)this.viewport.scrollTop+=velocity;
     const scrolled=this.viewport.scrollTop!==scroll;
-    if(scrolled||Math.hypot(g.x-g.lastX,g.y-g.lastY)>8){
-      g.lastX=g.x;g.lastY=g.y;this.findTarget(g);
-    }
+    if(scrolled||Math.hypot(g.x-g.lastX,g.y-g.lastY)>3){g.dirty=true;g.lastX=g.x;g.lastY=g.y;}
+    if(g.dirty||g.pending)this.findTarget(g);
     this.frame=requestAnimationFrame(()=>this.tick());
   }
   findTarget(g) {
+    const now=performance.now();
+    // Let a placement settle before its moving neighbors become new targets.
+    // Remember movement during this interval, so a new hover is not ignored.
+    if(now<(g.cooldownUntil||0))return;
+    g.dirty=false;
     const layout=this.getLayout(),origin=this.board.getBoundingClientRect(),x=g.x-origin.left,y=g.y-origin.top;
     const source=layout.byId.get(g.id);if(!source)return;
-    if(x>=source.x&&x<=source.x+source.width&&y>=source.y&&y<=source.y+source.height)return;
+    // Reflow can move a different card under a nearly stationary finger. It
+    // must not count as a new placement request without deliberate movement.
+    if(g.anchor&&Math.hypot(x-g.anchor.x,y-g.anchor.y)<18){g.pending=null;return;}
+    const margin=10;
+    if(x>=source.x-margin&&x<=source.x+source.width+margin&&y>=source.y-margin&&y<=source.y+source.height+margin){g.pending=null;return;}
     let target=null,best=Infinity;
     // Layout geometry is stable even while neighbors are visually animating.
     for(const item of this.candidates(y)){
@@ -130,9 +139,16 @@ class MosaicBoardDrag {
       const score=dx*dx+dy*dy+Math.abs(x-item.x-item.width/2)*.02+Math.abs(y-item.y-item.height/2)*.01;
       if(score<best){best=score;target=item;}
     }
-    if(!target)return;
-    const after=y>target.y+target.height/2;
-    const key=target.message.id+':'+after;if(key===g.lastTarget)return;g.lastTarget=key;
+    if(!target){g.pending=null;return;}
+    const middle=target.y+target.height/2;
+    // A dead band around the midpoint prevents tiny finger movements from
+    // alternating between the two sides of the same card.
+    let after=y>middle;
+    if(g.pending?.id===target.message.id&&Math.abs(y-middle)<14)after=g.pending.after;
+    const key=target.message.id+':'+after;
+    if(g.pending?.key!==key){g.pending={key,id:target.message.id,after,since:now};return;}
+    if(now-g.pending.since<150)return;
+    g.pending=null;g.cooldownUntil=now+420;g.anchor={x,y};
     this.onPreview(g.id,target.message.id,after);
   }
   clearGesture() {
@@ -146,8 +162,8 @@ class MosaicBoardDrag {
     const g=this.gesture;if(!g||g.pointerId!==event.pointerId)return;
     if(!g.dragging){this.clearGesture();return;}
     if(!this.canContinue()){this.cancel();return;}
-    g.x=event.clientX;g.y=event.clientY;
-    if(Math.hypot(g.x-g.lastX,g.y-g.lastY)>2)this.findTarget(g);
+    // Release commits the placeholder already shown, never an unseen new
+    // target picked from the pointer-up coordinates.
     this.clearGesture();this.suppressUntil=performance.now()+700;this.settlingId=g.id;this.settlingGhost=g.ghost;
     this.onDrop(g.id);
     const slot=this.getSlot(g.id);
@@ -156,7 +172,7 @@ class MosaicBoardDrag {
     const animation=this.settleAnimation=g.ghost.animate([
       {transform:g.ghost.style.transform,opacity:1},
       {transform:`translate3d(${slot.left-g.left}px,${slot.top-g.top}px,0) scale(1)`,opacity:1}
-    ],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+    ],{duration:280,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
     animation.onfinish=finish;animation.oncancel=finish;
   }
   cancel(redraw=true) {

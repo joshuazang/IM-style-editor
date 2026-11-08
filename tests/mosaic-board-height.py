@@ -1,4 +1,4 @@
-"""Proportional Board previews with a five-times one-line height budget."""
+"""Proportional Board previews with a eight-times one-line height budget."""
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
@@ -36,7 +36,8 @@ try:
     heights=[card.bounding_box()['height'] for card in cards];minimum=heights[0]
     assert heights[1]>minimum+20,(width,font,heights)
     assert heights[2]>heights[1],(width,font,heights)
-    assert all(h<=5*minimum+1 for h in heights),(width,font,heights,minimum)
+    assert heights[2]>7*minimum,(width,font,'Long cards must use the expanded 8x budget',heights)
+    assert all(h<=8*minimum+1 for h in heights),(width,font,heights,minimum)
     for card in cards:
      assert card.evaluate('n=>[...n.children].filter(c=>!c.classList.contains("selection-check")).every(c=>c.getBoundingClientRect().bottom<=n.getBoundingClientRect().bottom-2)'),(width,font,card.inner_text())
     body=cards[2].locator('.card-body');assert body.evaluate('n=>n.scrollHeight>n.clientHeight&&getComputedStyle(n).webkitLineClamp!=="none"')
@@ -46,9 +47,9 @@ try:
     assert not errors,errors
     if width==390 and font=='large':page.screenshot(path='/tmp/mosaic-board-proportions.png')
     fill_search(e,'Hidden ending');expect(e.locator('.card')).to_have_count(1)
-    assert cards[2].bounding_box()['height']<=5*minimum+1
+    assert cards[2].bounding_box()['height']<=8*minimum+1
     assert page.evaluate('saves.length')==0
-    print(f'PASS {width}px {font}: proportional heights, five-times cap, clamped full-text previews, tags/reply/title fit and intact opened text',flush=True)
+    print(f'PASS {width}px {font}: proportional heights, eight-times cap, clamped full-text previews, tags/reply/title fit and intact opened text',flush=True)
     context.close()
   browser.close()
 finally:server.shutdown()

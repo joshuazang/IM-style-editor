@@ -134,7 +134,7 @@ const MosaicModel = (() => {
   function boardBounds(width,fontSize='large') {
     const compact=width<230,font=fontSizes[fontSize],padding=compact?22:28;
     const bodyLine=compact?font.compactBodyLine:font.bodyLine;
-    return {minimum:padding+bodyLine,maximum:5*(padding+bodyLine),bodyLine,padding};
+    return {minimum:padding+bodyLine,maximum:8*(padding+bodyLine),bodyLine,padding};
   }
   function boardTagCount(message,width,fontSize='large') {
     const bounds=boardBounds(width,fontSize),font=fontSizes[fontSize],parts=preview(message);

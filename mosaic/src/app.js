@@ -32,7 +32,9 @@ const boardDrag=new MosaicBoardDrag({board,viewport,
     const preview=dragPreview;dragPreview=null;
     if(preview?.session!==active||!writable())return;
     const current=MosaicModel.ordered(active.messages,active.settings),next=MosaicModel.ordered(active.messages,preview.settings);
-    if(next.some((message,i)=>message.id!==current[i].id))safeRun(()=>update(active,{settings:preview.settings}));
+    // Keep the preview's measured geometry on drop instead of rebuilding it
+    // from estimates while the lifted card is landing.
+    if(next.some((message,i)=>message.id!==current[i].id))safeRun(()=>update(active,{settings:preview.settings},false));
     else renderWindow();
   },
   onCancel:redraw=>{const before=redraw?boardMotion.snapshot(mounted):null;dragPreview=null;if(redraw){reflowBoard();boardMotion.move(before,mounted);}},
@@ -212,7 +214,7 @@ function update(s, change, redraw=true) {
   const messages=change.messages??s.messages,settings=change.settings??s.settings;
   const draft=Object.hasOwn(change,'draft')?change.draft:s.draft,reply=Object.hasOwn(change,'reply')?change.reply:s.reply;
   imFormat.write(s.note,messages,settings,draft,reply);
-  Object.assign(s,{messages:imFormat.readMessages(s.note),settings:imFormat.readSettings(s.note),draft:imFormat.readDraft(s.note),reply:imFormat.readReply(s.note)});
+  Object.assign(s,{messages:messages===s.messages?s.messages:imFormat.readMessages(s.note),settings:imFormat.readSettings(s.note),draft:imFormat.readDraft(s.note),reply:imFormat.readReply(s.note)});
   const promise=persist(s);
   if(s===active){if(redraw){renderAll(!!before);if(before)boardMotion.move(before,mounted);}else renderCapture();}
   return promise;
@@ -390,7 +392,7 @@ function renderWindow() {
   let limits=measurements.map(previewLimit);
   const crowded=limits.filter(({node,crowded})=>crowded&&node.collapseTags);
   // Custom tags can be wider than emoji estimates. Fall back to one tag plus
-  // +N rather than pushing the text or tags outside the five-times budget.
+  // +N rather than pushing the text or tags outside the preview height budget.
   if(crowded.length){for(const {node} of crowded)node.collapseTags();limits=measurements.map(previewLimit);}
   for(const {node,titleLines,bodyLines} of limits){node.style.setProperty('--board-title-lines',titleLines);node.style.setProperty('--board-body-lines',bodyLines);}
   // Measure only newly mounted/resized previews, in one read batch. Reuse those
@@ -402,12 +404,13 @@ function renderWindow() {
     if(measured&&(height!==item.height))changed=true;
   }
   if(changed){
-    const anchor=findAnchor(),s=active,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
+    const anchor=findAnchor(),s=active,locatedY=s.locatedId?layout.byId.get(s.locatedId)?.y:null,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
     layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting);
     board.style.height=layout.height+'px';
     for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
     for(const [id,node] of mounted){const item=layout.byId.get(id);if(item)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
-    if(!s.locatedId&&!boardDrag.dragging){
+    if(s.locatedId&&!boardDrag.dragging&&locatedY!=null){const next=layout.byId.get(s.locatedId);if(next)viewport.scrollTop+=next.y-locatedY;}
+    else if(!s.locatedId&&!boardDrag.dragging){
       if(atBottom)viewport.scrollTop=viewport.scrollHeight;
       else if(anchor){const next=layout.byId.get(anchor.id);if(next&&Math.abs(next.y-anchor.y)>.5)viewport.scrollTop+=next.y-anchor.y;}
     }

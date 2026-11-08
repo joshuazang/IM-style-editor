@@ -47,7 +47,7 @@ try:
     box=target.bounding_box();x=box['x']+box['width']/2;y=box['y']+box['height']-10
     if width<600:touch('touchMove',x,y)
     else:page.mouse.move(x,y,steps=6)
-    page.wait_for_timeout(80)
+    page.wait_for_timeout(650)
    def release():
     if width<600:touch('touchEnd')
     else:page.mouse.up()
@@ -111,7 +111,7 @@ try:
    begin(e.locator('[data-id="'+small_id+'"]'))
    if width<600:touch('touchMove',60,650)
    else:page.mouse.move(60,650,steps=6)
-   page.wait_for_timeout(80);release();expect(e.locator('.board-drag-ghost')).to_have_count(0)
+   page.wait_for_timeout(650);release();expect(e.locator('.board-drag-ghost')).to_have_count(0)
    assert page.evaluate('saves.length')==count+1
    assert parse(page.evaluate('notes.b.content.text'))['settings']['mosaicCardOrder'][-1]==small_id
    assert not errors,errors;assert not external,external
