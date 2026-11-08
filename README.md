@@ -232,3 +232,8 @@ choices and current plugin package, along with their previews and drawing tools.
 Classic · Everyday objects and Engraved garden remain. Existing notes with a
 removed artwork value display the original Classic background, without rewriting
 note text or drafts when opened. The original artwork is unchanged.
+
+IM 4.3.3 / Mosaic 1.3.2 constrain native date fields to their surrounding panels
+and retain their 44px height. Native date selection and explicit navigation are
+unchanged. The [UI/UX review](docs/ui-ux-review.md) records the tested layout
+bounds, remaining issues, proposed fixes and iPhone verification limitation.

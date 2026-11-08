@@ -19,7 +19,7 @@ server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(H,direc
 try:
  with sync_playwright() as p:
   browser=p.chromium.launch(**chromium_options())
-  for width in [320,390,1100]:
+  for width in [280,320,390,1100]:
    context=browser.new_context(viewport={'width':width,'height':844},is_mobile=width<600,has_touch=width<600,timezone_id='America/Toronto');page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));vectors=[]
    for mosaic in [False,True]:
     page.goto(BASE+'/tests/mosaic-host.html');page.evaluate('({note,path})=>{notes.a=note;notes.b={...structuredClone(note),uuid:"b"};openEditor("a",path,true)}',{'note':data['note'],'path':'/mosaic/index.html' if mosaic else '/next/index.html'});e=page.frame_locator('#editor');expect(e.locator('#capture-input' if mosaic else '#append-text')).to_be_visible();page.wait_for_timeout(250)
@@ -32,6 +32,13 @@ try:
      return field
     def picker():
      open_search();e.get_by_role('button',name='Jump to date',exact=True).click();return e.get_by_label('Date',exact=True)
+    def contained_date(field):
+     bounds=field.evaluate('n=>{const label=n.parentElement,panel=n.closest(".ui-date-panel"),search=n.closest(".board-search-panel,.search-tags-panel");return {boxes:[n,label,panel,search].map(v=>v.getBoundingClientRect().toJSON()),scroll:[label,panel,search].map(v=>[v.scrollWidth,v.clientWidth]),font:getComputedStyle(n).fontSize}}')
+     boxes=bounds['boxes']
+     for inner,outer in zip(boxes,boxes[1:]):
+      assert inner['left']>=outer['left']-1 and inner['right']<=outer['right']+1,(mosaic,width,bounds)
+     assert all(scroll<=client+1 for scroll,client in bounds['scroll']),(mosaic,width,bounds)
+     assert boxes[0]['height']>=44 and bounds['font']=='16px',(mosaic,width,bounds)
     def choose(value):
      field=picker();field.fill(value);expect(field).to_be_visible()
      e.get_by_role('group',name='Jump to date',exact=True).get_by_role('button',name='Jump to date',exact=True).click()
@@ -65,11 +72,13 @@ try:
     search=e.locator('#search' if mosaic else '[aria-label="Search messages"]')
     search.evaluate('n=>{window.nativePickerCalls=0;window.dateFocusCalls=0;const show=HTMLInputElement.prototype.showPicker;HTMLInputElement.prototype.showPicker=function(){window.nativePickerCalls++;return show?.call(this)};const focus=HTMLElement.prototype.focus;HTMLElement.prototype.focus=function(...args){if(this.matches("input[type=date]"))window.dateFocusCalls++;return focus.apply(this,args)}}')
     date=picker();assert date.evaluate('n=>document.activeElement!==n&&!document.activeElement?.matches("input,textarea")');assert date.evaluate('()=>window.nativePickerCalls===0&&window.dateFocusCalls===0')
-    date.fill('2028-02-29');expect(date).to_be_visible();expect(e.get_by_role('group',name='Jump to date',exact=True)).to_be_visible()
+    contained_date(date)
+    date.fill('2028-02-29');date.focus();contained_date(date);expect(date).to_be_visible();expect(e.get_by_role('group',name='Jump to date',exact=True)).to_be_visible()
+    date.fill('9999-12-31');contained_date(date)
     date.fill('');e.get_by_role('button',name='Jump to date',exact=True).last.click();expect(e.get_by_role('alert').filter(has_text='Choose a valid date')).to_be_visible()
     if width==390:page.screenshot(path='/tmp/date-jump-'+('mosaic' if mosaic else 'im')+'.png')
     page.evaluate('switchNote("b")');page.wait_for_timeout(150);open_search();expect(e.get_by_role('group',name='Jump to date',exact=True)).not_to_be_visible()
     expect(e.locator('#capture-input' if mosaic else '#append-text')).to_have_value(data['draft']);assert page.evaluate('saves.length')==0;assert page.evaluate('notes.a.content.text')==data['note']['content']['text']
-   assert vectors[0]==vectors[1];assert not errors,errors;print(f'PASS {width}px: shared calendar vector, focus/frost, native picker without forced focus/showPicker or mid-selection dismissal, confirmed date jumps, neighboring dates scrollable, cleared search, missing-date fallbacks, validation and note isolation; zero note writes',flush=True);context.close()
+   assert vectors[0]==vectors[1];assert not errors,errors;print(f'PASS {width}px: bounded native date field (empty, filled, focused and long year), 44px field height, shared vector, focus/frost, no forced picker or mid-selection dismissal, date jumps and neighboring dates, fallbacks, validation and note isolation; zero note writes',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

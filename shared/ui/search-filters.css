@@ -6,7 +6,7 @@
 .ui-search-row .ui-search-filters svg{width:22px;height:22px;pointer-events:none}
 .ui-search-row .ui-search-filters:hover,.editor-shell .ui-search-row .ui-search-filters:hover,.ui-search-row .ui-search-filters[aria-pressed=true],.editor-shell .ui-search-row .ui-search-filters[aria-pressed=true]{background:#e5eee6!important}
 .ui-search-filters:focus-visible{outline:2px solid #285b89!important;outline-offset:-2px}
-.ui-date-panel{margin-top:10px;padding:10px;border:1px solid var(--line,#b7c2d2);border-radius:12px;background:var(--surface,#fff);color:#27382f}
+.ui-date-panel{box-sizing:border-box;min-inline-size:0;max-inline-size:100%;margin-top:10px;padding:10px;border:1px solid var(--line,#b7c2d2);border-radius:12px;background:var(--surface,#fff);color:#27382f}
 .ui-date-panel button,.editor-shell .ui-date-panel button{min-height:40px;border:1px solid #b7c2d288;border-radius:9px;padding:7px 9px;background:transparent!important;color:#27382f;font:inherit;font-size:13px;cursor:pointer}
 .ui-date-panel button:hover,.editor-shell .ui-date-panel button:hover,.ui-date-panel button[aria-pressed=true],.editor-shell .ui-date-panel button[aria-pressed=true]{background:#e5eee6!important;border-color:#7a9c85}
 .ui-date-panel button:focus-visible{outline:2px solid #285b89!important;outline-offset:-2px}
@@ -19,6 +19,11 @@
 
 .ui-date-panel [hidden]{display:none!important}
 
-.ui-date-field{display:flex;flex-direction:column;gap:6px;font-size:13px}
-.ui-date-field input,.editor-shell .search-tags-panel .ui-date-field input{width:100%;min-width:0;height:44px;margin:0;padding:8px;border:1px solid #b7c2d288;border-radius:8px;font:inherit;font-size:16px;background:#fff!important;color:#27382f;color-scheme:light}
+/* Native date controls can have a wide intrinsic value in WebKit. A shrinkable
+ * grid track bounds the field instead of letting that value size its container.
+ * Grid also isolates it from IM's general flex sizing for toolbar inputs. */
+.ui-date-field{display:grid;grid-template-columns:minmax(0,1fr);min-inline-size:0;max-inline-size:100%;gap:6px;font-size:13px}
+.ui-date-field input,.editor-shell .search-tags-panel .ui-date-field input{box-sizing:border-box;display:block;inline-size:100%;max-inline-size:100%;min-inline-size:0;min-height:44px;height:44px;margin:0;padding:8px;overflow:hidden;border:1px solid #b7c2d288;border-radius:8px;font:inherit;font-size:16px;background:#fff!important;color:#27382f;color-scheme:light}
+.ui-date-field input::-webkit-date-and-time-value{min-inline-size:0;text-align:start}
+.ui-date-field input::-webkit-datetime-edit{min-inline-size:0;padding:0}
 .ui-date-field input:focus{outline:1px solid #202124!important;outline-offset:0}
