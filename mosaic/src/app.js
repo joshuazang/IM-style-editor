@@ -924,9 +924,8 @@ function editorDialog(id=null) {
     if(scroller.scrollHeight<=scroller.clientHeight+2*line||matchMedia('(prefers-reduced-motion: reduce)').matches)d.prepareBody();
   }
   measuredWidth=body.clientWidth;
-  // Finish focus/scroll setup before the first animated frame, not during it.
-  if(isIPhone)modal.focus({preventScroll:true});
-  else{body.setSelectionRange(0,0);body.focus({preventScroll:true});}
+  // Open for reading. Editing starts only after explicitly focusing a field.
+  modal.focus({preventScroll:true});
   scroller.scrollTop=0;d.updateScroll();animateCard(d);
   if(!d.bodyReady){
     if(d.cardAnimation)d.deferBodyUntilMotion=true;

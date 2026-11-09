@@ -339,3 +339,6 @@ text layout, full-text input guards and deferred large-body preparation.
 Mosaic 1.4.18 holds the initial card rectangle through a rendering opportunity
 before starting playback, preventing a delayed first frame from consuming the
 expansion. Remaining long-body preparation runs after the transition.
+
+Mosaic 1.4.19 opens Card view without automatically focusing its text on any
+platform. Click or tap the body, or Tab into it, to begin editing.

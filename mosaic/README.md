@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.18](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.18.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.19](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.19.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -334,3 +334,8 @@ rectangle through a rendering opportunity. A delayed first render no longer
 uses up the moving portion of the animation. All pending long-body preparation
 waits until expansion finishes; immediate input still prepares complete text.
 Closing before playback starts and switching notes cancel pending playback.
+
+Mosaic 1.4.19 opens Card view for reading without automatically focusing the
+body or title on any platform. Click/tap the body or Tab into it to edit.
+Add/Edit title still explicitly focuses its field. This removes native text
+focus work from opening; its effect on the reported Mac hitch needs device testing.

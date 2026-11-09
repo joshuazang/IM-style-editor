@@ -113,3 +113,13 @@ start callback. Existing reversal, full-text input, reduced-motion and platform
 layout checks remain in the coordinated suite. These are Linux Chromium results;
 they do not guarantee physical-Mac compositor behavior or eliminate stalls that
 occur after playback has started.
+
+## Opening without text autofocus — 1.4.19
+
+Card view now focuses the dialog container on every platform. Opening and
+deferred full-body preparation never activate a text field; clicking/tapping
+the body or navigating into it with Tab starts editing. Explicit Add/Edit title
+still focuses the title field. Keyboard typing on the unopened text fields
+does not alter the card or capture draft. This removes one source of native
+input/caret work during opening; it is an experiment for the reported Standard
+Notes Mac desktop hitch, not proof that autofocus caused the rendering failure.

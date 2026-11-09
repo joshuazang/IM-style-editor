@@ -33,7 +33,7 @@ try:
     if not reduced:assert start['n']<=4096 and start['n']<start['full']
     assert dialog.evaluate('(n,s)=>n.offsetWidth===s.w&&n.offsetHeight===s.h',start),'Native preparation must not change the visible destination box'
     assert e.locator('.card-detail-scroll').evaluate('n=>n.scrollHeight>n.clientHeight+1000')
-    if name=='iPhone':expect(body).not_to_be_focused()
+    expect(body).not_to_be_focused()
     e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible()
    assert page.evaluate('notes.a.content.text')==before and page.evaluate('saves.length')==count
    if not reduced:
