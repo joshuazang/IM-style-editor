@@ -28,3 +28,25 @@ The existing 5,000-card touch drag check recorded 16.7 ms median and 95th-percen
 Automated checks compare the opening and closing endpoints with the actual Board rectangle; confirm initial body height remains stable; verify iPhone-only full-page dimensions and viewport resizing; preserve tap-to-edit, capture drafts and explicit title entry; and exercise reduced motion, failed-save retry and note-switch interruption.
 
 The code is not proven globally optimal. The first open still incurs browser style/layout work. Very long textarea measurement scales with that card's text length. Changed saves still serialize the shared note and depend on host acknowledgment. Physical iPhone Safari/WebView testing remains necessary to assess keyboard/notch behavior and perceived smoothness on the actual device.
+
+## Mac opening follow-up — 1.4.16
+
+A regression probe confirmed that automatic body focus happened after expansion
+had started. Focus and scroll setup now complete before motion. Mac keyframes
+contain transforms only; the compositor hint is temporary and released after
+two final frames. Popup placement and forced closes cancel pending handoff work.
+
+A sequential comparison used the same 5,000-message fixture, 1100×900 headless
+Chromium viewport and eight open/close cycles per variant:
+
+| Variant | Open median / p95 | Close median / p95 | Frames over 25 ms (open / close) |
+| --- | --- | --- | --- |
+| Published 1.4.15 | 32.9 / 33.4 ms | 16.7 / 33.4 ms | 69 / 59 |
+| Startup/compositor fixes, blur retained | 16.8 / 33.4 ms | 16.7 / 33.4 ms | 63 / 55 |
+| Same fixes, Card backdrop blur removed | 16.7 / 16.8 ms | 16.7 / 16.7 ms | 0 / 0 |
+
+The remaining expensive rendering feature in this comparison was the whole-Board
+backdrop blur. Card view now retains its dim backdrop without that filter. The
+frosted controls and menus retain their existing styling. This is a synthetic
+Chromium rendering comparison, not a physical-Mac guarantee; real GPU/browser
+behavior and host save latency can still differ.

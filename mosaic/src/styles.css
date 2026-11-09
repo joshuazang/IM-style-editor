@@ -379,4 +379,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .is-iphone .card-detail-bottom{padding-bottom:env(safe-area-inset-bottom)}
 .is-iphone .card-detail-tags{position:static;max-height:none;overflow:visible;margin:0;padding:2px 14px 4px}
 
-.is-iphone .card-edit-dialog::backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}
+.card-edit-dialog::backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}
+
+.card-edit-dialog.card-is-moving{will-change:transform}

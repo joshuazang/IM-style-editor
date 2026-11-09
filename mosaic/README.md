@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.15](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.15.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.16](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.16.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -314,3 +314,10 @@ Mosaic 1.4.14 sets both body top padding and optional-title top padding to
 Mosaic 1.4.15 gives body-only opened cards 12px of scrolling top padding for
 more visible breathing room. Title top padding and body spacing beneath an
 existing title stay at 7px. Board spacing is unchanged.
+
+Mosaic 1.4.16 finishes automatic focus and scroll setup before Card-view
+expansion starts. Mac transitions animate transforms only, with a temporary
+compositor hint and a two-frame handoff before releasing the opening effect.
+Popup actions and forced closes cancel pending handoff work. The dim Card-view
+backdrop no longer blurs the whole Board; controls and menus keep their frost. The existing
+320ms rectangle morph, padding and acknowledged-save protection remain.

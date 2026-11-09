@@ -329,3 +329,6 @@ within the scrolling content.
 
 Mosaic 1.4.15 increases body-only Card-view top spacing to 12px while keeping
 title top spacing at 7px; the extra space scrolls away with the text.
+
+Mosaic 1.4.16 removes delayed focus work from card expansion and uses a
+transform-only Mac animation with a staged compositor handoff.
