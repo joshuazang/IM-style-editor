@@ -326,3 +326,6 @@ inside the scrolling text so no fixed padding band remains while scrolling.
 
 Mosaic 1.4.14 unifies opened-card body and optional-title top padding at 7px,
 within the scrolling content.
+
+Mosaic 1.4.15 increases body-only Card-view top spacing to 12px while keeping
+title top spacing at 7px; the extra space scrolls away with the text.
