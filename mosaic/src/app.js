@@ -8,6 +8,7 @@ function button(label, icon, handler, className='icon-button') {
   if(icon)node.append(mosaicIcon(icon));else node.textContent=label;
   if(handler)node.addEventListener('click',event=>{event.stopPropagation();handler(event);});return node;
 }
+const cardTimestampFormat=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
 const isIPhone=/\biPhone\b/i.test(navigator.userAgent);
 document.documentElement.classList.toggle('is-iphone',isIPhone);
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
@@ -430,7 +431,7 @@ function renderWindow() {
 }
 function metaText(message) {
   const bits=[];if(message.copied)bits.push('Copied');if(message.exported)bits.push('Exported');if(MosaicModel.isImported(message))bits.push('Imported');
-  if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime()))bits.push(new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.createdAt)));
+  if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime()))bits.push(cardTimestampFormat.format(new Date(message.createdAt)));
   if(message.edited)bits.push('Edited');return bits.join(' · ');
 }
 function renderSearchControls() {
@@ -591,7 +592,7 @@ function clearCardMotion(d){
   d.cardAnimation?.cancel();modal.classList.remove('card-is-moving');
 }
 function settleCardMotion(){
-  if(modalState?.kind==='edit'&&!modalState.root.inert)clearCardMotion(modalState);
+  if(modalState?.kind==='edit'&&!modalState.root.inert){clearCardMotion(modalState);modalState.prepareBody?.();}
 }
 function colorMenu(id,event) {
   settleCardMotion();
@@ -720,6 +721,7 @@ function closeModal(force=false) {
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
   if(modalState?.viewportResize){window.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('scroll',modalState.viewportResize);modal.style.removeProperty('--card-view-height');modal.style.removeProperty('--card-view-top');}
+  cancelAnimationFrame(modalState?.bodyFrame);
   clearCardMotion(modalState);if(modalState?.transitionSource)modalState.transitionSource.style.removeProperty('visibility');$('modal-content').inert=false;
   modalState?.layoutObserver?.disconnect();modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
   hideMenu();if(modal.open)modal.close();modalState=null;
@@ -758,7 +760,7 @@ function refreshEditorMetadata() {
   const add=(text,className='')=>{if(d.meta.childNodes.length)d.meta.append(el('span','metadata-separator',' · '));d.meta.append(el('span',className,text));};
   if(message.copied)add('Copied');if(message.exported)add('Exported');if(MosaicModel.isImported(message))add('Imported');
   if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime())){
-    const text=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.createdAt));
+    const text=cardTimestampFormat.format(new Date(message.createdAt));
     add(text,'card-timestamp');d.meta.querySelector('.card-timestamp').title=new Date(message.createdAt).toLocaleString();
   }
   if(message.edited)add('edited','card-edited');
@@ -785,15 +787,29 @@ function animateCard(d,closing=false){
   if(isIPhone){small.borderRadius='16px';full.borderRadius='0px';}
   const animation=d.cardAnimation=modal.animate(closing?[full,small]:[small,full],{duration:320,easing:'cubic-bezier(.22,.8,.24,1)',fill:'both'});
   // Let the final composited frame settle before releasing its layer.
-  if(!closing)animation.onfinish=()=>{if(modalState!==d||d.cardAnimation!==animation)return;d.motionFrame=requestAnimationFrame(()=>{d.motionFrame=requestAnimationFrame(()=>{if(modalState===d&&d.cardAnimation===animation)clearCardMotion(d);});});};
+  if(!closing)animation.onfinish=()=>{if(modalState!==d||d.cardAnimation!==animation)return;d.motionFrame=requestAnimationFrame(()=>{d.motionFrame=requestAnimationFrame(()=>{if(modalState===d&&d.cardAnimation===animation){clearCardMotion(d);if(d.deferBodyUntilMotion)d.prepareBody();}});});};
   return animation;
 }
 function finishCard(d){
   if(modalState!==d)return;
+  cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;
   const animation=animateCard(d,true);
   if(!animation){closeModal(true);return;}
   d.busy=true;d.root.inert=true;
   animation.onfinish=()=>{if(modalState===d)closeModal(true);};
+}
+function cardBodyStart(text,settings){
+  const font=MosaicModel.fontSizes[MosaicModel.appearance(settings).fontSize];
+  const firstLines=Math.ceil(innerHeight/(font.editBody*1.75))+4;
+  let end=Math.min(4096,text.length),lines=0;
+  for(let i=0;i<Math.min(text.length,32768);i++){
+    const c=text.charCodeAt(i);
+    if(c===13||(c===10&&text.charCodeAt(i-1)!==13)){
+      lines++;if(lines===firstLines)end=Math.min(end,i+1);
+      if(lines>=128)break;
+    }
+  }
+  return {text:text.slice(0,end),complete:end===text.length,large:text.length>32768||lines>=128};
 }
 function editorDialog(id=null) {
   if(!id){$('capture-input').focus();return;}
@@ -812,11 +828,23 @@ function editorDialog(id=null) {
   }
   const title=el('textarea','editor-title');title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
   const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
-  const body=el('textarea','editor-body');body.rows=1;body.placeholder='Text';body.setAttribute('aria-label','Card body');body.value=d.currentText;body.enterKeyHint='enter';d.body=body;
+  const body=el('textarea','editor-body');body.rows=1;body.placeholder='Text';body.setAttribute('aria-label','Card body');const startBody=cardBodyStart(d.currentText,s.settings);body.value=startBody.text;body.enterKeyHint='enter';d.body=body;d.largeBody=startBody.large;d.bodyReady=startBody.complete;body.readOnly=!d.bodyReady;if(!d.bodyReady)body.setAttribute('aria-busy','true');
   // One scroller owns title, full-height body and trailing metadata. The toolbar
   // stays outside it; the textarea itself never reserves a second scrollbar.
   const revealEnd=()=>{const bottom=body.offsetTop+body.offsetHeight;if(bottom>scroller.scrollTop+scroller.clientHeight)scroller.scrollTop=bottom-scroller.clientHeight+8;};
   const growBody=(typing=false)=>{const top=scroller.scrollTop;body.style.height='0px';body.style.height=body.scrollHeight+'px';body.scrollTop=0;scroller.scrollTop=top;if(typing&&document.activeElement===body&&body.selectionEnd===body.value.length)revealEnd();d.updateScroll?.();};
+  // A bounded first page lets compositor motion start before laying out a
+  // very long native textarea. Never expose a partial value to user edits.
+  d.prepareBody=()=>{
+    if(modalState!==d||d.bodyReady)return;
+    cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;
+    const top=scroller.scrollTop,start=body.selectionStart,end=body.selectionEnd,direction=body.selectionDirection;
+    body.value=d.currentText;body.readOnly=false;body.removeAttribute('aria-busy');d.bodyReady=true;d.deferBodyUntilMotion=false;growBody();
+    if(!isIPhone||document.activeElement===body)body.setSelectionRange(start,end,direction);
+    scroller.scrollTop=top;
+  };
+  const prepareForInput=event=>{if(event.type==='keydown'&&['Escape','Tab','Shift','Control','Alt','Meta'].includes(event.key))return;if(!d.bodyReady){if(d.deferBodyUntilMotion)settleCardMotion();else d.prepareBody();}};
+  for(const event of ['pointerdown','keydown','compositionstart','beforeinput','paste','cut','drop']){body.addEventListener(event,prepareForInput);title.addEventListener(event,prepareForInput);}
   let measuredWidth=0;
   d.layoutObserver=new ResizeObserver(()=>{const width=body.clientWidth;if(width!==measuredWidth){measuredWidth=width;growBody();}});
   d.layoutObserver.observe(d.root);
@@ -824,7 +852,7 @@ function editorDialog(id=null) {
   body.addEventListener('keyup',event=>{if(event.key==='End'&&body.selectionEnd===body.value.length)revealEnd();if(event.key==='Home'&&body.selectionStart===0)scroller.scrollTop=body.offsetTop;});
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
   const header=el('div','card-detail-heading');header.append(titlePreview,title);scroller.append(header,body);
-  d.unlockTitle=()=>{d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';growBody();hideMenu();title.focus();};
+  d.unlockTitle=()=>{d.prepareBody();d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';growBody();hideMenu();title.focus();};
   d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');modal.append(d.tagBadges);
   d.tagObserver=new ResizeObserver(()=>positionEditorTags(d));d.tagObserver.observe(d.tagBadges);
   d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);};
@@ -837,7 +865,7 @@ function editorDialog(id=null) {
   d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
   scroller.addEventListener('scroll',d.updateScroll,{passive:true});
   d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
-  const change=()=>{d.fieldRevision++;d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}d.updateScroll();};
+  const change=event=>{d.fieldRevision++;if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}if(d.bodyReady)d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}d.updateScroll();};
   title.addEventListener('input',change);body.addEventListener('input',change);
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
@@ -875,11 +903,22 @@ function editorDialog(id=null) {
     d.viewportResize=()=>{if(modalState!==d)return;const view=window.visualViewport;modal.style.setProperty('--card-view-height',(view?.height||innerHeight)+'px');modal.style.setProperty('--card-view-top',(view?.offsetTop||0)+'px');};
     window.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('scroll',d.viewportResize);d.viewportResize();
   }
-  refreshEditorMetadata();growBody();measuredWidth=body.clientWidth;
+  refreshEditorMetadata();growBody();
+  if(!d.bodyReady){
+    const line=parseFloat(getComputedStyle(body).lineHeight);
+    // Only defer when the prefix already exceeds the final viewport. Thus
+    // replacing it with the full value cannot change the card's outer size.
+    if(scroller.scrollHeight<=scroller.clientHeight+2*line||matchMedia('(prefers-reduced-motion: reduce)').matches)d.prepareBody();
+  }
+  measuredWidth=body.clientWidth;
   // Finish focus/scroll setup before the first animated frame, not during it.
   if(isIPhone)modal.focus({preventScroll:true});
   else{body.setSelectionRange(0,0);body.focus({preventScroll:true});}
   scroller.scrollTop=0;d.updateScroll();animateCard(d);
+  if(!d.bodyReady){
+    if(d.largeBody&&d.cardAnimation)d.deferBodyUntilMotion=true;
+    else d.bodyFrame=requestAnimationFrame(()=>{d.bodyFrame=requestAnimationFrame(()=>d.prepareBody());});
+  }
 }
 function editCard(id){editorDialog(id);}
 function readCard(id) {

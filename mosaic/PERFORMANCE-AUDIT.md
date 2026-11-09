@@ -50,3 +50,36 @@ backdrop blur. Card view now retains its dim backdrop without that filter. The
 frosted controls and menus retain their existing styling. This is a synthetic
 Chromium rendering comparison, not a physical-Mac guarantee; real GPU/browser
 behavior and host save latency can still differ.
+
+## Six long, scrollable cards — 1.4.17
+
+The reported six-card case exposed work *before* animation, distinct from the
+backdrop frame-rate issue. Each card's full native textarea was laid out before
+the transition could start. Synthetic samples with six equally long messages
+showed the following synchronous opening costs (first open, then two other cards):
+
+| Lines per message | Published 1.4.16 | Bounded preparation |
+| --- | --- | --- |
+| 120 | 54.9, 8.4, 10.4 ms | 26.1, 5.5, 5.3 ms |
+| 600 | 50.5, 13.3, 16.1 ms | 19.1, 5.6, 7.8 ms |
+| 2,400 | 94.6, 43.3, 52.4 ms | 17.4, 6.3, 5.7 ms |
+
+These are separate headless-Chromium samples, not a physical-Mac guarantee or
+a statistical benchmark. Full native text layout still has a cost; preparation
+for the largest bodies now runs after the moving part of expansion, not before
+its first frame. Native CSS content sizing alone produced only a modest
+reduction in the experiment and was not adopted.
+
+The initial value is bounded only when it already overflows the final viewport
+by more than two text lines; short/proportional cards fall back to full layout.
+The model always retains the full body. The partial field is read-only/busy,
+and pointer, keyboard, composition, title and popup actions prepare full text
+before editing. Shared title input handlers cannot replace a pending body with
+the partial display value. Deferred callbacks are cancelled on close/switch;
+full-body replacement preserves selection and scroll position. iPhone
+preparation never focuses an unfocused body. Save acknowledgment/conflict
+protections remain unchanged.
+
+Regression coverage opens all six long cards and checks unchanged destination
+geometry, complete values, no opening writes, early keyboard edits, title-only
+saves, failed-save retention/retry, note switches, iPhone focus and reduced motion.

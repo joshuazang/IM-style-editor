@@ -382,3 +382,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog::backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}
 
 .card-edit-dialog.card-is-moving{will-change:transform}
+
+.card-detail-scroll:has(.editor-body[aria-busy=true]){scrollbar-color:transparent transparent}
+.card-detail-scroll:has(.editor-body[aria-busy=true])::-webkit-scrollbar-thumb{background:transparent}

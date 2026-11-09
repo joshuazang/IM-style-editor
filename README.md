@@ -332,3 +332,6 @@ title top spacing at 7px; the extra space scrolls away with the text.
 
 Mosaic 1.4.16 removes delayed focus work from card expansion and uses a
 transform-only Mac animation with a staged compositor handoff.
+
+Mosaic 1.4.17 addresses the six-long-card opening case with bounded first-paint
+text layout, full-text input guards and deferred large-body preparation.
