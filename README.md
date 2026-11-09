@@ -305,3 +305,6 @@ the fixed bottom action row keep their compact spacing.
 Mosaic 1.4.8 groups opened-card controls at the bottom right in the order
 Pin, Palette, More, Close. Pin stays available alongside the other actions;
 the scrolling header now uses its full width for the optional title.
+
+Mosaic 1.4.9 adds a small scrolling body inset and increases the title inset
+by 20%; the content viewport itself retains zero top padding.
