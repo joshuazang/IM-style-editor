@@ -316,3 +316,7 @@ still waits for deliberate hovering and saves once on drop.
 
 Mosaic 1.4.11 avoids automatic text-field focus when opening a card on iPhone.
 Tapping the body still starts editing; other platforms keep the existing focus.
+
+Mosaic 1.4.12 adds iPhone-only full-page Card view and rectangle-based
+expansion/return motion. Initial body measurement precedes animation, and
+iPhone viewport listeners are removed when closing or switching notes.

@@ -8,6 +8,8 @@ function button(label, icon, handler, className='icon-button') {
   if(icon)node.append(mosaicIcon(icon));else node.textContent=label;
   if(handler)node.addEventListener('click',event=>{event.stopPropagation();handler(event);});return node;
 }
+const isIPhone=/\biPhone\b/i.test(navigator.userAgent);
+document.documentElement.classList.toggle('is-iphone',isIPhone);
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
 let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null), searchPanelFit=null;
@@ -584,7 +586,12 @@ function placeMenu(event) {
   menu.tabIndex=-1;if(event?.currentTarget!==$('more-button'))menu.focus({preventScroll:true});
 }
 function hideMenu(){menu.hidden=true;$('more-button').setAttribute('aria-expanded','false');menuFromTouch=false;menuPress=false;if(menu.parentNode!==document.body)document.body.append(menu);}
+function settleCardMotion(){
+  const animation=modalState?.cardAnimation;
+  if(animation?.playState==='running'&&!modalState.root.inert){animation.finish();animation.cancel();}
+}
 function colorMenu(id,event) {
+  settleCardMotion();
   const s=active,message=s?.messages.find(m=>m.id===id);if(!message||!writable(s))return;
   hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Card background colors');
   const grid=el('div','color-grid'),current=MosaicModel.color(message).id;
@@ -602,6 +609,7 @@ function colorMenu(id,event) {
   menu.append(grid);placeMenu(event);
 }
 function cardMenu(message,event) {
+  settleCardMotion();
   const s=active,pinned=MosaicModel.pins(s.settings).includes(message.id);
   const editing=modalState?.kind==='edit'&&modalState.uuid===s.note.uuid&&modalState.id===message.id?modalState:null;
   const current=()=>s.messages.find(m=>m.id===message.id);
@@ -708,7 +716,8 @@ function closeModal(force=false) {
   if(!force&&modalState?.busy)return;
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
-  modalState?.cardAnimation?.cancel();$('modal-content').inert=false;
+  if(modalState?.viewportResize){window.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('scroll',modalState.viewportResize);modal.style.removeProperty('--card-view-height');modal.style.removeProperty('--card-view-top');}
+  modalState?.cardAnimation?.cancel();if(modalState?.transitionSource)modalState.transitionSource.style.removeProperty('visibility');$('modal-content').inert=false;
   modalState?.layoutObserver?.disconnect();modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
   hideMenu();if(modal.open)modal.close();modalState=null;
 }
@@ -734,7 +743,7 @@ function renderEditorTags(d){
 }
 function positionEditorTags(d){
   if(modalState!==d||!d.tagBadges)return;
-  const extra=d.tagBadges.hidden?0:Math.max(0,Math.ceil(d.tagBadges.offsetHeight)-13),value=extra+'px';
+  const extra=isIPhone||d.tagBadges.hidden?0:Math.max(0,Math.ceil(d.tagBadges.offsetHeight)-13),value=extra+'px';
   if(modal.style.getPropertyValue('--tag-overhang')!==value)modal.style.setProperty('--tag-overhang',value);
 }
 function refreshEditorMetadata() {
@@ -752,17 +761,26 @@ function refreshEditorMetadata() {
   if(message.edited)add('edited','card-edited');
   renderEditorTags(d);
 }
+function cardTransitionRect(node){
+  if(!node?.isConnected)return null;
+  const r=node.getBoundingClientRect(),v=viewport.getBoundingClientRect(),bottom=Math.min(v.bottom,$('capture-composer').getBoundingClientRect().top);
+  const left=Math.max(r.left,v.left),top=Math.max(r.top,v.top),right=Math.min(r.right,v.right),end=Math.min(r.bottom,bottom);
+  return right>left&&end>top?{left,top,width:right-left,height:end-top}:null;
+}
 function animateCard(d,closing=false){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return null;
-  const target=modal.getBoundingClientRect(),source=mounted.get(d.id)?.getBoundingClientRect()||d.sourceRect;
+  if(closing&&d.cardAnimation?.playState==='running'){
+    d.cardAnimation.reverse();return d.cardAnimation;
+  }
+  const node=mounted.get(d.id),source=closing?cardTransitionRect(node):d.sourceRect;
+  const target=modal.getBoundingClientRect();
   if(!source||!target.width||!target.height)return null;
-  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-  const overhang=d.tagBadges?.hidden?0:Math.max(0,(d.tagBadges?.offsetHeight||0)-13);
-  const x=clamp(source.left+source.width/2-target.left-target.width/2,Math.max(-64,8-target.left),Math.min(64,innerWidth-8-target.right));
-  const y=clamp(source.top+source.height/2-target.top-target.height/2,Math.max(-64,8-target.top),Math.min(64,innerHeight-8-target.bottom-overhang));
-  const small={transform:`translate(${x}px,${y}px) scale(.94)`,opacity:0},full={transform:'translate(0,0) scale(1)',opacity:1};
   d.cardAnimation?.cancel();
-  return d.cardAnimation=modal.animate(closing?[full,small]:[small,full],{duration:closing?180:260,easing:'cubic-bezier(.2,.8,.2,1)'});
+  if(node){node.style.visibility='hidden';d.transitionSource=node;}
+  const small={transform:`translate(${source.left-target.left}px,${source.top-target.top}px) scale(${source.width/target.width},${source.height/target.height})`,borderRadius:'16px'},full={transform:'translate(0,0) scale(1,1)',borderRadius:isIPhone?'0px':'16px'};
+  const animation=d.cardAnimation=modal.animate(closing?[full,small]:[small,full],{duration:320,easing:'cubic-bezier(.22,.8,.24,1)',fill:'both'});
+  if(!closing)animation.onfinish=()=>{if(d.cardAnimation===animation)animation.cancel();};
+  return animation;
 }
 function finishCard(d){
   if(modalState!==d)return;
@@ -779,7 +797,7 @@ function editorDialog(id=null) {
   const stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
   const restored=stashed?.id===id&&stashed.original===message.text&&(stashed.originalTitle??imFormat.title(message))===imFormat.title(message)?stashed:null;
   const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
-  const sourceRect=mounted.get(id)?.getBoundingClientRect();
+  const sourceRect=cardTransitionRect(mounted.get(id));
   const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
   const scroller=el('div','card-detail-scroll');d.scroll=scroller;d.root.append(scroller);
   if(stashed&&!restored){
@@ -809,7 +827,7 @@ function editorDialog(id=null) {
   const palette=button('Background options','palette',event=>colorMenu(id,event));
   const more=button('Card options','more',event=>cardMenu(s.messages.find(m=>m.id===id),event),'icon-button detail-more');
   const close=button('Close',null,()=>safeRun(()=>saveEditor(true)),'detail-close');d.submit=close;
-  footer.append(pin,palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');d.bottom.append(footer);d.root.append(d.bottom);
+  footer.append(pin,palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');if(isIPhone)d.bottom.append(d.tagBadges);d.bottom.append(footer);d.root.append(d.bottom);
   d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
   scroller.addEventListener('scroll',d.updateScroll,{passive:true});
   d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
@@ -847,10 +865,14 @@ function editorDialog(id=null) {
       dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
     }
   }
-  refreshEditorMetadata();animateCard(d);setTimeout(()=>{if(modalState===d){
+  if(isIPhone){
+    d.viewportResize=()=>{if(modalState!==d)return;const view=window.visualViewport;modal.style.setProperty('--card-view-height',(view?.height||innerHeight)+'px');modal.style.setProperty('--card-view-top',(view?.offsetTop||0)+'px');};
+    window.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('scroll',d.viewportResize);d.viewportResize();
+  }
+  refreshEditorMetadata();growBody();measuredWidth=body.clientWidth;animateCard(d);setTimeout(()=>{if(modalState===d){
     // iPhone opens in reading mode. A deliberate tap on the body/title still
     // uses native editing focus; other platforms keep immediate body editing.
-    if(/\biPhone\b/i.test(navigator.userAgent))modal.focus({preventScroll:true});
+    if(isIPhone)modal.focus({preventScroll:true});
     else{body.setSelectionRange(0,0);body.focus({preventScroll:true});}
     scroller.scrollTop=0;d.updateScroll();
   }},0);
