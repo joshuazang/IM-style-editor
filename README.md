@@ -320,3 +320,6 @@ Tapping the body still starts editing; other platforms keep the existing focus.
 Mosaic 1.4.12 adds iPhone-only full-page Card view and rectangle-based
 expansion/return motion. Initial body measurement precedes animation, and
 iPhone viewport listeners are removed when closing or switching notes.
+
+Mosaic 1.4.13 increases opened-card body top padding by 50% (4px to 6px),
+inside the scrolling text so no fixed padding band remains while scrolling.
