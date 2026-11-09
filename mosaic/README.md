@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.17](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.17.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.18](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.18.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -328,3 +328,9 @@ the remaining body is prepared after an initial paint, or after expansion for
 very large bodies. Immediate input prepares the full text first; all saving
 continues to use the complete working text. Short cards and reduced motion
 retain immediate full preparation. Timestamp formatting is reused across opens.
+
+Mosaic 1.4.18 starts opening and closing playback after holding the initial
+rectangle through a rendering opportunity. A delayed first render no longer
+uses up the moving portion of the animation. All pending long-body preparation
+waits until expansion finishes; immediate input still prepares complete text.
+Closing before playback starts and switching notes cancel pending playback.

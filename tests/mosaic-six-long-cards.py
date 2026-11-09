@@ -19,10 +19,10 @@ server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(H,direc
 try:
  with sync_playwright() as p:
   browser=p.chromium.launch(**chromium_options())
-  for name,width,reduced in [('Mac',1100,False),('iPhone',390,False),('Mac',1100,True),('Mac short lines',1100,False)]:
+  for name,width,reduced in [('Mac',1100,False),('iPhone',390,False),('Mac',1100,True),('Mac short lines',1100,False),('Mac medium bodies',1100,False)]:
    data=json.loads(baseData)
-   if name=='Mac short lines':
-    for i,m in enumerate(data['messages']):m['text']=f'Card {i}\n'+'Line\n'*600
+   if name in ['Mac short lines','Mac medium bodies']:
+    for i,m in enumerate(data['messages']):m['text']=f'Card {i}\n'+('Line\n'*600 if name=='Mac short lines' else 'A paragraph long enough to require native wrapping and preparation before editing.\n'*80)
     data['note']['content']['text']=subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(f.portable(d.messages,d.settings,d.draft));"],cwd=ROOT,input=json.dumps(data),text=True)
    ua='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' if name=='iPhone' else 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/605.1.15 Safari/605.1.15'
    context=browser.new_context(viewport={'width':width,'height':900},user_agent=ua,reduced_motion='reduce' if reduced else 'no-preference');page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('(note)=>{notes.a=note;openEditor("a","/mosaic/index.html",true)}',data['note']);e=page.frame_locator('#editor');expect(e.locator('.card').first).to_be_visible();before=page.evaluate('notes.a.content.text');count=page.evaluate('saves.length')

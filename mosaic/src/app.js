@@ -589,6 +589,7 @@ function placeMenu(event) {
 function hideMenu(){menu.hidden=true;$('more-button').setAttribute('aria-expanded','false');menuFromTouch=false;menuPress=false;if(menu.parentNode!==document.body)document.body.append(menu);}
 function clearCardMotion(d){
   if(!d)return;cancelAnimationFrame(d.motionFrame);d.motionFrame=0;
+  cancelAnimationFrame(d.motionStartFrame);d.motionStartFrame=0;
   d.cardAnimation?.cancel();modal.classList.remove('card-is-moving');
 }
 function settleCardMotion(){
@@ -774,8 +775,12 @@ function cardTransitionRect(node){
 }
 function animateCard(d,closing=false){
   cancelAnimationFrame(d.motionFrame);d.motionFrame=0;
+  cancelAnimationFrame(d.motionStartFrame);d.motionStartFrame=0;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return null;
-  if(closing&&d.cardAnimation?.playState==='running'){
+  if(closing&&!d.motionClosing&&['running','paused'].includes(d.cardAnimation?.playState)){
+    // Closing before playback starts should simply reveal the Board card.
+    if(!d.cardAnimation.currentTime){clearCardMotion(d);return null;}
+    d.motionClosing=true;
     d.cardAnimation.reverse();return d.cardAnimation;
   }
   const node=mounted.get(d.id),source=closing?cardTransitionRect(node):d.sourceRect;
@@ -785,7 +790,15 @@ function animateCard(d,closing=false){
   if(node){node.style.visibility='hidden';d.transitionSource=node;}
   const small={transform:`translate(${source.left-target.left}px,${source.top-target.top}px) scale(${source.width/target.width},${source.height/target.height})`},full={transform:'translate(0,0) scale(1,1)'};
   if(isIPhone){small.borderRadius='16px';full.borderRadius='0px';}
+  d.motionClosing=closing;
   const animation=d.cardAnimation=modal.animate(closing?[full,small]:[small,full],{duration:320,easing:'cubic-bezier(.22,.8,.24,1)',fill:'both'});
+  // Do not spend animation time rasterizing the first frame. In particular,
+  // a busy first render must not turn the first visible move into an end jump.
+  animation.pause();animation.currentTime=0;
+  d.motionStartFrame=requestAnimationFrame(()=>{d.motionStartFrame=requestAnimationFrame(()=>{
+    d.motionStartFrame=0;
+    if(modalState===d&&d.cardAnimation===animation&&animation.playState==='paused'&&animation.currentTime===0)animation.play();
+  });});
   // Let the final composited frame settle before releasing its layer.
   if(!closing)animation.onfinish=()=>{if(modalState!==d||d.cardAnimation!==animation)return;d.motionFrame=requestAnimationFrame(()=>{d.motionFrame=requestAnimationFrame(()=>{if(modalState===d&&d.cardAnimation===animation){clearCardMotion(d);if(d.deferBodyUntilMotion)d.prepareBody();}});});};
   return animation;
@@ -809,7 +822,7 @@ function cardBodyStart(text,settings){
       if(lines>=128)break;
     }
   }
-  return {text:text.slice(0,end),complete:end===text.length,large:text.length>32768||lines>=128};
+  return {text:text.slice(0,end),complete:end===text.length};
 }
 function editorDialog(id=null) {
   if(!id){$('capture-input').focus();return;}
@@ -828,7 +841,7 @@ function editorDialog(id=null) {
   }
   const title=el('textarea','editor-title');title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
   const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
-  const body=el('textarea','editor-body');body.rows=1;body.placeholder='Text';body.setAttribute('aria-label','Card body');const startBody=cardBodyStart(d.currentText,s.settings);body.value=startBody.text;body.enterKeyHint='enter';d.body=body;d.largeBody=startBody.large;d.bodyReady=startBody.complete;body.readOnly=!d.bodyReady;if(!d.bodyReady)body.setAttribute('aria-busy','true');
+  const body=el('textarea','editor-body');body.rows=1;body.placeholder='Text';body.setAttribute('aria-label','Card body');const startBody=cardBodyStart(d.currentText,s.settings);body.value=startBody.text;body.enterKeyHint='enter';d.body=body;d.bodyReady=startBody.complete;body.readOnly=!d.bodyReady;if(!d.bodyReady)body.setAttribute('aria-busy','true');
   // One scroller owns title, full-height body and trailing metadata. The toolbar
   // stays outside it; the textarea itself never reserves a second scrollbar.
   const revealEnd=()=>{const bottom=body.offsetTop+body.offsetHeight;if(bottom>scroller.scrollTop+scroller.clientHeight)scroller.scrollTop=bottom-scroller.clientHeight+8;};
@@ -916,7 +929,7 @@ function editorDialog(id=null) {
   else{body.setSelectionRange(0,0);body.focus({preventScroll:true});}
   scroller.scrollTop=0;d.updateScroll();animateCard(d);
   if(!d.bodyReady){
-    if(d.largeBody&&d.cardAnimation)d.deferBodyUntilMotion=true;
+    if(d.cardAnimation)d.deferBodyUntilMotion=true;
     else d.bodyFrame=requestAnimationFrame(()=>{d.bodyFrame=requestAnimationFrame(()=>d.prepareBody());});
   }
 }

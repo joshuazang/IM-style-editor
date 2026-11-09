@@ -83,3 +83,33 @@ protections remain unchanged.
 Regression coverage opens all six long cards and checks unchanged destination
 geometry, complete values, no opening writes, early keyboard edits, title-only
 saves, failed-save retention/retry, note switches, iPhone focus and reduced motion.
+
+## Recording follow-up: delayed first render — 1.4.18
+
+Frame-by-frame inspection of the supplied Standard Notes Mac desktop recording showed the opening
+surface at its Board rectangle in one frame and almost at its destination in
+the next. Earlier checks measured JavaScript frame intervals and endpoints;
+they did not cover an animation clock advancing during delayed initial rendering.
+
+A new lower-right-card regression uses a 1410×821 viewport at 2× device scale,
+paragraph-length cards and a deliberate 220ms first-frame main-thread stall.
+Against the published 1.4.17 assets the JavaScript geometry probe fails: sampled
+progress jumps from approximately 19% to 99%, leaving too few intermediate
+rectangles. This establishes elapsed-clock catch-up under a startup stall, not
+an exact reproduction of the Mac rendering failure.
+
+Opening and closing now pause at the initial keyframe, allow a render opportunity
+through two animation-frame callbacks, then start playback. The geometry test records
+17 intermediate rectangles with and without the injected stall, with the first
+moving sample at approximately 19% progress. All pending long-body preparation
+now waits for the completed expansion, unless explicit input requires it sooner.
+The existing 320ms duration, geometry and save protections remain unchanged.
+An additional CDP screencast captured intermediate painted rectangles in both
+versions: compositor motion can continue during a JavaScript stall. Thus the
+geometry improvement alone is not evidence that the reported Mac hitch is fixed.
+
+Early Close before playback and forced close/note switching cancel the queued
+start callback. Existing reversal, full-text input, reduced-motion and platform
+layout checks remain in the coordinated suite. These are Linux Chromium results;
+they do not guarantee physical-Mac compositor behavior or eliminate stalls that
+occur after playback has started.

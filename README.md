@@ -335,3 +335,7 @@ transform-only Mac animation with a staged compositor handoff.
 
 Mosaic 1.4.17 addresses the six-long-card opening case with bounded first-paint
 text layout, full-text input guards and deferred large-body preparation.
+
+Mosaic 1.4.18 holds the initial card rectangle through a rendering opportunity
+before starting playback, preventing a delayed first frame from consuming the
+expansion. Remaining long-body preparation runs after the transition.
