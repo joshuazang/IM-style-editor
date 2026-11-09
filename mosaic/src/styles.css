@@ -338,6 +338,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-detail-bottom.has-content-below{box-shadow:0 -7px 10px -7px #00000045}
 .card-edit-dialog #modal-content .card-detail-tools{margin:0;padding:0 8px;gap:8px;align-items:flex-end}
 .card-edit-dialog #modal-content .card-detail-tools .icon-button{width:42px;height:42px}
+.card-edit-dialog #modal-content .card-detail-tools .detail-more{margin-left:0}
 .card-edit-dialog #modal-content .detail-close{min-height:42px;padding:8px 13px}
 .card-detail-bottom .dialog-error{margin:0;padding:8px 12px}
 

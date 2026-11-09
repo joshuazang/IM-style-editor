@@ -301,3 +301,7 @@ against the bottom edge, retaining the overflow shadow and save/retry feedback.
 Mosaic 1.4.7 adds a small top inset to opened-card titles, including the title
 editing field. This spacing scrolls away with the heading; untitled cards and
 the fixed bottom action row keep their compact spacing.
+
+Mosaic 1.4.8 groups opened-card controls at the bottom right in the order
+Pin, Palette, More, Close. Pin stays available alongside the other actions;
+the scrolling header now uses its full width for the optional title.

@@ -768,7 +768,7 @@ function editorDialog(id=null) {
   body.addEventListener('input',()=>growBody(true));
   body.addEventListener('keyup',event=>{if(event.key==='End'&&body.selectionEnd===body.value.length)revealEnd();if(event.key==='Home'&&body.selectionStart===0)scroller.scrollTop=body.offsetTop;});
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
-  const header=el('div','card-detail-heading');header.append(titlePreview,title,pin);scroller.append(header,body);
+  const header=el('div','card-detail-heading');header.append(titlePreview,title);scroller.append(header,body);
   d.unlockTitle=()=>{d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';growBody();hideMenu();title.focus();};
   d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');modal.append(d.tagBadges);
   d.tagObserver=new ResizeObserver(()=>positionEditorTags(d));d.tagObserver.observe(d.tagBadges);
@@ -778,7 +778,7 @@ function editorDialog(id=null) {
   const palette=button('Background options','palette',event=>colorMenu(id,event));
   const more=button('Card options','more',event=>cardMenu(s.messages.find(m=>m.id===id),event),'icon-button detail-more');
   const close=button('Close',null,()=>safeRun(()=>saveEditor(true)),'detail-close');d.submit=close;
-  footer.append(palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');d.bottom.append(footer);d.root.append(d.bottom);
+  footer.append(pin,palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');d.bottom.append(footer);d.root.append(d.bottom);
   d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
   scroller.addEventListener('scroll',d.updateScroll,{passive:true});
   d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
