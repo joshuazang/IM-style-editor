@@ -342,3 +342,6 @@ expansion. Remaining long-body preparation runs after the transition.
 
 Mosaic 1.4.19 opens Card view without automatically focusing its text on any
 platform. Click or tap the body, or Tab into it, to begin editing.
+
+Mosaic 1.4.20 restores automatic Card-view body focus outside iPhone, with the
+caret after the final character, including bodies prepared after expansion.

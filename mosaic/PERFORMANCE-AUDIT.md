@@ -123,3 +123,12 @@ still focuses the title field. Keyboard typing on the unopened text fields
 does not alter the card or capture draft. This removes one source of native
 input/caret work during opening; it is an experiment for the reported Standard
 Notes Mac desktop hitch, not proof that autofocus caused the rendering failure.
+
+## Restored focus with an end caret — 1.4.20
+
+The user reported that the no-autofocus experiment did not improve the Mac
+hitch. Automatic body focus is restored outside iPhone, before motion, with
+the caret after the final character. A staged body's initial end caret maps
+to the full body's end when preparation completes. Explicit selection changes
+remain preserved, and early typing prepares the full value before appending.
+The existing top scroll position and iPhone no-keyboard opening remain.

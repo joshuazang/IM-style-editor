@@ -1,4 +1,4 @@
-"""Cards open for reading on every platform; explicit field focus starts editing."""
+"""Cards autofocus at the body end except on iPhone; explicit title focus remains."""
 import functools,http.server,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
@@ -25,9 +25,14 @@ try:
    if mobile:card.tap()
    else:card.click()
    dialog=e.locator('dialog');body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_visible();dialog.evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}')
-   expect(body).not_to_be_focused();expect(dialog).to_be_focused();expect(capture).not_to_be_focused()
-   original=body.input_value();page.keyboard.type('Unfocused typing');expect(body).to_have_value(original);expect(capture).to_have_value(draft)
-   page.keyboard.press('Tab');expect(body).to_be_focused();dialog.evaluate('n=>n.focus({preventScroll:true})')
+   expect(capture).not_to_be_focused();original=body.input_value()
+   if name.startswith('iPhone'):
+    expect(body).not_to_be_focused();expect(dialog).to_be_focused();page.keyboard.type('Unfocused typing');expect(body).to_have_value(original)
+    page.keyboard.press('Tab');expect(body).to_be_focused();dialog.evaluate('n=>n.focus({preventScroll:true})')
+   else:
+    expect(body).to_be_focused();assert body.evaluate('n=>n.selectionStart===n.value.length&&n.selectionEnd===n.value.length')
+    page.keyboard.type('x');expect(body).to_have_value(original+'x');page.keyboard.press('Backspace');expect(body).to_have_value(original)
+   expect(capture).to_have_value(draft)
    assert page.evaluate('saves.length')==count and page.evaluate('notes.a.content.text')==before
    if mobile:body.tap()
    else:body.click()
@@ -35,6 +40,6 @@ try:
    e.locator('.detail-more').click();e.get_by_role('menuitem',name='Add title',exact=True).click();expect(e.get_by_role('textbox',name='Card title',exact=True)).to_be_focused()
    e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();expect(capture).to_have_value(draft);assert page.evaluate('saves.length')==count
    assert not errors,errors
-   print(f'PASS {name}: no automatic text focus or unfocused typing; native tap-to-edit, explicit title focus, preserved capture draft and zero opening/closing writes',flush=True);context.close()
+   print(f'PASS {name}: restored end caret except iPhone, typing appends, explicit title focus, preserved capture draft and zero no-op opening/closing writes',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

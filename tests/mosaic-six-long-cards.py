@@ -33,10 +33,16 @@ try:
     if not reduced:assert start['n']<=4096 and start['n']<start['full']
     assert dialog.evaluate('(n,s)=>n.offsetWidth===s.w&&n.offsetHeight===s.h',start),'Native preparation must not change the visible destination box'
     assert e.locator('.card-detail-scroll').evaluate('n=>n.scrollHeight>n.clientHeight+1000')
-    expect(body).not_to_be_focused()
+    if name=='iPhone':expect(body).not_to_be_focused()
+    else:
+     expect(body).to_be_focused();assert body.evaluate('n=>n.selectionStart===n.value.length&&n.selectionEnd===n.value.length'),'Opening caret must reach the end of the complete body'
+    assert e.locator('.card-detail-scroll').evaluate('n=>n.scrollTop<2'),'Opening still starts at the top'
     e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible()
    assert page.evaluate('notes.a.content.text')==before and page.evaluate('saves.length')==count
    if not reduced:
+    if name!='iPhone':
+     # Typing immediately must append after the full body, not the staged prefix.
+     original=data['messages'][0]['text'];e.locator('[data-id="'+data['messages'][0]['id']+'"]').scroll_into_view_if_needed();e.locator('#board').evaluate('(n,id)=>{editorDialog(id);modalState.cardAnimation?.pause();cancelAnimationFrame(modalState.bodyFrame);if(modalState.bodyReady)throw Error("Expected staged body")}',data['messages'][0]['id']);body=e.locator('.editor-body');body.press('x');expect(body).to_have_value(original+'x');body.press('Backspace');expect(body).to_have_value(original);e.locator('#board').evaluate('()=>clearCardMotion(modalState)');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert page.evaluate('saves.length')==count
     # Escape must close an unchanged peek without materializing the full body.
     e.locator('[data-id="'+data['messages'][0]['id']+'"]').scroll_into_view_if_needed();e.locator('#board').evaluate('(n,id)=>{editorDialog(id);modalState.cardAnimation?.pause();if(modalState.cardAnimation){modalState.cardAnimation.currentTime=160;modalState.cardAnimation.play();}cancelAnimationFrame(modalState.bodyFrame);window.earlyEscape=modalState}',data['messages'][0]['id']);e.locator('.editor-body').press('Escape');expect(e.locator('dialog')).not_to_be_visible();assert e.locator('#board').evaluate('()=>!earlyEscape.bodyReady')
     # Force early keyboard interaction before automatic preparation can run.

@@ -852,8 +852,10 @@ function editorDialog(id=null) {
     if(modalState!==d||d.bodyReady)return;
     cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;
     const top=scroller.scrollTop,start=body.selectionStart,end=body.selectionEnd,direction=body.selectionDirection;
+    // An opening caret at the preview's end means the end of the full body.
+    const append=d.pendingEndCaret&&start===end&&end===body.value.length;d.pendingEndCaret=false;
     body.value=d.currentText;body.readOnly=false;body.removeAttribute('aria-busy');d.bodyReady=true;d.deferBodyUntilMotion=false;growBody();
-    if(!isIPhone||document.activeElement===body)body.setSelectionRange(start,end,direction);
+    if(!isIPhone||document.activeElement===body)body.setSelectionRange(append?body.value.length:start,append?body.value.length:end,direction);
     scroller.scrollTop=top;
   };
   const prepareForInput=event=>{if(event.type==='keydown'&&['Escape','Tab','Shift','Control','Alt','Meta'].includes(event.key))return;if(!d.bodyReady){if(d.deferBodyUntilMotion)settleCardMotion();else d.prepareBody();}};
@@ -924,8 +926,9 @@ function editorDialog(id=null) {
     if(scroller.scrollHeight<=scroller.clientHeight+2*line||matchMedia('(prefers-reduced-motion: reduce)').matches)d.prepareBody();
   }
   measuredWidth=body.clientWidth;
-  // Open for reading. Editing starts only after explicitly focusing a field.
-  modal.focus({preventScroll:true});
+  // Restore text focus before motion, with new typing appending to the body.
+  if(isIPhone)modal.focus({preventScroll:true});
+  else{d.pendingEndCaret=!d.bodyReady;body.setSelectionRange(body.value.length,body.value.length);body.focus({preventScroll:true});}
   scroller.scrollTop=0;d.updateScroll();animateCard(d);
   if(!d.bodyReady){
     if(d.cardAnimation)d.deferBodyUntilMotion=true;
