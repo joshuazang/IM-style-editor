@@ -27,6 +27,10 @@ try:
     rect=pane.bounding_box();card=e.locator('dialog').bounding_box();assert card['x']+card['width']-(rect['x']+rect['width'])<=2
     if width<600:assert card['width']>=width-18,(width,card)
     assert body.bounding_box()['width']>card['width']-50
+    assert rect['y']-card['y']<=2 and pane.evaluate('n=>getComputedStyle(n).paddingTop')=='0px'
+    pin=e.get_by_role('button',name='Pin card',exact=True);expect(pin).to_be_in_viewport()
+    for control in [close,e.get_by_role('button',name='Background options',exact=True),e.get_by_role('button',name='Card options',exact=True)]:
+     bounds=control.bounding_box();assert card['y']+card['height']-(bounds['y']+bounds['height'])<=2,(width,card,bounds)
     expect(meta).not_to_be_in_viewport();expect(close).to_be_in_viewport();position=close.bounding_box()
     for fraction in [0,.5,1,.9]:
      pane.evaluate('(n,f)=>n.scrollTop=(n.scrollHeight-n.clientHeight)*f',fraction);page.wait_for_timeout(80)
@@ -34,6 +38,7 @@ try:
      assert (bottom.evaluate('n=>getComputedStyle(n).boxShadow')!='none')==(fraction!=1)
      assert close.bounding_box()==position
      if fraction==1:expect(meta).to_be_in_viewport()
+     if fraction==.5:expect(pin).not_to_be_in_viewport()
     assert page.evaluate('saves.length')==0
     pane.evaluate('n=>n.scrollTop=0')
     if width==390 and not titled:page.screenshot(path='/tmp/mosaic-open-card-edge-scroll.png')

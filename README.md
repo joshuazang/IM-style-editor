@@ -293,3 +293,7 @@ full-width body and trailing timestamps/statuses scroll together; the action
 row stays visible. A subtle shadow above it indicates content below and clears
 at the bottom. Phone outer margins and internal padding are smaller. Native
 text editing, compact short cards and acknowledged-save/retry protections remain.
+
+Mosaic 1.4.6 removes the remaining top and bottom content insets in opened
+cards. The pin scrolls with the heading and body; the compact action row sits
+against the bottom edge, retaining the overflow shadow and save/retry feedback.
