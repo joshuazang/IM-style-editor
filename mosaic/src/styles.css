@@ -328,11 +328,11 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog #modal-content{padding:0;overflow:hidden}
 .card-detail-scroll{position:relative;min-height:0;flex:0 1 auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:0 0 0 14px}
 .card-detail-heading{display:flex;align-items:flex-start;gap:8px;padding-right:8px}
-.card-detail-heading:has(.detail-title:not([hidden]),.editor-title:not([hidden])){padding-top:4.8px}
+.card-detail-heading:has(.detail-title:not([hidden]),.editor-title:not([hidden])){padding-top:7px}
 .card-edit-dialog #modal-content .detail-title{flex:1;min-width:0;margin:0 0 6px}
 .card-edit-dialog #modal-content .editor-title{flex:1;min-width:0;width:auto;min-height:36px;max-height:none;padding:0;overflow:hidden}
 .card-edit-dialog #modal-content .detail-pin{position:static;flex:none;width:36px;height:36px;margin-left:auto}
-.card-edit-dialog #modal-content .editor-body{flex:none;min-height:1lh;max-height:none;padding:6px 10px 0 0;overflow:hidden;resize:none}
+.card-edit-dialog #modal-content .editor-body{flex:none;min-height:1lh;max-height:none;padding:7px 10px 0 0;overflow:hidden;resize:none}
 .card-edit-dialog #modal-content .card-detail-meta{margin:6px 10px 0 0}
 .card-detail-bottom{position:relative;flex:none;background:inherit}
 .card-detail-bottom.has-content-below{box-shadow:0 -7px 10px -7px #00000045}

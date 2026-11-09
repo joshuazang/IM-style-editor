@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.13](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.13.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.14](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.14.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -307,3 +307,6 @@ retain the existing save protections.
 
 Mosaic 1.4.13 increases the body’s scrolling top padding from 4px to 6px.
 The content viewport retains zero top padding, and title spacing is unchanged.
+
+Mosaic 1.4.14 sets both body top padding and optional-title top padding to
+7px. Both remain inside the scrolling content.

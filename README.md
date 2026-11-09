@@ -323,3 +323,6 @@ iPhone viewport listeners are removed when closing or switching notes.
 
 Mosaic 1.4.13 increases opened-card body top padding by 50% (4px to 6px),
 inside the scrolling text so no fixed padding band remains while scrolling.
+
+Mosaic 1.4.14 unifies opened-card body and optional-title top padding at 7px,
+within the scrolling content.
