@@ -297,3 +297,7 @@ text editing, compact short cards and acknowledged-save/retry protections remain
 Mosaic 1.4.6 removes the remaining top and bottom content insets in opened
 cards. The pin scrolls with the heading and body; the compact action row sits
 against the bottom edge, retaining the overflow shadow and save/retry feedback.
+
+Mosaic 1.4.7 adds a small top inset to opened-card titles, including the title
+editing field. This spacing scrolls away with the heading; untitled cards and
+the fixed bottom action row keep their compact spacing.

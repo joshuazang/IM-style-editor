@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.6](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.6.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.7](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.7.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -274,3 +274,6 @@ below; reaching the bottom removes it. Short cards still fit their contents.
 Mosaic 1.4.6 removes the remaining top and bottom content insets. The pin
 scrolls away with the content, and Palette, More and Close sit against the
 bottom edge to leave more room for text. Save warnings remain visible.
+
+Mosaic 1.4.7 gives existing and editable titles a small top inset inside the
+scrolling heading. Untitled cards retain their compact spacing.
