@@ -692,13 +692,13 @@ function openModal(kind,title) {
   heading.append(h,button('Close','close',()=>closeModal()));root.append(heading);modal.showModal();return state;
 }
 function dialogError(record,text) {
-  if(modalState!==record)return;if(!record.error){record.error=el('p','dialog-error');record.error.setAttribute('role','alert');record.root.append(record.error);}record.error.textContent=text;
+  if(modalState!==record)return;if(!record.error){record.error=el('p','dialog-error');record.error.setAttribute('role','alert');if(record.bottom)record.bottom.insertBefore(record.error,record.footer);else record.root.append(record.error);}record.error.textContent=text;
 }
 function closeModal(force=false) {
   if(!force&&modalState?.busy)return;
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
-  modalState?.layoutObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
+  modalState?.layoutObserver?.disconnect();modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
   hideMenu();if(modal.open)modal.close();modalState=null;
 }
 function stashEdit() {
@@ -750,33 +750,39 @@ function editorDialog(id=null) {
   const restored=stashed?.id===id&&stashed.original===message.text&&(stashed.originalTitle??imFormat.title(message))===imFormat.title(message)?stashed:null;
   const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
   const d=openModal('edit','Edit card');Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
+  const scroller=el('div','card-detail-scroll');d.scroll=scroller;d.root.append(scroller);
   if(stashed&&!restored){
-    d.root.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
-    const earlier=el('textarea','transfer-text');earlier.readOnly=true;earlier.value=stashed.text;earlier.setAttribute('aria-label','Earlier unfinished edit');d.root.append(earlier);
+    scroller.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
+    const earlier=el('textarea','transfer-text');earlier.readOnly=true;earlier.value=stashed.text;earlier.setAttribute('aria-label','Earlier unfinished edit');scroller.append(earlier);
   }
   const title=el('textarea','editor-title');title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
   const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
   const body=el('textarea','editor-body');body.rows=1;body.placeholder='Text';body.setAttribute('aria-label','Card body');body.value=d.currentText;body.enterKeyHint='enter';d.body=body;
-  // Measure the natural text height; flex shrinks only the body at the screen limit.
-  // Preserve its reading position when a long card is resized or edited.
-  const growBody=()=>{const top=body.scrollTop;body.style.height='0px';body.style.height=body.scrollHeight+'px';body.scrollTop=top;};
+  // One scroller owns title, full-height body and trailing metadata. The toolbar
+  // stays outside it; the textarea itself never reserves a second scrollbar.
+  const revealEnd=()=>{const bottom=body.offsetTop+body.offsetHeight;if(bottom>scroller.scrollTop+scroller.clientHeight)scroller.scrollTop=bottom-scroller.clientHeight+8;};
+  const growBody=(typing=false)=>{const top=scroller.scrollTop;body.style.height='0px';body.style.height=body.scrollHeight+'px';body.scrollTop=0;scroller.scrollTop=top;if(typing&&document.activeElement===body&&body.selectionEnd===body.value.length)revealEnd();d.updateScroll?.();};
   let measuredWidth=0;
   d.layoutObserver=new ResizeObserver(()=>{const width=body.clientWidth;if(width!==measuredWidth){measuredWidth=width;growBody();}});
   d.layoutObserver.observe(d.root);
-  body.addEventListener('input',growBody);
+  body.addEventListener('input',()=>growBody(true));
+  body.addEventListener('keyup',event=>{if(event.key==='End'&&body.selectionEnd===body.value.length)revealEnd();if(event.key==='Home'&&body.selectionStart===0)scroller.scrollTop=body.offsetTop;});
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
-  d.root.append(titlePreview,title,pin,body);
+  const header=el('div','card-detail-heading');header.append(titlePreview,title,pin);scroller.append(header,body);
   d.unlockTitle=()=>{d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';growBody();hideMenu();title.focus();};
   d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');modal.append(d.tagBadges);
   d.tagObserver=new ResizeObserver(()=>positionEditorTags(d));d.tagObserver.observe(d.tagBadges);
   d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);};
-  d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');d.root.append(d.meta);
+  d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');scroller.append(d.meta);
   const footer=el('div','card-detail-tools');
   const palette=button('Background options','palette',event=>colorMenu(id,event));
   const more=button('Card options','more',event=>cardMenu(s.messages.find(m=>m.id===id),event),'icon-button detail-more');
   const close=button('Close',null,()=>safeRun(()=>saveEditor(true)),'detail-close');d.submit=close;
-  footer.append(palette,more,close);d.root.append(footer);
-  const change=()=>{d.fieldRevision++;d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}};
+  footer.append(palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');d.bottom.append(footer);d.root.append(d.bottom);
+  d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
+  scroller.addEventListener('scroll',d.updateScroll,{passive:true});
+  d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
+  const change=()=>{d.fieldRevision++;d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}d.updateScroll();};
   title.addEventListener('input',change);body.addEventListener('input',change);
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
@@ -810,7 +816,7 @@ function editorDialog(id=null) {
       dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
     }
   }
-  refreshEditorMetadata();setTimeout(()=>body.focus(),0);
+  refreshEditorMetadata();setTimeout(()=>{if(modalState===d){body.setSelectionRange(0,0);body.focus({preventScroll:true});scroller.scrollTop=0;d.updateScroll();}},0);
 }
 function editCard(id){editorDialog(id);}
 function readCard(id) {

@@ -323,6 +323,21 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog[open]{overflow:visible;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
 .card-edit-dialog #modal-content{border-radius:inherit;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
 
+/* Opened cards: one edge-aligned content scroller and a fixed action row. */
+.card-edit-dialog{width:min(720px,calc(100vw - 16px));max-width:calc(100vw - 16px)}
+.card-edit-dialog #modal-content{padding:0;overflow:hidden}
+.card-detail-scroll{position:relative;min-height:0;flex:0 1 auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:4px 0 8px 14px}
+.card-detail-heading{display:flex;align-items:flex-start;gap:8px;padding-right:8px}
+.card-edit-dialog #modal-content .detail-title{flex:1;min-width:0;margin:4px 0 6px}
+.card-edit-dialog #modal-content .editor-title{flex:1;min-width:0;width:auto;min-height:36px;max-height:none;padding:0;overflow:hidden}
+.card-edit-dialog #modal-content .detail-pin{position:static;flex:none;width:36px;height:36px;margin-left:auto}
+.card-edit-dialog #modal-content .editor-body{flex:none;min-height:1lh;max-height:none;padding:0 10px 0 0;overflow:hidden;resize:none}
+.card-edit-dialog #modal-content .card-detail-meta{margin:6px 10px 0 0}
+.card-detail-bottom{position:relative;flex:none;background:inherit}
+.card-detail-bottom.has-content-below{box-shadow:0 -7px 10px -7px #00000045}
+.card-edit-dialog #modal-content .card-detail-tools{margin:0;padding:6px 12px;gap:8px}
+.card-detail-bottom .dialog-error{margin:0;padding:8px 12px}
+
 /* Board-view tags share IM's compact vector silhouette and hover lift. */
 .card .card-tag,.card.is-compact .card-tag{position:relative;display:inline-flex;justify-content:flex-start;min-width:0;min-height:0;margin:0;padding:0 11px 0 0;border:0;border-radius:0;background:transparent;color:var(--card-ink);box-shadow:none;line-height:1;cursor:pointer;backdrop-filter:none;-webkit-backdrop-filter:none}
 .card .emoji-tag-body,.card .emoji-tag-tip{position:absolute;top:0;height:100%;fill:var(--accent-soft);pointer-events:none}

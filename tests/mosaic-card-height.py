@@ -33,11 +33,11 @@ try:
    body.fill(long);page.wait_for_timeout(100)
    bounds=dialog.bounding_box();assert bounds['height']>medium,(bounds,medium)
    assert bounds['y']>=0 and bounds['y']+bounds['height']<=height,(height,bounds)
-   assert body.evaluate('n=>n.scrollHeight>n.clientHeight+100')
+   assert e.locator('.card-detail-scroll').evaluate('n=>n.scrollHeight>n.clientHeight+100')
    close=e.get_by_role('button',name='Close',exact=True);expect(close).to_be_in_viewport()
    # Reach the final line and edit it without collapsing the scroll position.
    body.press('Control+End');body.press('End');body.type(' END')
-   assert body.evaluate('n=>n.scrollTop>0')
+   assert e.locator('.card-detail-scroll').evaluate('n=>n.scrollTop>0')
    # Narrowing the viewport rewraps and preserves all text; Close stays reachable.
    page.set_viewport_size({'width':320,'height':430});page.wait_for_timeout(100)
    expect(close).to_be_in_viewport();expect(body).to_have_value(long+' END')

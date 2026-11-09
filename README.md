@@ -287,3 +287,9 @@ Mosaic 1.4.4 applies the standard 8× allowance to the body preview alone.
 Titles, reply previews and tag rows add height outside it; adding them does not
 reduce body lines. Truncated bodies retain their consistent standard height,
 and short bodies stay compact. Titles have an independent preview allowance.
+
+Mosaic 1.4.5 gives opened cards a single edge-aligned content scroller. The
+full-width body and trailing timestamps/statuses scroll together; the action
+row stays visible. A subtle shadow above it indicates content below and clears
+at the bottom. Phone outer margins and internal padding are smaller. Native
+text editing, compact short cards and acknowledged-save/retry protections remain.
