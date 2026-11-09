@@ -313,3 +313,6 @@ Mosaic 1.4.10 gives opened cards the Board tag silhouette and accent fill,
 adds interruptible Open/Close motion, and improves drag hit-testing during
 neighbor movement. Adjacent-card hovers now offer a changed slot; placement
 still waits for deliberate hovering and saves once on drop.
+
+Mosaic 1.4.11 avoids automatic text-field focus when opening a card on iPhone.
+Tapping the body still starts editing; other platforms keep the existing focus.

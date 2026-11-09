@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.10](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.10.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.11](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.11.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -293,3 +293,7 @@ captures a new hover during the settling interval, retains it through reflow,
 and displaces adjacent cards when the
 nearest insertion would otherwise be a no-op. A 150ms hover and 280ms settling
 interval preserve intentional placement; release commits the displayed slot.
+
+Mosaic 1.4.11 opens Card view without focusing a text field on iPhone. Tap the
+body or explicitly choose Add/Edit title to edit. Other platforms retain their
+existing automatic body focus. No note content or composer drafts are changed.

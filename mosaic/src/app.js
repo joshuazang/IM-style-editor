@@ -847,7 +847,13 @@ function editorDialog(id=null) {
       dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
     }
   }
-  refreshEditorMetadata();animateCard(d);setTimeout(()=>{if(modalState===d){body.setSelectionRange(0,0);body.focus({preventScroll:true});scroller.scrollTop=0;d.updateScroll();}},0);
+  refreshEditorMetadata();animateCard(d);setTimeout(()=>{if(modalState===d){
+    // iPhone opens in reading mode. A deliberate tap on the body/title still
+    // uses native editing focus; other platforms keep immediate body editing.
+    if(/\biPhone\b/i.test(navigator.userAgent))modal.focus({preventScroll:true});
+    else{body.setSelectionRange(0,0);body.focus({preventScroll:true});}
+    scroller.scrollTop=0;d.updateScroll();
+  }},0);
 }
 function editCard(id){editorDialog(id);}
 function readCard(id) {
