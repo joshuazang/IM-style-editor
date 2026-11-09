@@ -308,3 +308,8 @@ the scrolling header now uses its full width for the optional title.
 
 Mosaic 1.4.9 adds a small scrolling body inset and increases the title inset
 by 20%; the content viewport itself retains zero top padding.
+
+Mosaic 1.4.10 gives opened cards the Board tag silhouette and accent fill,
+adds interruptible Open/Close motion, and improves drag hit-testing during
+neighbor movement. Adjacent-card hovers now offer a changed slot; placement
+still waits for deliberate hovering and saves once on drop.

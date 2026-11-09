@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.9](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.9.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.10](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.10.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -285,3 +285,11 @@ bottom right. The title keeps the small scrolling top inset.
 Mosaic 1.4.9 adds a 4px top inset to the body and increases the title inset
 from 4px to 4.8px. Both belong to the scrolling content, leaving no fixed
 padding band at the top while scrolling.
+
+Mosaic 1.4.10 reuses Board tag vectors and accent fill in read-only Card-view
+badges. Open/Close use short, reduced-motion-aware shifts; Reply hands focus
+to the composer immediately. Drag targeting follows visible card positions,
+captures a new hover during the settling interval, retains it through reflow,
+and displaces adjacent cards when the
+nearest insertion would otherwise be a no-op. A 150ms hover and 280ms settling
+interval preserve intentional placement; release commits the displayed slot.

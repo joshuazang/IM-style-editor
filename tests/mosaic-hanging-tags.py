@@ -62,6 +62,7 @@ try:
     before=page.evaluate('notes.a.content.text');saved_count=page.evaluate('saves.length')
     fill_search(e,'Card 1');card=e.locator('[data-id="'+data['messages'][1]['id']+'"]');card.click(position={'x':8,'y':8});dialog=e.get_by_role('dialog',name='Edit card',exact=True);tags=e.locator('.card-detail-tags');expect(tags).to_be_visible()
     def check_open():
+     dialog.evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}')
      expect(dialog.get_by_role('button',name='Close',exact=True)).to_be_in_viewport()
      assert tags.evaluate('n=>{const r=n.closest("dialog").getBoundingClientRect(),p=n.firstElementChild.getBoundingClientRect(),b=n.getBoundingClientRect();return Math.abs(p.left-b.left)<1&&p.top<r.bottom&&p.bottom>r.bottom&&b.bottom<=innerHeight-7&&b.left>=0&&b.right<=innerWidth}')
      assert tags.evaluate('n=>getComputedStyle(n.closest("dialog")).overflow')=='visible'

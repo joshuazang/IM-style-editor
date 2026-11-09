@@ -44,8 +44,7 @@ try:
    expect(e.locator('.card-timestamp')).to_have_text(re.compile('Nov'))
    expect(e.locator('.card-edited')).to_have_text('edited')
    expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();title=body.bounding_box();title['height']=44
-   top=dialog.locator('button:visible').evaluate_all('(nodes)=>nodes.filter(n=>n.getBoundingClientRect().top<'+str(title['y']+title['height'])+').map(n=>n.getAttribute("aria-label"))')
-   assert top==['Pin card'],top
+   assert dialog.locator('.card-detail-tools>button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==['Pin card','Background options','Card options','Close']
    before=page.evaluate('notes.a.content.text');body.fill('Changed body');body.press('End');body.press('Enter');body.type('Next line')
    expect(body).to_have_value('Changed body\nNext line');assert page.evaluate('notes.a.content.text')==before
    page.evaluate('holdAck=true');e.get_by_role('button',name='Close',exact=True).click();expect(dialog).to_be_visible()

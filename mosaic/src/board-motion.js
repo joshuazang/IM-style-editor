@@ -122,33 +122,40 @@ class MosaicBoardDrag {
     const now=performance.now();
     // Let a placement settle before its moving neighbors become new targets.
     // Remember movement during this interval, so a new hover is not ignored.
-    if(now<(g.cooldownUntil||0))return;
-    g.dirty=false;
+    if(now<(g.cooldownUntil||0)&&!g.dirty&&!g.pending)return;
+    const moved=g.dirty;g.dirty=false;
     const layout=this.getLayout(),origin=this.board.getBoundingClientRect(),x=g.x-origin.left,y=g.y-origin.top;
     const source=layout.byId.get(g.id);if(!source)return;
     // Reflow can move a different card under a nearly stationary finger. It
     // must not count as a new placement request without deliberate movement.
     if(g.anchor&&Math.hypot(x-g.anchor.x,y-g.anchor.y)<18){g.pending=null;return;}
-    const margin=10;
-    if(x>=source.x-margin&&x<=source.x+source.width+margin&&y>=source.y-margin&&y<=source.y+source.height+margin){g.pending=null;return;}
-    let target=null,best=Infinity;
-    // Layout geometry is stable even while neighbors are visually animating.
+    // Keep an earned hover attached to its card while that card animates.
+    if(g.pending&&!moved){
+      if(now-g.pending.since<150||now<(g.cooldownUntil||0))return;
+      const pending=g.pending;g.pending=null;g.cooldownUntil=now+280;g.anchor={x,y};
+      this.onPreview(g.id,pending.id,pending.after);return;
+    }
+    const margin=4;
+    const insideSource=x>=source.x-margin&&x<=source.x+source.width+margin&&y>=source.y-margin&&y<=source.y+source.height+margin;
+    let target=null,targetRect=null,targetInside=false,best=Infinity;
+    // Prefer the card the user actually sees beneath the pointer during motion.
     for(const item of this.candidates(y)){
       if(item.message.id===g.id||!this.sameSection(g.id,item.message.id))continue;
-      const dx=Math.max(item.x-x,0,x-item.x-item.width),dy=Math.max(item.y-y,0,y-item.y-item.height);
-      const score=dx*dx+dy*dy+Math.abs(x-item.x-item.width/2)*.02+Math.abs(y-item.y-item.height/2)*.01;
-      if(score<best){best=score;target=item;}
+      const visual=this.hitRect?.(item),r=visual?{x:visual.left-origin.left,y:visual.top-origin.top,width:visual.width,height:visual.height}:item;
+      const dx=Math.max(r.x-x,0,x-r.x-r.width),dy=Math.max(r.y-y,0,y-r.y-r.height);
+      const score=dx*dx+dy*dy+Math.abs(x-r.x-r.width/2)*.02+Math.abs(y-r.y-r.height/2)*.01;
+      if(score<best){best=score;target=item;targetRect=r;targetInside=dx===0&&dy===0;}
     }
-    if(!target){g.pending=null;return;}
-    const middle=target.y+target.height/2;
+    if(!target||(insideSource&&!targetInside)){g.pending=null;return;}
+    const middle=targetRect.y+targetRect.height/2;
     // A dead band around the midpoint prevents tiny finger movements from
     // alternating between the two sides of the same card.
     let after=y>middle;
     if(g.pending?.id===target.message.id&&Math.abs(y-middle)<14)after=g.pending.after;
     const key=target.message.id+':'+after;
     if(g.pending?.key!==key){g.pending={key,id:target.message.id,after,since:now};return;}
-    if(now-g.pending.since<150)return;
-    g.pending=null;g.cooldownUntil=now+420;g.anchor={x,y};
+    if(now-g.pending.since<150||now<(g.cooldownUntil||0))return;
+    g.pending=null;g.cooldownUntil=now+280;g.anchor={x,y};
     this.onPreview(g.id,target.message.id,after);
   }
   clearGesture() {

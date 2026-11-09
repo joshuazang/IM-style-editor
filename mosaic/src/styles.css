@@ -362,3 +362,10 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 
 /* Note content uses solid charcoal in every palette and card color. */
 .card .card-title,.card .card-body,.card-edit-dialog .editor-title,.card-edit-dialog .editor-body,.reader-title,.reader-body,#capture-input{color:#202124}
+
+/* Card-view badges reuse the Board tag silhouette and palette emphasis. */
+.card-detail-tags .card-tag{position:relative;display:inline-flex;justify-content:flex-start;min-width:0;min-height:0;padding:0 11px 0 0;border:0;border-radius:0;background:transparent;box-shadow:none;line-height:1;backdrop-filter:none;-webkit-backdrop-filter:none}
+.card-detail-tags .emoji-tag-body,.card-detail-tags .emoji-tag-tip{position:absolute;top:0;height:100%;fill:var(--accent-soft);pointer-events:none}
+.card-detail-tags .emoji-tag-body{left:0;width:calc(100% - 11px)}
+.card-detail-tags .emoji-tag-tip{right:0;width:11px}
+.card-detail-tags .emoji-tag-emoji{position:relative;display:grid;place-items:center;min-width:20px;min-height:22px;padding:2px;font-size:14px;line-height:1;white-space:nowrap;pointer-events:none}

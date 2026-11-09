@@ -19,12 +19,19 @@ const boardDrag=new MosaicBoardDrag({board,viewport,
   onClearCapture:()=>{outsideCapture=null;window.getSelection()?.removeAllRanges();},
   onStart:id=>{if(!writable())return false;dragPreview={session:active,id,settings:active.settings,pins:new Set(MosaicModel.pins(active.settings))};return true;},
   getLayout:()=>layout,
-  candidates:y=>{const nearby=MosaicModel.visible(layout,y-400,y+400);return nearby.length?nearby:y<0?layout.items.slice(0,3):layout.items.slice(-3);},
+  hitRect:item=>mounted.get(item.message.id)?.getBoundingClientRect(),
+  candidates:y=>{
+    const nearby=MosaicModel.visible(layout,y-400,y+400),seen=new Set(nearby.map(item=>item.message.id));
+    // A moving card can still be visible far from its final layout position.
+    for(const id of mounted.keys()){const item=layout.byId.get(id);if(item&&!seen.has(id)){nearby.push(item);seen.add(id);}}
+    return nearby.length?nearby:y<0?layout.items.slice(0,3):layout.items.slice(-3);
+  },
   getBounds:()=>{const bounds=viewport.getBoundingClientRect();return {top:bounds.top,bottom:Math.min(bounds.bottom,$('capture-composer').getBoundingClientRect().top-8)};},
   sameSection:(id,target)=>dragPreview.pins.has(id)===dragPreview.pins.has(target),
   getSlot:id=>{const item=layout.byId?.get(id),origin=board.getBoundingClientRect();return item?{left:origin.left+item.x,top:origin.top+item.y}:null;},
   onPreview:(id,target,after)=>{
-    const s=active,settings=MosaicModel.moveCard(s.messages,dragPreview.settings,id,target,after);
+    const s=active;let settings=MosaicModel.moveCard(s.messages,dragPreview.settings,id,target,after);
+    if(settings===dragPreview.settings)settings=MosaicModel.moveCard(s.messages,dragPreview.settings,id,target,!after);
     if(settings===dragPreview.settings)return;
     const before=boardMotion.snapshot(mounted);dragPreview.settings=settings;reflowBoard();boardMotion.move(before,mounted);
   },
@@ -453,6 +460,17 @@ function renderDateControls(){
 $('date-filter-button').append(mosaicToolbarIcon('calendarSearch'));
 $('date-filter-button').addEventListener('click',()=>{dateOpen=!dateOpen;renderDateControls();});
 function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
+function fillEmojiTag(badge,tag){
+  badge.replaceChildren();
+  // The same rounded vector body, pointed tail and transparent hole as IM.
+  for(const [className,markup] of [
+    ['emoji-tag-body','<rect width="100%" height="100%" rx="6"/><rect x="50%" width="50%" height="100%"/>'],
+    ['emoji-tag-tip','<path fill-rule="evenodd" clip-rule="evenodd" d="M0 0H2Q6 0 9 4L18 16Q22 20 18 24L9 36Q6 40 2 40H0ZM13 20a3.5 3.5 0 1 0-7 0a3.5 3.5 0 1 0 7 0Z"/>']]){
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('class',className);svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
+    if(className==='emoji-tag-tip')svg.setAttribute('viewBox','0 0 20 40');svg.innerHTML=markup;badge.append(svg);
+  }
+  badge.append(el('span','emoji-tag-emoji',tag));
+}
 function cardNode(message,width) {
   const s=active,parts=MosaicModel.preview(message),pinned=MosaicModel.pins(s.settings).includes(message.id);
   const node=el('article','card'+(pinned?' is-pinned':'')+(s.view.selected.has(message.id)?' selected':''));
@@ -473,15 +491,7 @@ function cardNode(message,width) {
         if(s.view.selecting){toggleSelection(message.id);return;}
         s.view.tag=tag;s.view.scroll=0;viewport.scrollTop=0;searchOpen=false;hideMenu();renderAll();
       },'card-tag');
-      badge.replaceChildren();
-      // The same rounded vector body, pointed tail and transparent hole as IM.
-      for(const [className,markup] of [
-        ['emoji-tag-body','<rect width="100%" height="100%" rx="6"/><rect x="50%" width="50%" height="100%"/>'],
-        ['emoji-tag-tip','<path fill-rule="evenodd" clip-rule="evenodd" d="M0 0H2Q6 0 9 4L18 16Q22 20 18 24L9 36Q6 40 2 40H0ZM13 20a3.5 3.5 0 1 0-7 0a3.5 3.5 0 1 0 7 0Z"/>']]){
-        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('class',className);svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
-        if(className==='emoji-tag-tip')svg.setAttribute('viewBox','0 0 20 40');svg.innerHTML=markup;badge.append(svg);
-      }
-      badge.append(el('span','emoji-tag-emoji',tag));tags.append(badge);
+      fillEmojiTag(badge,tag);tags.append(badge);
     }
     const remaining=message.reactions.length-tagCount;
     if(remaining>0){const more=button('Show '+remaining+' more tag'+(remaining===1?'':'s'),null,activate,'card-tag card-tag-overflow');more.textContent='+'+remaining;tags.append(more);}
@@ -698,6 +708,7 @@ function closeModal(force=false) {
   if(!force&&modalState?.busy)return;
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
+  modalState?.cardAnimation?.cancel();$('modal-content').inert=false;
   modalState?.layoutObserver?.disconnect();modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
   hideMenu();if(modal.open)modal.close();modalState=null;
 }
@@ -718,12 +729,12 @@ function confirmAction(title,description,label,action,danger=false) {
 function renderEditorTags(d){
   if(!d.tagBadges)return;
   d.tagBadges.replaceChildren();d.tagBadges.hidden=!d.tags.size;
-  for(const tag of d.tags){const badge=el('span','card-tag',tag);badge.setAttribute('role','listitem');d.tagBadges.append(badge);}
+  for(const tag of d.tags){const badge=el('span','card-tag');fillEmojiTag(badge,tag);badge.setAttribute('role','listitem');d.tagBadges.append(badge);}
   positionEditorTags(d);
 }
 function positionEditorTags(d){
   if(modalState!==d||!d.tagBadges)return;
-  const extra=d.tagBadges.hidden?0:Math.max(0,Math.ceil(d.tagBadges.getBoundingClientRect().height)-13),value=extra+'px';
+  const extra=d.tagBadges.hidden?0:Math.max(0,Math.ceil(d.tagBadges.offsetHeight)-13),value=extra+'px';
   if(modal.style.getPropertyValue('--tag-overhang')!==value)modal.style.setProperty('--tag-overhang',value);
 }
 function refreshEditorMetadata() {
@@ -741,6 +752,25 @@ function refreshEditorMetadata() {
   if(message.edited)add('edited','card-edited');
   renderEditorTags(d);
 }
+function animateCard(d,closing=false){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return null;
+  const target=modal.getBoundingClientRect(),source=mounted.get(d.id)?.getBoundingClientRect()||d.sourceRect;
+  if(!source||!target.width||!target.height)return null;
+  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+  const overhang=d.tagBadges?.hidden?0:Math.max(0,(d.tagBadges?.offsetHeight||0)-13);
+  const x=clamp(source.left+source.width/2-target.left-target.width/2,Math.max(-64,8-target.left),Math.min(64,innerWidth-8-target.right));
+  const y=clamp(source.top+source.height/2-target.top-target.height/2,Math.max(-64,8-target.top),Math.min(64,innerHeight-8-target.bottom-overhang));
+  const small={transform:`translate(${x}px,${y}px) scale(.94)`,opacity:0},full={transform:'translate(0,0) scale(1)',opacity:1};
+  d.cardAnimation?.cancel();
+  return d.cardAnimation=modal.animate(closing?[full,small]:[small,full],{duration:closing?180:260,easing:'cubic-bezier(.2,.8,.2,1)'});
+}
+function finishCard(d){
+  if(modalState!==d)return;
+  const animation=animateCard(d,true);
+  if(!animation){closeModal(true);return;}
+  d.busy=true;d.root.inert=true;
+  animation.onfinish=()=>{if(modalState===d)closeModal(true);};
+}
 function editorDialog(id=null) {
   if(!id){$('capture-input').focus();return;}
   if(modalState?.kind==='edit'&&modalState.id===id&&modalState.uuid===active?.note.uuid){modalState.body.focus();return;}
@@ -749,7 +779,8 @@ function editorDialog(id=null) {
   const stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
   const restored=stashed?.id===id&&stashed.original===message.text&&(stashed.originalTitle??imFormat.title(message))===imFormat.title(message)?stashed:null;
   const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
-  const d=openModal('edit','Edit card');Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
+  const sourceRect=mounted.get(id)?.getBoundingClientRect();
+  const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
   const scroller=el('div','card-detail-scroll');d.scroll=scroller;d.root.append(scroller);
   if(stashed&&!restored){
     scroller.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
@@ -797,7 +828,7 @@ function editorDialog(id=null) {
     const source=s.messages.find(m=>m.id===id);if(!source||source.text!==d.original||imFormat.title(source)!==d.originalTitle){dialogError(d,'This card changed since you opened it. Your text is still here; copy it before reopening the card.');return false;}
     const edited=imFormat.withTitle({...imFormat.editMessage(source,submitted),reactions:submittedTags},submittedTitle);
     if(submitted===source.text&&imFormat.title(edited)===imFormat.title(source)&&JSON.stringify(edited.reactions)===JSON.stringify(source.reactions)){
-      if(restored)unfinishedEdits.delete(editKey(s.note.uuid,id));if(d.wantClose)closeModal(true);return true;
+      if(restored)unfinishedEdits.delete(editKey(s.note.uuid,id));if(d.wantClose)finishCard(d);return true;
     }
     const tagOrder=[...new Set([...(s.settings.reactionOrder||MosaicModel.tags(s.messages,s.settings)),...d.tags])];
     d.sending=true;d.busy=true;close.disabled=true;close.textContent='Saving…';
@@ -808,7 +839,7 @@ function editorDialog(id=null) {
       d.sending=false;d.busy=false;close.disabled=false;close.textContent='Close';close.setAttribute('aria-label','Close');
       if(d.error){d.error.remove();d.error=null;}
       d.original=submitted;d.originalTitle=submittedTitle.trim()?submittedTitle:'';d.originalTags=submittedTags;
-      if(d.wantClose&&d.fieldRevision===revision){closeModal(true);notify('Card updated.');}
+      if(d.wantClose&&d.fieldRevision===revision){finishCard(d);notify('Card updated.');}
       else{d.wantClose=false;refreshEditorMetadata();}
     }});
     try{await saving;return d.fieldRevision===revision;}catch{
@@ -816,7 +847,7 @@ function editorDialog(id=null) {
       dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
     }
   }
-  refreshEditorMetadata();setTimeout(()=>{if(modalState===d){body.setSelectionRange(0,0);body.focus({preventScroll:true});scroller.scrollTop=0;d.updateScroll();}},0);
+  refreshEditorMetadata();animateCard(d);setTimeout(()=>{if(modalState===d){body.setSelectionRange(0,0);body.focus({preventScroll:true});scroller.scrollTop=0;d.updateScroll();}},0);
 }
 function editCard(id){editorDialog(id);}
 function readCard(id) {
@@ -829,7 +860,7 @@ function readCard(id) {
 }
 function replyTo(id) {
   const s=active,message=s.messages.find(m=>m.id===id);if(!message||!writable(s))return;
-  closeModal();safeRun(()=>update(s,{reply:MosaicModel.reply(message,s.note.uuid)},false));$('capture-input').focus();
+  closeModal(true);safeRun(()=>update(s,{reply:MosaicModel.reply(message,s.note.uuid)},false));$('capture-input').focus();
 }
 function jumpTo(reply) {
   const s=active,target=MosaicModel.target(s.messages,reply,s.note.uuid);if(!target){notify('The original message is not in this note. The quoted text is still preserved.');return;}
