@@ -58,9 +58,10 @@ const imMarkdown=(()=>{
       else if(token.type==='blockquote')nodes.push(schema.nodes.blockquote.create(null,blocks(token.tokens)));
       else if(token.type==='list'){
         const children=token.items.map(item=>{
-          const content=blocks(item.tokens);if(!content.length||content[0].type!==schema.nodes.paragraph)content.unshift(schema.nodes.paragraph.create());
+          const emptyTask=/^\[([ xX])\]\s*$/.exec(item.text||'');
+          const content=emptyTask?[schema.nodes.paragraph.create()]:blocks(item.tokens);if(!content.length||content[0].type!==schema.nodes.paragraph)content.unshift(schema.nodes.paragraph.create());
           const check=item.tokens.find(t=>t.type==='checkbox');
-          return schema.nodes.list_item.create({checked:item.task?!!(item.checked??check?.checked):null},content);
+          return schema.nodes.list_item.create({checked:emptyTask?emptyTask[1]!==' ':item.task?!!(item.checked??check?.checked):null},content);
         });
         nodes.push(schema.nodes[token.ordered?'ordered_list':'bullet_list'].create(token.ordered?{order:Math.max(1,Number(token.start)||1)}:null,children));
       }else if(token.type==='paragraph'||token.type==='text'){

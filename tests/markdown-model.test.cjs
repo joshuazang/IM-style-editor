@@ -46,3 +46,5 @@ for(let level=1;level<=6;level++){
   const d=doc([s.node('heading',{level},content),p('Ordinary after')]);assert.ok(m.parse(m.serialize(d)).eq(d),'Soft breaks inside headings retain their original scope');
  }
 }
+
+for(const value of ['- [ ] ','- [x] ','- [X]','- [ ] First\n- [ ] ','> - [ ] ','- [x] parent\n  - [ ] ']){const doc=m.parse(value);assert.ok(m.parse(m.serialize(doc)).eq(doc),value);}

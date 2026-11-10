@@ -93,3 +93,8 @@ for(const source of ['- outer\n  - inner','1. outer\n   - inner','- first\n\n> -
 const parentTask=run(state('- [x] outer\n  - inner','inner'),c.toggleList('checklist'));assert.equal(parentTask.doc.firstChild.firstChild.attrs.checked,true);assert.equal(parentTask.doc.firstChild.firstChild.lastChild.firstChild.attrs.checked,false);
 
 const deepQuote=state('> > deeply quoted');assert.equal(c.quoteActive(run(deepQuote,c.quote)),false);
+
+for(const kind of ['bullet','ordered','checklist']){
+ const initial=rangeState('First\nSecond\nThird',1,19),listed=run(initial,c.toggleList(kind));assert.equal(listed.doc.firstChild.childCount,3);assert.equal(visible(listed.doc),visible(initial.doc));assert.ok(m.parse(m.serialize(listed.doc)).eq(listed.doc));
+}
+const oneTask=run(rangeState('Before\nChosen\nAfter',9,10),c.toggleList('checklist'));assert.equal(oneTask.doc.child(1).firstChild.textContent,'Chosen');assert.equal(oneTask.doc.firstChild.type.name,'paragraph');assert.equal(oneTask.doc.lastChild.type.name,'paragraph');

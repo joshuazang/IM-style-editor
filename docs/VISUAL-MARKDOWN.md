@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.3 / Mosaic 1.5.4.
+Status: implemented for IM 4.4.4 / Mosaic 1.5.5.
 
 ## Agreed behavior
 
@@ -162,3 +162,8 @@ Formatting buttons apply on the first click and remove their format on the
 second, for a caret or selected text. Checklist off removes the list rather than
 converting it to bullets. Quote off preserves contained lists. Selection-wide
 active indicators use the same classification as the corresponding commands.
+
+Applying list formatting to selected plain-text lines creates one item per
+logical line. Shift+Enter within an existing item remains a continuation line.
+Empty `[ ]`/`[x]` items retain their task state through serialization. Checkbox
+targets stay separate from text and the first text line aligns with the box.

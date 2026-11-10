@@ -82,7 +82,7 @@ const imRichField=(()=>{
       handlePaste:(v,event)=>{
         if(plain||disabled||readOnly||event.clipboardData?.getData('text/html'))return false;
         const text=event.clipboardData?.getData('text/plain');if(!text)return false;
-        const doc=imMarkdown.parse(text),tr=v.state.tr.replaceSelection(new imRichDeps.model.Slice(doc.content,0,0));if(tr.doc.eq(doc))tr.setMeta('im-paste-source',text.replace(/\r\n?/g,'\n'));v.dispatch(tr.scrollIntoView());return true;
+        const doc=imMarkdown.parse(text),whole=v.state.selection.from<=TextSelection.atStart(v.state.doc).from&&v.state.selection.to>=TextSelection.atEnd(v.state.doc).to,tr=whole?v.state.tr.replaceWith(0,v.state.doc.content.size,doc.content):v.state.tr.replaceSelection(new imRichDeps.model.Slice(doc.content,0,0));if(tr.doc.eq(doc))tr.setMeta('im-paste-source',text.replace(/\r\n?/g,'\n'));v.dispatch(tr.scrollIntoView());return true;
       },
       handleDOMEvents:{
         compositionstart:()=>{ime=true;return false;},compositionend:()=>{ime=false;lastIME=performance.now();return false;},

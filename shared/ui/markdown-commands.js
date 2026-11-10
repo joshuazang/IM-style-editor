@@ -56,7 +56,7 @@ const imMarkdownCommands=(()=>{
     });return mixed?null:kind;
   }
   function quoteActive(state){let count=0,active=true;selectedTextblocks(state,(node,pos)=>{count++;if(!ancestor({selection:TextSelection.create(state.doc,pos+1)},schema.nodes.blockquote))active=false;});return count>0&&active;}
-  function toggleList(kind){return (state,dispatch)=>textSelection(state,dispatch,(state,dispatch)=>{
+  function toggleList(kind){return (state,dispatch)=>textSelection(state,dispatch?tr=>dispatch(imRichDeps.history.closeHistory(tr)):undefined,(state,dispatch)=>{
     const type=kind==='ordered'?schema.nodes.ordered_list:schema.nodes.bullet_list;
     const list=nearestList(state);
     if(list){
@@ -76,11 +76,13 @@ const imMarkdownCommands=(()=>{
       if(dispatch){const tr=state.tr;if(list.node.type!==type)tr.setNodeMarkup(list.pos,type,type===schema.nodes.ordered_list?{order:1}:null);dispatch(selectedItems(tr,kind==='checklist'?false:null).scrollIntoView());}return true;
     }
     return transactionChain(state,dispatch,(get,apply)=>{
+      lineBlocks(schema.nodes.paragraph,null,true)(get(),apply);
       C.setBlockType(schema.nodes.paragraph)(get(),apply);
       return L.wrapInList(type)(get(),tr=>{if(kind==='checklist')selectedItems(tr,false);apply(tr);});
     });
   });}
   function quote(state,dispatch){
+    if(dispatch){const send=dispatch;dispatch=tr=>send(imRichDeps.history.closeHistory(tr));}
     if(!quoteActive(state)){
       const wrap=C.wrapIn(schema.nodes.blockquote);if(wrap(state,dispatch))return true;
       const list=nearestList(state);
@@ -125,11 +127,16 @@ const imMarkdownCommands=(()=>{
     return mixed?null:level;
   }
   function heading(level){return (state,dispatch)=>{
-    const type=headingLevel(state)===level?schema.nodes.paragraph:schema.nodes.heading,attrs=type===schema.nodes.heading?{level}:null,changes=[];
+    const type=headingLevel(state)===level?schema.nodes.paragraph:schema.nodes.heading;
+    return lineBlocks(type,type===schema.nodes.heading?{level}:null)(state,dispatch);
+  };}
+  function lineBlocks(type,attrs,splitSame=false){return (state,dispatch)=>{
+    const changes=[];
     // A pasted plain-text note can be one paragraph containing many hard
     // breaks. Bound the heading to its selected lines before changing type.
     selectedTextblocks(state,(node,pos)=>{
-      if(node.type===type&&(type!==schema.nodes.heading||node.attrs.level===level))return;
+      let hasBreak=false;node.forEach(child=>{if(child.type===schema.nodes.hard_break||child.isText&&/[\r\n]/.test(child.text))hasBreak=true;});
+      if(node.type===type&&(type!==schema.nodes.heading||node.attrs.level===attrs.level)&&(!splitSame||!hasBreak))return;
       const lines=[];let start=0;
       const boundary=(offset,size)=>{lines.push({from:start,to:offset});start=offset+size;};
       node.forEach((child,offset)=>{
