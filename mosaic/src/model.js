@@ -130,24 +130,24 @@ const MosaicModel = (() => {
     }
     return lines;
   }
-  const heightKey=(width,pinned,selecting,fontSize)=>width+':'+pinned+':'+fontSize;
-  function boardBounds(width,fontSize='large') {
+  const heightKey=(width,pinned,selecting,fontSize,previewRatio)=>width+':'+pinned+':'+fontSize+':'+previewRatio;
+  function boardBounds(width,fontSize='large',previewRatio=8) {
     const compact=width<230,font=fontSizes[fontSize],padding=compact?22:28;
     const bodyLine=compact?font.compactBodyLine:font.bodyLine;
-    return {minimum:padding+bodyLine,maximum:8*(padding+bodyLine),bodyLine,padding};
+    return {minimum:padding+bodyLine,maximum:previewRatio*(padding+bodyLine),bodyLine,padding};
   }
   const boardTagCount=message=>Math.min(boardTagLimit,message.reactions.length);
-  function measure(message,width,pinned,selecting,height,fontSize='large') {
-    const key=heightKey(width,pinned,selecting,fontSize),previous=measured.get(message);
+  function measure(message,width,pinned,selecting,height,fontSize='large',previewRatio=8) {
+    const key=heightKey(width,pinned,selecting,fontSize,previewRatio),previous=measured.get(message);
     if(previous?.key===key&&previous.height===height)return false;
     measured.set(message,{key,height});return true;
   }
-  function cardHeight(message,width,pinned,selecting,fontSize) {
-    const compact=width<230,font=fontSizes[fontSize],key=heightKey(width,pinned,selecting,fontSize),actual=measured.get(message),cached=heights.get(message);
+  function cardHeight(message,width,pinned,selecting,fontSize,previewRatio) {
+    const compact=width<230,font=fontSizes[fontSize],key=heightKey(width,pinned,selecting,fontSize,previewRatio),actual=measured.get(message),cached=heights.get(message);
     if(actual?.key===key)return actual.height;
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
-    const bounds=boardBounds(width,fontSize),bodyArea=bounds.maximum-bounds.padding,bodyLimit=Math.floor(bodyArea/bounds.bodyLine),titleLine=compact?font.compactTitleLine:font.titleLine;
+    const bounds=boardBounds(width,fontSize,previewRatio),bodyArea=bounds.maximum-bounds.padding,bodyLimit=Math.floor(bodyArea/bounds.bodyLine),titleLine=compact?font.compactTitleLine:font.titleLine;
     const parts=preview(message),titleLines=parts.title?previewLines(parts.title,columns,Math.max(1,Math.floor(bodyArea/titleLine))):0,bodyLines=parts.body?previewLines(parts.body,columns,bodyLimit+1):0;
     const tagCount=boardTagCount(message,width,fontSize),tagSlots=tagCount+(message.reactions.length>tagCount?1:0);
     const tagRows=Math.ceil(tagSlots/Math.max(1,Math.floor((width-padding+6)/37)));
@@ -172,7 +172,7 @@ const MosaicModel = (() => {
     const next=order.filter(value=>value!==id);next.splice(next.indexOf(targetId)+(after?1:0),0,id);
     return next.every((value,i)=>value===order[i])?settings:{...settings,mosaicCardOrder:next};
   }
-  function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false) {
+  function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false,previewRatio=8) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
     const pinIds=new Set(pins(settings)),fontSize=appearance(settings).fontSize;
     const allowed=new Set(filtered(messages,settings,query,tag,pinnedOnly).map(m=>m.id));
@@ -184,7 +184,7 @@ const MosaicModel = (() => {
       if(name==='Pinned'||headings.length){headings.push({label:name,y:base});base+=36;}
       const heights=Array(columns).fill(base);
       for(const message of group){
-        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize);
+        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize,previewRatio);
         const column=heights.indexOf(Math.min(...heights));
         const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,order:items.length};
         items.push(item);columnItems[column].push(item);byId.set(message.id,item);

@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.20](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.20.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.21](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.21.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -344,3 +344,10 @@ Mosaic 1.4.20 restores automatic body focus outside iPhone. The caret starts
 after the final character so typing appends to the complete body, even before
 long-note preparation finishes. Opening retains its existing top scroll position.
 iPhone continues to open without text focus or an automatic keyboard.
+
+Mosaic 1.4.21 gives phone Board previews the existing 8× body allowance and
+computer previews an 11× allowance. Device type determines the limit, so narrow
+desktop windows retain 11× and landscape phones retain 8×. Titles, replies and
+tags still add height outside the body allowance. Overflow shows an ellipsis;
+opening a card shows its complete text. The allowance is local display behavior
+and does not change the stored note or synchronize a device-specific preference.
