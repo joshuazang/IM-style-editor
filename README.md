@@ -348,3 +348,6 @@ caret after the final character, including bodies prepared after expansion.
 
 Mosaic 1.4.21 keeps the Board body preview at 8× on phones and expands it to
 11× on computers, including desktop browsers. Titles and tags add height.
+
+Mosaic 1.4.22 keeps Card view open when a text selection starts inside the
+card and is released outside. Outside dismissal requires a press outside too.

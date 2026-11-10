@@ -1173,7 +1173,17 @@ document.addEventListener('keydown',event=>{
   }
 });
 modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});
-modal.addEventListener('click',event=>{if(event.target===modal){const box=modal.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closeModal();}});
+function isOutsideModal(event){const box=modal.getBoundingClientRect();return event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom;}
+modal.addEventListener('pointerdown',event=>{
+  if(modalState)modalState.outsidePress=event.isPrimary&&event.button===0&&event.target===modal&&isOutsideModal(event)?{pointerId:event.pointerId}:null;
+},true);
+modal.addEventListener('pointercancel',()=>{if(modalState)modalState.outsidePress=null;},true);
+modal.addEventListener('click',event=>{
+  const d=modalState,press=d?.outsidePress;if(d)d.outsidePress=null;
+  // A selection can start inside the card and produce a click on its backdrop.
+  // Dismiss only when this same pointer also began outside this modal session.
+  if(press&&event.detail>0&&(event.pointerId===undefined||event.pointerId===press.pointerId)&&event.target===modal&&isOutsideModal(event))closeModal();
+});
 window.addEventListener('beforeunload',event=>{if(retainedSessions.size||unfinishedEdits.size||(modalState?.kind==='edit'&&modalState.currentText!==modalState.original)){event.preventDefault();event.returnValue='';}});
 renderAll();
 if(window.parent===window&&new URLSearchParams(location.search).get('preview')==='1')demo();

@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.21](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.21.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.22](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.22.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -351,3 +351,9 @@ desktop windows retain 11× and landscape phones retain 8×. Titles, replies and
 tags still add height outside the body allowance. Overflow shows an ellipsis;
 opening a card shows its complete text. The allowance is local display behavior
 and does not change the stored note or synchronize a device-specific preference.
+
+Mosaic 1.4.22 fixes text-selection drags released outside Card view closing the
+card. Outside dismissal now requires a primary press and release outside the
+same modal session. Cancelled presses and presses from replaced dialogs cannot
+dismiss the card. Normal outside clicks, Close and Escape retain the existing
+save acknowledgment and failed-save retry protections.
