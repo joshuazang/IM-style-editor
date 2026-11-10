@@ -74,3 +74,22 @@ for(const lineBreak of ['\n','\r\n']){
 const item=run(state('- Before\n  Middle\n  After','Middle'),c.heading(3));assert.equal(item.doc.firstChild.type.name,'bullet_list');assert.equal(item.doc.firstChild.firstChild.child(1).type.name,'heading');assert.ok(m.parse(m.serialize(item.doc)).eq(item.doc));
 const unsupported=state('- First item','First');let didDispatch=false;assert.equal(c.heading(2)(unsupported,()=>didDispatch=true),false);assert.equal(didDispatch,false,'Unsupported list boundary cannot partially modify the document');
 const nodeSelected=d.state.EditorState.create({doc:one.doc,selection:d.state.NodeSelection.create(one.doc,0)}),nodeChanged=run(nodeSelected,c.heading(1));assert.equal(visible(nodeChanged.doc),visible(one.doc));assert.equal(c.headingLevel(nodeChanged),1);
+
+for(const source of ['','candidate','first\n\nsecond'])for(const kind of ['bullet','ordered','checklist'])for(const all of [false,true]){
+ let initial=state(source);if(all)initial=initial.apply(initial.tr.setSelection(new d.state.AllSelection(initial.doc)));
+ for(let cycle=0;cycle<3;cycle++){const on=run(initial,c.toggleList(kind));assert.equal(c.listKind(on),kind);initial=run(on,c.toggleList(kind));assert.equal(c.listKind(initial),null);assert.equal(visible(initial.doc),source.replace(/\n\n/g,'\n'));}
+}
+for(const source of ['','quote','first\n\nsecond','- item']){
+ let initial=state(source);initial=initial.apply(initial.tr.setSelection(new d.state.AllSelection(initial.doc)));
+ const on=run(initial,c.quote);assert.ok(c.quoteActive(on));const off=run(on,c.quote);assert.equal(c.quoteActive(off),false);assert.ok(off.doc.eq(initial.doc));
+}
+console.log('PASS: repeated list/checklist/quote toggles, whole-document selection and nested list preservation');
+
+for(const source of ['- outer\n  - inner','1. outer\n   - inner','- first\n\n> - second']){
+ let initial=state(source);initial=initial.apply(initial.tr.setSelection(new d.state.AllSelection(initial.doc)));
+ if(c.listKind(initial)==='bullet'){const off=run(initial,c.toggleList('bullet'));assert.notEqual(c.listKind(off),'bullet');assert.equal(visible(off.doc),visible(initial.doc));}
+}
+
+const parentTask=run(state('- [x] outer\n  - inner','inner'),c.toggleList('checklist'));assert.equal(parentTask.doc.firstChild.firstChild.attrs.checked,true);assert.equal(parentTask.doc.firstChild.firstChild.lastChild.firstChild.attrs.checked,false);
+
+const deepQuote=state('> > deeply quoted');assert.equal(c.quoteActive(run(deepQuote,c.quote)),false);

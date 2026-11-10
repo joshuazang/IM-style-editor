@@ -35,25 +35,75 @@ const imMarkdownCommands=(()=>{
   }
   function structural(state){return state.selection.$from.parent.type===schema.nodes.heading||!!ancestor(state,schema.nodes.list_item)||!!ancestor(state,schema.nodes.blockquote);}
   function selectedItems(tr,checked){
-    const {from,to}=tr.selection;tr.doc.descendants((node,pos)=>{
-      if(node.type===schema.nodes.list_item&&pos<to&&pos+node.nodeSize>from)tr.setNodeMarkup(pos,null,{checked});
-    });return tr;
+    const items=new Set();selectedTextblocks({doc:tr.doc,selection:tr.selection},(node,pos)=>{
+      const item=ancestor({selection:TextSelection.create(tr.doc,pos+1)},schema.nodes.list_item);if(item)items.add(item.pos);
+    });
+    for(const pos of items)tr.setNodeMarkup(pos,null,{checked});return tr;
   }
-  function toggleList(kind){return (state,dispatch)=>{
+  function textSelection(state,dispatch,command){
+    return transactionChain(state,dispatch,(get,apply)=>{
+      if(get().selection instanceof imRichDeps.state.AllSelection)apply(get().tr.setSelection(TextSelection.between(TextSelection.atStart(get().doc).$from,TextSelection.atEnd(get().doc).$to)));
+      return command(get(),apply);
+    });
+  }
+  function nearestList(state){for(let depth=state.selection.$from.depth;depth>0;depth--){const node=state.selection.$from.node(depth);if([schema.nodes.bullet_list,schema.nodes.ordered_list].includes(node.type))return {node,pos:state.selection.$from.before(depth)};}return null;}
+  function listKind(state){
+    let kind=null,mixed=false;
+    selectedTextblocks(state,(node,pos)=>{
+      const selection=TextSelection.create(state.doc,pos+1),current={selection},item=ancestor(current,schema.nodes.list_item),list=nearestList(current);
+      const value=!item||!list?null:item.node.attrs.checked!==null?'checklist':list.node.type===schema.nodes.ordered_list?'ordered':'bullet';
+      if(value===null||kind!==null&&kind!==value)mixed=true;else kind=value;
+    });return mixed?null:kind;
+  }
+  function quoteActive(state){let count=0,active=true;selectedTextblocks(state,(node,pos)=>{count++;if(!ancestor({selection:TextSelection.create(state.doc,pos+1)},schema.nodes.blockquote))active=false;});return count>0&&active;}
+  function toggleList(kind){return (state,dispatch)=>textSelection(state,dispatch,(state,dispatch)=>{
     const type=kind==='ordered'?schema.nodes.ordered_list:schema.nodes.bullet_list;
-    let list=null;for(let depth=state.selection.$from.depth;depth>0;depth--){const node=state.selection.$from.node(depth);if(node.type===schema.nodes.bullet_list||node.type===schema.nodes.ordered_list){list={node,pos:state.selection.$from.before(depth)};break;}}
-    if(!list&&state.selection instanceof imRichDeps.state.AllSelection&&state.doc.childCount===1&&[schema.nodes.bullet_list,schema.nodes.ordered_list].includes(state.doc.firstChild.type))list={node:state.doc.firstChild,pos:0};
+    const list=nearestList(state);
     if(list){
-      const item=ancestor(state,schema.nodes.list_item);
-      if(kind!=='checklist'&&list.node.type===type&&item?.node.attrs.checked===null)return L.liftListItem(schema.nodes.list_item)(state,dispatch);
-      if(dispatch){const tr=state.tr;if(list.node.type!==type)tr.setNodeMarkup(list.pos,type,type===schema.nodes.ordered_list?{order:1}:null);dispatch(selectedItems(tr,kind==='checklist'?(item?.node.attrs.checked===null?false:null):null).scrollIntoView());}return true;
+      if(listKind(state)===kind)return transactionChain(state,dispatch,(get,apply)=>{
+        while(listKind(get())===kind){
+          const current=get();if(L.liftListItem(schema.nodes.list_item)(current,apply))continue;
+          const scopes=[];current.doc.nodesBetween(current.selection.from,current.selection.to,(node,pos)=>{if(![schema.nodes.bullet_list,schema.nodes.ordered_list].includes(node.type))return;scopes.push({node,pos});return false;});
+          if(!scopes.length)return false;const tr=current.tr;
+          for(const {node,pos} of scopes.reverse()){
+            const selection=TextSelection.between(tr.doc.resolve(Math.max(current.selection.from,pos+1)),tr.doc.resolve(Math.min(current.selection.to,pos+node.nodeSize-1)));
+            const part=imRichDeps.state.EditorState.create({doc:tr.doc,selection});
+            if(!L.liftListItem(schema.nodes.list_item)(part,next=>{for(const step of next.steps)tr.step(step);}))return false;
+          }
+          apply(tr.setSelection(current.selection.map(tr.doc,tr.mapping)));
+        }return true;
+      });
+      if(dispatch){const tr=state.tr;if(list.node.type!==type)tr.setNodeMarkup(list.pos,type,type===schema.nodes.ordered_list?{order:1}:null);dispatch(selectedItems(tr,kind==='checklist'?false:null).scrollIntoView());}return true;
     }
     return transactionChain(state,dispatch,(get,apply)=>{
       C.setBlockType(schema.nodes.paragraph)(get(),apply);
       return L.wrapInList(type)(get(),tr=>{if(kind==='checklist')selectedItems(tr,false);apply(tr);});
     });
-  };}
-  function quote(state,dispatch){return ancestor(state,schema.nodes.blockquote)?C.lift(state,dispatch):C.wrapIn(schema.nodes.blockquote)(state,dispatch);}
+  });}
+  function quote(state,dispatch){
+    if(!quoteActive(state)){
+      const wrap=C.wrapIn(schema.nodes.blockquote);if(wrap(state,dispatch))return true;
+      const list=nearestList(state);
+      if(!list||state.selection.to>list.pos+list.node.nodeSize)return false;
+      const temporary=state.apply(state.tr.setSelection(imRichDeps.state.NodeSelection.create(state.doc,list.pos)));
+      return wrap(temporary,dispatch?tr=>dispatch(tr.setSelection(state.selection.map(tr.doc,tr.mapping))):undefined);
+    }
+    return textSelection(state,dispatch,(state,dispatch)=>transactionChain(state,dispatch,(get,apply)=>{
+      while(quoteActive(get()))if(!removeQuoteLayer(get(),apply))return false;return true;
+    }));
+  }
+  function removeQuoteLayer(state,dispatch){
+    const ranges=[];
+    state.doc.nodesBetween(state.selection.from,state.selection.to,(node,pos)=>{
+      if(node.type!==schema.nodes.blockquote)return;
+      const from=Math.max(state.selection.from,pos+1),to=Math.min(state.selection.to,pos+node.nodeSize-1);
+      const range=state.doc.resolve(from).blockRange(state.doc.resolve(to),parent=>parent.type===schema.nodes.blockquote);
+      if(range)ranges.push(range);return false;
+    });
+    if(!ranges.length){const range=state.selection.$from.blockRange(state.selection.$to,node=>node.type===schema.nodes.blockquote);if(range)ranges.push(range);}
+    if(!ranges.length)return false;
+    if(dispatch){const tr=state.tr;for(const range of ranges.reverse())tr.lift(range,range.depth-1);dispatch(tr.scrollIntoView());}return true;
+  }
   function selectedTextblocks(state,visit){
     const {selection}=state;
     if(selection.empty){if(selection.$from.parent.isTextblock)visit(selection.$from.parent,selection.$from.before());return;}
@@ -120,5 +170,5 @@ const imMarkdownCommands=(()=>{
     tr.setStoredMarks(state.storedMarks);dispatch(imRichDeps.history.closeHistory(tr).scrollIntoView());return true;
   };}
   function markActive(state,name){const type=schema.marks[name],{$from,empty,from,to}=state.selection;return empty?!!type.isInSet(state.storedMarks||$from.marks()):state.doc.rangeHasMark(from,to,type);}
-  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,quote,headingLevel,heading,markActive};
+  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,listKind,quote,quoteActive,headingLevel,heading,markActive};
 })();

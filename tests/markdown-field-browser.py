@@ -32,6 +32,24 @@ try:
    for selector,level in [('h1',1),('h3',3),('p',0)]:
     detail.locator(selector).click();choices()
     for choice in range(1,7):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
+   # Repeated clicks must toggle every actual format, for a caret and a range.
+   for selected in [False,True]:
+    for label,selector in [('Bold','strong'),('Strikethrough','s'),('Quotation block','blockquote'),('Bullet list','ul'),('Numbered list','ol'),('Checklist','li[data-checked]')]:
+     fill_field(detail,'Toggle candidate')
+     if selected:detail.press('Control+a')
+     else:detail.press('End')
+     button=box.get_by_role('button',name=label,exact=True)
+     for cycle in range(3):
+      button.click();expect(button).to_have_attribute('aria-pressed','true')
+      if selected or label not in ['Bold','Strikethrough']:expect(detail.locator(selector)).to_have_count(1)
+      button.click();expect(button).to_have_attribute('aria-pressed','false');expect(detail.locator(selector)).to_have_count(0)
+      assert detail.inner_text()=='Toggle candidate'
+     detail.type(' clean');assert detail.inner_text().endswith(' clean')
+   for label,selector in [('Bold','strong'),('Strikethrough','s')]:
+    fill_field(detail,'Seed ');detail.press('End');button=box.get_by_role('button',name=label,exact=True);button.click();detail.type('formatted');expect(button).to_have_attribute('aria-pressed','true');button.click();detail.type(' ordinary');expect(button).to_have_attribute('aria-pressed','false');expect(detail.locator(selector)).to_have_text('formatted');assert detail.inner_text()=='Seed formatted ordinary'
+   for first,second in [('Bullet list','Checklist'),('Checklist','Numbered list'),('Numbered list','Bullet list')]:
+    fill_field(detail,'List candidate');detail.press('Control+a');box.get_by_role('button',name=first,exact=True).click();other=box.get_by_role('button',name=second,exact=True);other.click();expect(other).to_have_attribute('aria-pressed','true');other.click();expect(detail.locator('ul,ol')).to_have_count(0)
+   fill_field(detail,'> - Nested item');detail.locator('li').click();quote=box.get_by_role('button',name='Quotation block',exact=True);expect(quote).to_have_attribute('aria-pressed','true');quote.click();expect(detail.locator('blockquote')).to_have_count(0);expect(detail.locator('ul')).to_have_count(1)
    before=capture.evaluate('n=>n.value');capture.dispatch_event('keydown',{'key':'Enter','keyCode':229,'isComposing':True,'bubbles':True});assert capture.evaluate('n=>n.value')==before
    assert not errors,errors
    print(json.dumps({'PASS':width,'checks':'visual bold/checkboxes; capture Enter; list/quote/heading continuation; Ctrl/Meta+Enter ordinary text; Shift+Enter; undo; no capture toolbar; selection retained in Card toolbar; H1–H6 active states and removal'}),flush=True);context.close()

@@ -21,10 +21,8 @@ const imRichField=(()=>{
       for(const [key,button] of controls){
         let active=false;
         if(key==='strong'||key==='strike')active=K.markActive(state,key);
-        else if(key==='quote')active=!!K.ancestor(state,schema.nodes.blockquote);
-        else if(key==='bullet')active=!!K.ancestor(state,schema.nodes.bullet_list)&&K.ancestor(state,schema.nodes.list_item)?.node.attrs.checked===null;
-        else if(key==='ordered')active=!!K.ancestor(state,schema.nodes.ordered_list);
-        else if(key==='checklist')active=K.ancestor(state,schema.nodes.list_item)?.node.attrs.checked!=null;
+        else if(key==='quote')active=K.quoteActive(state);
+        else if(['bullet','ordered','checklist'].includes(key))active=K.listKind(state)===key;
         else if(key==='heading')active=headingLevel!==null;
         button.setAttribute('aria-pressed',String(active));button.disabled=disabled||readOnly;
       }

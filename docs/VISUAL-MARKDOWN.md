@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.2 / Mosaic 1.5.2.
+Status: implemented for IM 4.4.3 / Mosaic 1.5.4.
 
 ## Agreed behavior
 
@@ -157,3 +157,8 @@ Physical Mac/iPhone responsiveness is not established by Chromium emulation.
 
 See [validation results](VISUAL-MARKDOWN-VALIDATION.md) for the measured download
 cost, painted-frame comparison and platform limits.
+
+Formatting buttons apply on the first click and remove their format on the
+second, for a caret or selected text. Checklist off removes the list rather than
+converting it to bullets. Quote off preserves contained lists. Selection-wide
+active indicators use the same classification as the corresponding commands.
