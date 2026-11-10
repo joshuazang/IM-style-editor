@@ -19,7 +19,7 @@ try:
     else:data['messages'][0].pop('title',None)
     data['note']['content']['text']=json.loads(subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(JSON.stringify(f.portable(d.messages,d.settings,d.draft)));"],cwd=ROOT,input=json.dumps(data),text=True))
     context=browser.new_context(viewport={'width':width,'height':height},is_mobile=width<600,has_touch=width<600);page=context.new_page();errors=[];page.on('pageerror',lambda error:errors.append(str(error)));page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('(note)=>{notes.a=note;openEditor("a","/mosaic/index.html",true)}',data['note'])
-    e=page.frame_locator('#editor');e.locator('.card').first.click();body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_visible();e.locator('dialog').evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');expect(body).to_have_value(text);expect(body).to_be_editable()
+    e=page.frame_locator('#editor');e.locator('.card').first.click();body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_visible();e.locator('dialog').evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');expect(body).to_have_js_property('value',text);expect(body).to_be_editable()
     pane=e.locator('.card-detail-scroll');bottom=e.locator('.card-detail-bottom');meta=e.locator('.card-detail-meta');close=e.get_by_role('button',name='Close',exact=True)
     assert pane.evaluate('n=>n.scrollTop')<2
     assert pane.evaluate('n=>n.scrollHeight>n.clientHeight+1000')
@@ -29,8 +29,8 @@ try:
     assert body.bounding_box()['width']>card['width']-50
     assert rect['y']-card['y']<=2 and pane.evaluate('n=>getComputedStyle(n).paddingTop')=='0px'
     pin=e.get_by_role('button',name='Pin card',exact=True);expect(pin).to_be_in_viewport()
-    assert e.locator('.card-detail-tools').evaluate('n=>[...n.children].map(b=>b.getAttribute("aria-label"))')==['Pin card','Background options','Card options','Close']
-    controls=e.locator('.card-detail-tools>button').all()
+    assert e.locator('.card-detail-tools').evaluate('n=>[...n.children].map(b=>b.getAttribute("aria-label"))')==['Text formatting','Pin card','Background options','Card options','Close']
+    controls=e.locator('.card-detail-tools>button:not(.im-format-toggle)').all()
     for left,right in zip(controls,controls[1:]):
      a=left.bounding_box();b=right.bounding_box();assert abs(b['x']-a['x']-a['width']-8)<=1
     for control in [pin,close,e.get_by_role('button',name='Background options',exact=True),e.get_by_role('button',name='Card options',exact=True)]:
@@ -49,9 +49,9 @@ try:
     body.press('Control+Home')
     for _ in range(40):body.press('ArrowDown')
     assert pane.evaluate('n=>n.scrollTop>100'),'Keyboard caret navigation must scroll the shared content area'
-    body.press('Control+End');body.type('\nEnd edit');expect(body).to_have_value(text+'\nEnd edit');expect(close).to_be_in_viewport()
+    body.press('Control+End');body.press('Shift+Enter');body.type('End edit');expect(body).to_have_js_property('value',text+'\nEnd edit');expect(close).to_be_in_viewport()
     assert pane.evaluate('n=>n.scrollTop>0')
-    page.evaluate('rejectSaves=true');close.click();expect(e.get_by_role('alert').filter(has_text='Saving was not confirmed').last).to_be_visible();expect(body).to_have_value(text+'\nEnd edit');expect(e.get_by_role('button',name='Retry save',exact=True).last).to_be_in_viewport()
+    page.evaluate('rejectSaves=true');close.click();expect(e.get_by_role('alert').filter(has_text='Saving was not confirmed').last).to_be_visible();expect(body).to_have_js_property('value',text+'\nEnd edit');expect(e.get_by_role('button',name='Retry save',exact=True).last).to_be_in_viewport()
     page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click();expect(e.locator('dialog')).not_to_be_visible()
     saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][0]['text']==text+'\nEnd edit' and saved['draft']==data['draft']
     assert saved['messages'][0].get('title','')==('Optional title' if titled else '')

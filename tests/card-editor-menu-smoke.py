@@ -2,7 +2,7 @@
 import functools,http.server,re,threading,os
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import fill_search,open_search,open_more,choose_tag
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
@@ -44,11 +44,11 @@ try:
    expect(e.locator('.card-timestamp')).to_have_text(re.compile('Nov'))
    expect(e.locator('.card-edited')).to_have_text('edited')
    expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();title=body.bounding_box();title['height']=44
-   assert dialog.locator('.card-detail-tools>button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==['Pin card','Background options','Card options','Close']
-   before=page.evaluate('notes.a.content.text');body.fill('Changed body');body.press('End');body.press('Enter');body.type('Next line')
-   expect(body).to_have_value('Changed body\nNext line');assert page.evaluate('notes.a.content.text')==before
+   assert dialog.locator('.card-detail-tools>button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==['Text formatting','Pin card','Background options','Card options','Close']
+   before=page.evaluate('notes.a.content.text');fill_field(body,'Changed body');body.press('End');body.press('Enter');body.type('Next line')
+   expect(body).to_have_js_property('value','Changed body\n\nNext line');assert page.evaluate('notes.a.content.text')==before
    page.evaluate('holdAck=true');e.get_by_role('button',name='Close',exact=True).click();expect(dialog).to_be_visible()
-   body.fill('New typing during acknowledgment');page.evaluate('holdAck=false;releaseAcks()');expect(body).to_have_value('New typing during acknowledgment')
+   fill_field(body,'New typing during acknowledgment');page.evaluate('holdAck=false;releaseAcks()');expect(body).to_have_js_property('value','New typing during acknowledgment')
    expect(dialog).to_be_visible();e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible()
    saved=parse(page.evaluate('notes.a.content.text'));first=saved['messages'][0]
    assert first['text'].endswith('New typing during acknowledgment') and first['edited'] and not first.get('copied') and not first.get('exported')
@@ -63,7 +63,7 @@ try:
    fill_search(e,'Thought 2');card=e.locator('[data-id="'+data['messages'][2]['id']+'"]');card.click(button='right')
    menu=e.locator('#menu');expect(menu.locator('.ui-tag-panel')).to_be_visible();expect(menu.locator('.ui-action-panel')).to_be_visible()
    assert menu.get_by_role('menuitem',name='Copy',exact=True).evaluate('n=>getComputedStyle(n).fontWeight')=='500'
-   assert menu.get_by_role('menuitem').all_text_contents()==['Edit','Add title','Reply','Pin','Copy','Select','Delete']
+   assert menu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy','Select','Delete']
    assert menu.get_by_role('button',name='Add label',exact=True).count()==0
    positions=menu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')
    assert len(set(point['x'] for point in positions))>1 and len(set(point['y'] for point in positions))<=2,positions
@@ -73,20 +73,20 @@ try:
    menu.get_by_role('button',name='Tag 📍',exact=True).click();expect(menu).not_to_be_visible()
    assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['reactions']==['📍']
    # Context tags and palette are usable inside the native edit dialog.
-   card.click();body=e.get_by_role('textbox',name='Card body',exact=True);body.fill('Edited with color and tags')
+   card.click();body=e.get_by_role('textbox',name='Card body',exact=True);fill_field(body,'Edited with color and tags')
    body.click(button='right');expect(menu).to_be_visible();menu.get_by_role('button',name='Tag 📓',exact=True).click()
    dialog.get_by_role('button',name='Background options',exact=True).click()
    palette=e.get_by_role('group',name='Card background colors',exact=True);expect(palette).to_be_visible();palette.get_by_role('button',name='Rose',exact=True).click()
-   expect(body).to_have_value('Edited with color and tags');e.get_by_role('button',name='Close',exact=True).click()
+   expect(body).to_have_js_property('value','Edited with color and tags');e.get_by_role('button',name='Close',exact=True).click()
    saved=parse(page.evaluate('notes.a.content.text'))['messages'][2];assert saved['text'].endswith('Edited with color and tags') and saved['cardColor']=='rose' and saved['reactions']==['📍','📓']
    fill_search(e,'Edited with color and tags')
    # Failed Close keeps the complete editor open for retry.
-   card.click();body=e.get_by_role('textbox',name='Card body',exact=True);body.fill('Retain failed Close');page.evaluate('rejectSaves=true')
-   e.get_by_role('button',name='Close',exact=True).click();expect(body).to_have_value('Retain failed Close');expect(dialog).to_be_visible()
+   card.click();body=e.get_by_role('textbox',name='Card body',exact=True);fill_field(body,'Retain failed Close');page.evaluate('rejectSaves=true')
+   e.get_by_role('button',name='Close',exact=True).click();expect(body).to_have_js_property('value','Retain failed Close');expect(dialog).to_be_visible()
    page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click();expect(dialog).not_to_be_visible()
    assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['text'].endswith('Retain failed Close')
    # Filters use the matching 90px pill; the two circular actions stay independent.
-   open_search(e);e.locator('#search').fill('Thought 3');expect(e.locator('#filter-pill')).to_be_visible()
+   open_search(e);fill_field(e.locator('#search'),'Thought 3');expect(e.locator('#filter-pill')).to_be_visible()
    assert round(e.locator('#filter-pill').bounding_box()['width'])==90
    e.get_by_role('button',name='Clear all filters',exact=True).click();expect(e.locator('#search-button')).to_be_visible()
    # IM uses the identical static vectors and action-panel CSS, with the old functions.
@@ -94,7 +94,7 @@ try:
    im.locator('.message-wrap').last.click(button='right');imenu=im.locator('.context-menu')
    expect(imenu.locator('.ui-tag-panel')).to_be_visible();expect(imenu.locator('.ui-action-panel')).to_be_visible()
    assert imenu.get_by_role('menuitem',name='Copy',exact=True).evaluate('n=>getComputedStyle(n).fontWeight')=='500'
-   assert imenu.get_by_role('menuitem').all_text_contents()==['Edit','Add title','Reply','Pin','Copy','Select','Delete']
+   assert imenu.get_by_role('menuitem').all_text_contents()==['Edit','Reply','Pin','Copy','Select','Delete']
    assert imenu.get_by_role('button',name='Add label',exact=True).count()==0
    positions=imenu.locator('.ui-tag-choice').evaluate_all('nodes=>nodes.map(n=>({x:Math.round(n.getBoundingClientRect().left),y:Math.round(n.getBoundingClientRect().top)}))')
    assert len(set(point['x'] for point in positions))>1 and len(set(point['y'] for point in positions))<=2,positions
@@ -102,7 +102,7 @@ try:
    assert imenu.locator('.ui-action-panel svg').evaluate_all('nodes=>nodes.map(n=>n.innerHTML)')==vectors
    assert imenu.locator('.ui-action-panel hr').count()==1
    assert imenu.get_by_role('menuitem',name='Delete',exact=True).evaluate('n=>getComputedStyle(n).color')=='rgb(191, 69, 71)'
-   imenu.get_by_role('menuitem',name='Edit',exact=True).click();expect(im.get_by_role('textbox',name='Edit message',exact=True)).to_have_value(data['messages'][-1]['text'])
+   imenu.get_by_role('menuitem',name='Edit',exact=True).click();expect(im.get_by_role('textbox',name='Edit message',exact=True)).to_have_js_property('value',data['messages'][-1]['text'])
    im.get_by_role('button',name='Cancel editing',exact=True).click()
    im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('button',name='Tag 📍',exact=True).click()
    assert '📍' in parse(page.evaluate('notes.a.content.text'))['messages'][-1]['reactions']

@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 
 BASE = os.environ.get('IM_STYLE_EDITOR_BASE_URL', 'http://127.0.0.1:8033')
 HOST = Path('tests/editor-roundtrip-host.html').read_text().replace("editor.src = '/index.html';", "editor.src = '/next/index.html';editor.setAttribute('sandbox','allow-scripts allow-modals allow-forms allow-downloads');")
@@ -35,7 +35,7 @@ with sync_playwright() as p:
         page.evaluate('(text)=>{notes.a={uuid:"a",content_type:"Note",content:{text}};openIM("a")}', data['initial'])
         e = page.frame_locator('#editor')
         field = e.get_by_role('textbox', name='Message', exact=True)
-        expect(field).to_have_value('Preserve this unsent draft')
+        expect(field).to_have_js_property('value','Preserve this unsent draft')
         page.wait_for_timeout(150)
         def clipboard(value=None):
             page.locator('#host-focus').click()
@@ -49,7 +49,7 @@ with sync_playwright() as p:
             e.get_by_role('button', name='Import from clipboard', exact=True).click()
             dialog = e.get_by_role('dialog', name='Import from clipboard', exact=True)
             expect(dialog).to_be_visible()
-            dialog.get_by_role('textbox', name='Paste exported messages').fill(payload)
+            fill_field(dialog.get_by_role('textbox', name='Paste exported messages'),payload)
             return dialog
         def confirmation():
             dialog = e.get_by_role('dialog', name='Clear clipboard?', exact=True)
@@ -73,14 +73,14 @@ with sync_playwright() as p:
         expect(e.locator('.transfer-notice>span')).to_have_text('Clipboard cleared')
         assert clipboard() == ''
         assert page.evaluate('notes.a.content.text') == original
-        expect(field).to_have_value('Preserve this unsent draft')
+        expect(field).to_have_js_property('value','Preserve this unsent draft')
 
         # Regular Import has the requested labels, does not clear, and fits narrow screens.
         clipboard(data['cases'][0])
         dialog = import_dialog('not a valid export')
         expect(dialog.get_by_role('button', name='Import', exact=True)).to_be_disabled()
         expect(dialog.get_by_role('button', name='Import and clear clipboard', exact=True)).to_be_disabled()
-        dialog.get_by_role('textbox', name='Paste exported messages').fill(data['cases'][0])
+        fill_field(dialog.get_by_role('textbox', name='Paste exported messages'),data['cases'][0])
         assert dialog.evaluate('el=>el.scrollWidth<=el.clientWidth+1')
         assert is_red(dialog.get_by_role('button', name='Import and clear clipboard', exact=True))
         dialog.get_by_role('button', name='Import', exact=True).click()
@@ -133,7 +133,7 @@ with sync_playwright() as p:
         e.locator('body').evaluate('()=>document.execCommand=originalExec')
         confirmation().get_by_role('button', name='Yes, clear', exact=True).click()
         assert clipboard() == ''
-        expect(field).to_have_value('Preserve this unsent draft')
+        expect(field).to_have_js_property('value','Preserve this unsent draft')
         assert not errors, errors
         print(f'PASS {width}px: real sandboxed clear/cancel, unchanged drafts/statuses, import labels/red buttons, acknowledged import before confirmation, duplicate handling, rejected import retention and clipboard-denial retry', flush=True)
         context.close()

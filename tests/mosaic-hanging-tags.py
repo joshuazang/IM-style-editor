@@ -2,7 +2,7 @@
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import fill_search
 ROOT=Path(__file__).resolve().parents[1];scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
@@ -50,10 +50,10 @@ try:
     badge.click();expect(e.locator('#modal')).not_to_be_visible();expect(e.locator('#filter-pill')).to_be_visible()
     assert e.locator('.card').evaluate_all('(ns,tag)=>ns.every(n=>[...n.querySelectorAll(".emoji-tag-emoji")].some(x=>x.textContent===tag))',emoji)
     e.get_by_role('button',name='Clear all filters',exact=True).click();frame.wait_for_function(geometry)
-    field=e.locator('#capture-input');field.fill('Keep this capture draft');page.wait_for_function('notes.a.content.text.includes("Keep this capture draft")');saved_count=page.evaluate('saves.length')
+    field=e.locator('#capture-input');fill_field(field,'Keep this capture draft');page.wait_for_function('notes.a.content.text.includes("Keep this capture draft")');saved_count=page.evaluate('saves.length')
     badge=e.locator('.card .card-tag').first;badge.dispatch_event('pointerdown',{'bubbles':True});badge.dispatch_event('pointerup',{'bubbles':True});badge.click()
-    expect(field).to_have_value('Keep this capture draft');expect(e.locator('#modal')).not_to_be_visible();assert page.evaluate('saves.length')==saved_count
-    field.fill('');page.wait_for_function('!notes.a.content.text.includes("Keep this capture draft")');e.get_by_role('button',name='Clear all filters',exact=True).click()
+    expect(field).to_have_js_property('value','Keep this capture draft');expect(e.locator('#modal')).not_to_be_visible();assert page.evaluate('saves.length')==saved_count
+    fill_field(field,'');page.wait_for_function('!notes.a.content.text.includes("Keep this capture draft")');e.get_by_role('button',name='Clear all filters',exact=True).click()
     # Search remains readable without the unwanted input focus rectangle.
     e.get_by_role('button',name='Search and tags',exact=True).click();search=e.locator('#search');search.focus()
     assert search.evaluate('n=>getComputedStyle(n).outlineStyle')=='none'

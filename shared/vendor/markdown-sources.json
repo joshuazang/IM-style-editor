@@ -1,0 +1,269 @@
+{
+  "packages": [
+    {
+      "name": "prosemirror-model",
+      "repository": "ProseMirror/prosemirror-model",
+      "tag": "1.25.4",
+      "commit": "2605d2cec4adfbb3770fd4a34b4bf0fce2e566f6",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "87f85b4da9be1b0a2520f679f88202870b5b2aa5c36bba763ef9c39cd297512a",
+        "src/comparedeep.ts": "2ea58a7903bd66ce21a7d313f1af3f0674f240e7a207622d6fc1d64b16a7e174",
+        "src/content.ts": "a07fd75d13dd2765526589fd31fdd0307037e6e27dfece91301ca371d3b5fe0c",
+        "src/diff.ts": "f20a80ce2c38bd1370125c50dc78a0286373538d928508da41e3d87411ada7bf",
+        "src/dom.ts": "fcfd138f7ec4302300938dba285898da2b321a45607b06407b2763c34a4283ba",
+        "src/fragment.ts": "c74a940b2685bb1f5a1e1d846f0e9f1a20b7940d17470dab46d19b540b2abdf0",
+        "src/from_dom.ts": "69a0598707bb85586e4d3b181300aca7a133e7017cc7c62aa54dbf1d12ab58dd",
+        "src/index.ts": "d6bd6dfd331f27a8b7ca6554ed4833c4983a6cb1cd6332d1c576c0529df386ea",
+        "src/mark.ts": "252f7892cf79705b82747331c97f3a05a483da0a8ae6daf8f8f55523311631ed",
+        "src/node.ts": "fe49b929d456fa5701a7c92d7a94107302b6ca4c4056377c8fcea058c2ab3b82",
+        "src/replace.ts": "4b49bcdd5ebab990d9f1d8a9839162afd9089496e58337779d7d962367f15660",
+        "src/resolvedpos.ts": "dcef2f457569f8c9daf9c33012470a3446d7b42b1c7aecc9b79d025679fcf596",
+        "src/schema.ts": "aa7c15e71a323f44abc7dd97f225e66372b5e0ece5ad7a457713ad375c83de66",
+        "src/to_dom.ts": "e4b76c72775c68a8a6ce6e6bcab94b9dd5ba42338e2d606a44e6e34379017f01"
+      }
+    },
+    {
+      "name": "prosemirror-transform",
+      "repository": "ProseMirror/prosemirror-transform",
+      "tag": "1.12.0",
+      "commit": "fb70a533004d205819a99dc092ba88b9ca3ad075",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "852df48473b416d840a30889fb1a9b9535b00ab6e3518b175abcddba8d87c24b",
+        "src/attr_step.ts": "1abf65f30b0faa500b74ab2448a4c60559366257e57f16f0308b437d41cf2519",
+        "src/index.ts": "340e51489f5ea1e160dc80c9fe0bad0933d276abf33964a05060005c1f314bed",
+        "src/map.ts": "2e59df00bf5e2444774a15c3e50ce55dc318161cd59b4cad287f4179d8f12fda",
+        "src/mark.ts": "f16e4d61bbd8ea94646c16b7b3a781f73a29308a32ac4d9cacc7974c2db5a0cb",
+        "src/mark_step.ts": "0beed9199e494bd664e685e05f18a94fd7299f72181702fd9aa5804a6a371ee4",
+        "src/replace.ts": "4e80e3427fe3eb8dd027f8fc226d595b7948190451755bea9f2ee54698c5ac0f",
+        "src/replace_step.ts": "478a68a658aa697ad75be626eaf99616d09e082ed04fb6fb3dd3cb0e76dc28a9",
+        "src/step.ts": "1080eb080282f47c9ac6edf91b1ea788069a2644da4d7257b139ca610ab9e1ac",
+        "src/structure.ts": "0fbbe54771f17d3c309b19846d3bf4ce160642eb7ec43c8bc6edef55a87beae3",
+        "src/transform.ts": "ce12d2c55f42342f077a1b08a5ccca1c2847433bacdf2548e00c7e53704342f3"
+      }
+    },
+    {
+      "name": "prosemirror-state",
+      "repository": "ProseMirror/prosemirror-state",
+      "tag": "1.4.4",
+      "commit": "d6fdcd19c4f7f68206b0a8d49649860365672585",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "b40080e3d2ebfaab5a6ee44b3b2cb20761d79cbe514411df8641a8434d2b65ef",
+        "src/index.ts": "eb9e85c66caac02f0140ca3686efd10cd117d64eda4d9054bc8c3e4622055d6a",
+        "src/plugin.ts": "a0bac3d5db226ed673774b0b6b58d43e36d13f34b9ecee874d081dc3145e2202",
+        "src/selection.ts": "cea98fb72c5ced3604556909df9acddf924b3e62f80cab4bdbe430a78afc529a",
+        "src/state.ts": "081d675bbeaa6598c17f45be84a84011c5e083b66f9c6282be0304a5f38f7f44",
+        "src/transaction.ts": "fbab5b3d17fc510152167b387e15dcf360c086ed78dcb2751cecae7938d01a83"
+      }
+    },
+    {
+      "name": "prosemirror-view",
+      "repository": "ProseMirror/prosemirror-view",
+      "tag": "1.41.7",
+      "commit": "17af0f4b25933933f644a655ad6bb9a0249d7cb5",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "fab978ebd40852060506bd2d4dbc77e2c2628f3a8ceb43323495c3dffdbba4f4",
+        "src/browser.ts": "753c05e4ed16081e169e57fee6febaddafb7de6edd568fb93b2690c3fd63b3af",
+        "src/capturekeys.ts": "edc174a4deb3e5fe0bcc033fc3ba404aa1fdb8e00cf3163516d68b4f990e4ff6",
+        "src/clipboard.ts": "bf0060e43f5d50b60d1276700dd88121f630a0d48a1d339f4b551802cf4cf733",
+        "src/decoration.ts": "a18ba09db59bd096ffe84b73554542f93f3c4aa5b92322de38a7ed78da493e3a",
+        "src/dom.ts": "73f7620ae90c5a60d25da4d4f0b38f1ff7cee9afd72e43ef0c7a397af905dcda",
+        "src/domchange.ts": "3eb96da95a9e12d46d760ccba348c8b18d20f30cd2ed3a43232f189ae7badfb8",
+        "src/domcoords.ts": "67b2a1dc40f8b8428ec75ec832aa9afbf9447363a588917f8200db720637cb5e",
+        "src/domobserver.ts": "ed7d7406aa05d3563ac88a1651a1ae54351eaf46dbbc791714afa950e2a42f96",
+        "src/index.ts": "d540023e4714c34dbc002d6934c2b3fdb2d705835f1fa9c2068210d48db507bc",
+        "src/input.ts": "3bd567f28e0e9a7191f6777757dd246aa832bbb59fb700086ad90dd961850577",
+        "src/selection.ts": "a92b877fc1c6df06d574dfc9a59f7ec8127c8fc96d2f00c9cc432224a473c78e",
+        "src/viewdesc.ts": "1e2d61f5f69fa7d6d0073f6a05b608a08f341f377b8b1ea98c1ee2619d5bf814"
+      }
+    },
+    {
+      "name": "prosemirror-commands",
+      "repository": "ProseMirror/prosemirror-commands",
+      "tag": "1.7.1",
+      "commit": "20c7d42ab8b5d8642fb9efc6261b7541c9dc23c2",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "c02fbe3a4b2aa9f9a1ea86aa50ea208b8f898a2619a26eb9d6fde7edd788ba01",
+        "src/commands.ts": "b7cea4c5b7f0d8c3c2d9306de430720f608c014332cfb284d848b6f8501224c2"
+      }
+    },
+    {
+      "name": "prosemirror-keymap",
+      "repository": "ProseMirror/prosemirror-keymap",
+      "tag": "1.2.3",
+      "commit": "081f24f65b6a394174a4bdf07b9a55a00361f1b7",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "15652f722a20aa5a7db8a8ae5a1326e56435f6651c67cf8a594c2c826eada761",
+        "src/keymap.ts": "9d27d674fd56226ce0deb5ba367873872375296d6088783191c039206ea92b60"
+      }
+    },
+    {
+      "name": "prosemirror-history",
+      "repository": "ProseMirror/prosemirror-history",
+      "tag": "1.5.0",
+      "commit": "554d6eedb76704d1db62d85768611ce4b611abd2",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "934d5e211d998fcaac4be6789bfcb54de2caa9adef1c96c356e166a16815c105",
+        "src/history.ts": "fc89028c45e2bee7c5f2750aa50c63b3a1db08dd45a1deae5e166e76ae0978c6"
+      }
+    },
+    {
+      "name": "prosemirror-schema-list",
+      "repository": "ProseMirror/prosemirror-schema-list",
+      "tag": "1.5.1",
+      "commit": "e65a144f2285178a20cbdea5b0ee16925be7d6c5",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "98d90d8f6748a87c4948f518b14a453f00e9f4e1dd507744786a3e0614953964",
+        "src/schema-list.ts": "fc816321f12d8b9ebbaecfaacd9c48807e3ef0af4f95cc536e30b8cd5df44d54"
+      }
+    },
+    {
+      "name": "prosemirror-inputrules",
+      "repository": "ProseMirror/prosemirror-inputrules",
+      "tag": "1.5.1",
+      "commit": "089aa3852a55d551211af90aae2560c554ccf476",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "d6609dcfd99fe0dbcf0dcb9121693337b2ded4b4d20ee5255b797277ca59f8c9",
+        "src/index.ts": "fcf2d6220de0ad68e71a28591d1aafdb776707a551e0e30de5f1b1a772eabbe9",
+        "src/inputrules.ts": "3a551544aa4c81843d0120936f1bee96fa553b1d90ed2ac429688024bf1a21d2",
+        "src/rulebuilders.ts": "17eab940d68292553eda7fb3ec665f2fb5c1e2c18402115e8bc9931aa97b1bed",
+        "src/rules.ts": "444a4f1ea383a140708f2a22730568fed590ae4a749581dc2a20937471bb75dd"
+      }
+    },
+    {
+      "name": "prosemirror-markdown",
+      "repository": "ProseMirror/prosemirror-markdown",
+      "tag": "1.13.4",
+      "commit": "d86eff3dd7b7664b95c77bd51da8522491a9a55d",
+      "files": {
+        "LICENSE": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+        "package.json": "d52386b4cd050507bda3cc8a846a53aca02a427e2cb1feea2f45c89dab510e80",
+        "src/to_markdown.ts": "27e425c6f70a2add5297340c7079542b6fdf398c5167009ea555f23d41989fd4"
+      }
+    },
+    {
+      "name": "orderedmap",
+      "repository": "marijnh/orderedmap",
+      "tag": "2.1.1",
+      "commit": "6a30ebbbecd30fed8bda884c7acf4ca9c6a02405",
+      "files": {
+        "LICENSE": "869c30f368eb08735e779027b9f4bc9fea2f39624351856aebe42741f0bc0884",
+        "index.js": "eb0160f63616895337d3b99b8e445d07327ef283f6b525dbcdce7f11efc7a641",
+        "package.json": "282ea598284094608736ed5a75f4e0b48da53b851b62bba22362feac507d5c6c"
+      }
+    },
+    {
+      "name": "rope-sequence",
+      "repository": "marijnh/rope-sequence",
+      "tag": "1.3.4",
+      "commit": "11db1ba5aa2abf31ff8040bdf01fabdb9db34c7a",
+      "files": {
+        "LICENSE": "530424aebdd0e73f53238d1f89df250057bc8d8ce090cf5954197fadce5bf226",
+        "index.js": "efb85fca2ecef4b1dfd63103cfb8c755ff209ffe6e72ae0928e833c3ac666624",
+        "package.json": "0e378a9dcc447c04e712238d60a1f2ffb878bfc161cbb95ef0a3c34d2a541548"
+      }
+    },
+    {
+      "name": "w3c-keyname",
+      "repository": "marijnh/w3c-keyname",
+      "tag": "2.2.8",
+      "commit": "5ea93b04bb62230c7de4165e3a9b5c840f05cd44",
+      "files": {
+        "LICENSE": "869c30f368eb08735e779027b9f4bc9fea2f39624351856aebe42741f0bc0884",
+        "index.js": "b649dec4f01c7c5eb05be4641b5b698c6938231ee50b38e17a2f0f822ca3df2e",
+        "package.json": "0396c646f74d52c1b0851074ecdb5cabf540af595ceb5e5a5136df2bf3c2f83b"
+      }
+    },
+    {
+      "name": "marked",
+      "repository": "markedjs/marked",
+      "tag": "v18.2.0",
+      "commit": "afba4543ff47620ad60e980bc2f091971ccfdd8c",
+      "files": {
+        "LICENSE": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+        "package.json": "b46da8c2b71cd5186a4a5c56f942c7badc940b010c5f0a5a3af23d87c939bc54",
+        "src/Hooks.ts": "f27bf6eaaccee4aceeb44bc857d332515adeb1876b69082a99196cab42065eac",
+        "src/Instance.ts": "f93d126dd3aada8ee3a11c292dff75702756703eb454822ffd0aec84422f81df",
+        "src/Lexer.ts": "f0085e612a3cfd335f95160f35a4b497c4ef11cad310f4c21308059eb2f436cf",
+        "src/MarkedOptions.ts": "7373f04ccc884be038cf373f48ddf2b393f3ec306ad3dc82d1af65b4aa5372b2",
+        "src/Parser.ts": "c6f0597cbecc7ee50af3a25ac044c619b7df5aa87f9ebb23b1bca2d502dfa348",
+        "src/Renderer.ts": "af7c3c22fec3c0f76a38cc3862ab017ee112a6193fc2ee71540ba0c3b5efa19a",
+        "src/TextRenderer.ts": "ac46c7a2d49c6d6bde47eae10799487d650bc1d16ec422dec8dd2b3295f0d7a3",
+        "src/Tokenizer.ts": "c6d36ac191e5add66defd43b8c58fe120e621e372b02edd773d3a7456d2b0d4c",
+        "src/Tokens.ts": "b28caea381f11ba48e444bddd4b9be7dd5695a3a2a825dfbde97a9d3baa210c8",
+        "src/defaults.ts": "fc15453d9c34ba9e51476f792eab6896652ade89cc03f635cdb2f25ac0d68475",
+        "src/helpers.ts": "3fffc5bee1fc64a9632c91ee7131ba81a94c91d360110d7c46ae54f38cb4b098",
+        "src/marked.ts": "3e1b05d3e95866b41da37d737f4de207a17bc74b987f234ed78684c7e22982ee",
+        "src/rules.ts": "63b22dcdc8863a24612de8f1ebe618763d2f363d40ebae74e2b0ab26e41a0267"
+      }
+    }
+  ],
+  "toolchain": "Playwright 1.62.1 Babel TypeScript/CommonJS transform",
+  "modules": [
+    "marked/src/Lexer.ts",
+    "marked/src/Tokenizer.ts",
+    "marked/src/defaults.ts",
+    "marked/src/helpers.ts",
+    "marked/src/rules.ts",
+    "orderedmap/index.js",
+    "prosemirror-commands/src/commands.ts",
+    "prosemirror-history/src/history.ts",
+    "prosemirror-inputrules/src/index.ts",
+    "prosemirror-inputrules/src/inputrules.ts",
+    "prosemirror-inputrules/src/rulebuilders.ts",
+    "prosemirror-inputrules/src/rules.ts",
+    "prosemirror-keymap/src/keymap.ts",
+    "prosemirror-markdown/src/to_markdown.ts",
+    "prosemirror-model/src/comparedeep.ts",
+    "prosemirror-model/src/content.ts",
+    "prosemirror-model/src/diff.ts",
+    "prosemirror-model/src/fragment.ts",
+    "prosemirror-model/src/from_dom.ts",
+    "prosemirror-model/src/index.ts",
+    "prosemirror-model/src/mark.ts",
+    "prosemirror-model/src/node.ts",
+    "prosemirror-model/src/replace.ts",
+    "prosemirror-model/src/resolvedpos.ts",
+    "prosemirror-model/src/schema.ts",
+    "prosemirror-model/src/to_dom.ts",
+    "prosemirror-schema-list/src/schema-list.ts",
+    "prosemirror-state/src/index.ts",
+    "prosemirror-state/src/plugin.ts",
+    "prosemirror-state/src/selection.ts",
+    "prosemirror-state/src/state.ts",
+    "prosemirror-state/src/transaction.ts",
+    "prosemirror-transform/src/attr_step.ts",
+    "prosemirror-transform/src/index.ts",
+    "prosemirror-transform/src/map.ts",
+    "prosemirror-transform/src/mark.ts",
+    "prosemirror-transform/src/mark_step.ts",
+    "prosemirror-transform/src/replace.ts",
+    "prosemirror-transform/src/replace_step.ts",
+    "prosemirror-transform/src/step.ts",
+    "prosemirror-transform/src/structure.ts",
+    "prosemirror-transform/src/transform.ts",
+    "prosemirror-view/src/browser.ts",
+    "prosemirror-view/src/capturekeys.ts",
+    "prosemirror-view/src/clipboard.ts",
+    "prosemirror-view/src/decoration.ts",
+    "prosemirror-view/src/dom.ts",
+    "prosemirror-view/src/domchange.ts",
+    "prosemirror-view/src/domcoords.ts",
+    "prosemirror-view/src/domobserver.ts",
+    "prosemirror-view/src/index.ts",
+    "prosemirror-view/src/input.ts",
+    "prosemirror-view/src/selection.ts",
+    "prosemirror-view/src/viewdesc.ts",
+    "rope-sequence/index.js",
+    "w3c-keyname/index.js"
+  ],
+  "bundle_sha256": "51b4eabe0450749fcb990695ea4373307afe38af9c5749039bec0b1f8280d0e7"
+}

@@ -2,7 +2,7 @@
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import open_more
 
 ROOT=Path(__file__).resolve().parents[1];scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
@@ -24,7 +24,7 @@ try:
    e=page.frame_locator('#editor');field=e.locator('#capture-input');expect(field).to_be_visible()
    # New cards enter and their neighbors move. Neither effect runs in reduced motion.
    old_ids=[m['id'] for m in data['messages']]
-   field.fill('A freshly captured thought');field.press('Enter');expect(field).to_have_value('')
+   fill_field(field,'A freshly captured thought');field.press('Enter');expect(field).to_have_js_property('value','')
    saved=parse(page.evaluate('notes.a.content.text'));new_id=saved['messages'][-1]['id'];card=e.locator('[data-id="'+new_id+'"]')
    frames=card.evaluate('n=>n.getAnimations().map(a=>a.effect.getKeyframes())')
    assert bool(frames)==(not reduced),(width,reduced,frames)
@@ -72,20 +72,20 @@ try:
    expect(e.locator('.board-drag-ghost')).to_have_count(0);assert page.evaluate('notes.a.content.text')==before and page.evaluate('saves.length')==count
    page.wait_for_timeout(450)
    # A failed drop retains its arrangement for Retry, without clearing a draft.
-   field.fill('Preserve my unsent draft');expect(field).to_have_value('Preserve my unsent draft');page.wait_for_timeout(60)
+   fill_field(field,'Preserve my unsent draft');expect(field).to_have_js_property('value','Preserve my unsent draft');page.wait_for_timeout(60)
    page.evaluate('rejectSaves=true');count=page.evaluate('saves.length')
    begin(e.locator('[data-id="'+new_id+'"]'));move_to(e.locator('[data-id="'+reordered['settings']['mosaicCardOrder'][0]+'"]'),False)
    assert e.locator('#board').evaluate('n=>MosaicModel.ordered(active.messages,dragPreview.settings)[0].id')==new_id
    release()
-   expect(e.locator('#notice')).to_contain_text('Saving was not confirmed');expect(field).to_have_value('Preserve my unsent draft')
+   expect(e.locator('#notice')).to_contain_text('Saving was not confirmed');expect(field).to_have_js_property('value','Preserve my unsent draft')
    assert page.evaluate('saves.length')==count
    page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(e.locator('#notice')).to_be_hidden()
    final=parse(page.evaluate('notes.a.content.text'));assert final['draft']=='Preserve my unsent draft'
    # An IM edit preserves the arrangement while retaining chronological message order.
    order=final['settings']['mosaicCardOrder'];page.evaluate('openEditor("a","/next/index.html",true)')
-   im=page.frame_locator('#editor').get_by_role('textbox',name='Message',exact=True);im.fill('Draft written in IM');page.wait_for_function('notes.a.content.text.includes("Draft written in IM")')
+   im=page.frame_locator('#editor').get_by_role('textbox',name='Message',exact=True);fill_field(im,'Draft written in IM');page.wait_for_function('notes.a.content.text.includes("Draft written in IM")')
    roundtrip=parse(page.evaluate('notes.a.content.text'));assert roundtrip['settings']['mosaicCardOrder']==order and [m['id'] for m in roundtrip['messages']]==original_ids
-   page.evaluate('openEditor("a","/mosaic/index.html",true)');e=page.frame_locator('#editor');expect(e.locator('#capture-input')).to_have_value('Draft written in IM')
+   page.evaluate('openEditor("a","/mosaic/index.html",true)');e=page.frame_locator('#editor');expect(e.locator('#capture-input')).to_have_js_property('value','Draft written in IM')
    open_more(e);e.get_by_role('menuitem',name='Reset card order',exact=True).click();assert 'mosaicCardOrder' not in parse(page.evaluate('notes.a.content.text'))['settings']
    # Keyboard ordering also uses the same saved view order.
    first=e.locator('[data-id="'+new_id+'"]');first.focus();first.press('Alt+ArrowDown')
@@ -109,7 +109,7 @@ try:
    begin(e.locator('[data-id="'+new_id+'"]'));count=page.evaluate('saves.length');page.evaluate('switchNote("b")');expect(e.locator('.board-drag-ghost')).to_have_count(0);release();assert page.evaluate('saves.length')==count
    # A sparse board accepts a drop into its otherwise empty bottom area.
    for text in ['First short card','Second short card']:
-    e.locator('#capture-input').fill(text);e.locator('#capture-input').press('Enter');expect(e.locator('#capture-input')).to_have_value('')
+    fill_field(e.locator('#capture-input'),text);e.locator('#capture-input').press('Enter');expect(e.locator('#capture-input')).to_have_js_property('value','')
    e.locator('#board').evaluate('async n=>{await Promise.all([...n.querySelectorAll(".card")].flatMap(c=>c.getAnimations()).filter(a=>a.effect.getKeyframes().some(f=>f.transform)).map(a=>a.finished.catch(()=>{})))}');small=parse(page.evaluate('notes.b.content.text'));small_id=small['messages'][-1]['id'];count=page.evaluate('saves.length')
    begin(e.locator('[data-id="'+small_id+'"]'))
    if width<600:touch('touchMove',60,650)

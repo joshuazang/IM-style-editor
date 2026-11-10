@@ -2,7 +2,7 @@
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 ROOT=Path(__file__).resolve().parents[1];scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
 data=scope['fixture'](120)
@@ -40,7 +40,7 @@ try:
      assert all(scroll<=client+1 for scroll,client in bounds['scroll']),(mosaic,width,bounds)
      assert boxes[0]['height']>=44 and bounds['font']=='16px',(mosaic,width,bounds)
     def choose(value):
-     field=picker();field.fill(value);expect(field).to_be_visible()
+     field=picker();fill_field(field,value);expect(field).to_be_visible()
      e.get_by_role('group',name='Jump to date',exact=True).get_by_role('button',name='Jump to date',exact=True).click()
     def target(index):return e.locator(('.card[data-id="' if mosaic else '.message-wrap[data-message-id="')+data['messages'][index]['id']+'"]')
     def visible_destination(index):
@@ -58,7 +58,7 @@ try:
      assert e.locator('.editor-shell').evaluate('n=>getComputedStyle(n).backgroundColor')==light
      page.emulate_media(color_scheme='light')
     # Search would hide this destination. The jump must reveal the full note.
-    open_search().fill('Date item 119');choose('2026-11-01');visible_destination(28)
+    fill_field(open_search(),'Date item 119');choose('2026-11-01');visible_destination(28)
     if not mosaic:
      assert e.locator('.messages').evaluate('(n,ids)=>ids.every(id=>n.imVirtual.has(id))',[m['id'] for m in data['messages']])
     # Both neighboring dates remain available: navigate through normal scrolling.
@@ -73,12 +73,12 @@ try:
     search.evaluate('n=>{window.nativePickerCalls=0;window.dateFocusCalls=0;const show=HTMLInputElement.prototype.showPicker;HTMLInputElement.prototype.showPicker=function(){window.nativePickerCalls++;return show?.call(this)};const focus=HTMLElement.prototype.focus;HTMLElement.prototype.focus=function(...args){if(this.matches("input[type=date]"))window.dateFocusCalls++;return focus.apply(this,args)}}')
     date=picker();assert date.evaluate('n=>document.activeElement!==n&&!document.activeElement?.matches("input,textarea")');assert date.evaluate('()=>window.nativePickerCalls===0&&window.dateFocusCalls===0')
     contained_date(date)
-    date.fill('2028-02-29');date.focus();contained_date(date);expect(date).to_be_visible();expect(e.get_by_role('group',name='Jump to date',exact=True)).to_be_visible()
-    date.fill('9999-12-31');contained_date(date)
-    date.fill('');e.get_by_role('button',name='Jump to date',exact=True).last.click();expect(e.get_by_role('alert').filter(has_text='Choose a valid date')).to_be_visible()
+    fill_field(date,'2028-02-29');date.focus();contained_date(date);expect(date).to_be_visible();expect(e.get_by_role('group',name='Jump to date',exact=True)).to_be_visible()
+    fill_field(date,'9999-12-31');contained_date(date)
+    fill_field(date,'');e.get_by_role('button',name='Jump to date',exact=True).last.click();expect(e.get_by_role('alert').filter(has_text='Choose a valid date')).to_be_visible()
     if width==390:page.screenshot(path='/tmp/date-jump-'+('mosaic' if mosaic else 'im')+'.png')
     page.evaluate('switchNote("b")');page.wait_for_timeout(150);open_search();expect(e.get_by_role('group',name='Jump to date',exact=True)).not_to_be_visible()
-    expect(e.locator('#capture-input' if mosaic else '#append-text')).to_have_value(data['draft']);assert page.evaluate('saves.length')==0;assert page.evaluate('notes.a.content.text')==data['note']['content']['text']
+    expect(e.locator('#capture-input' if mosaic else '#append-text')).to_have_js_property('value',data['draft']);assert page.evaluate('saves.length')==0;assert page.evaluate('notes.a.content.text')==data['note']['content']['text']
    assert vectors[0]==vectors[1];assert not errors,errors;print(f'PASS {width}px: bounded native date field (empty, filled, focused and long year), 44px field height, shared vector, focus/frost, no forced picker or mid-selection dismissal, date jumps and neighboring dates, fallbacks, validation and note isolation; zero note writes',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

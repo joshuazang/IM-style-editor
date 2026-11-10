@@ -34,16 +34,16 @@ try:
     return select
    for uuid in ['a','b']:
     page.evaluate('switchNote("'+uuid+'")');expect(e.locator('.editor-shell')).to_have_class(re.compile(r'artwork-classic'))
-    expect(artwork()).to_have_value('classic');assert artwork().locator('option').evaluate_all('ns=>ns.map(n=>n.value)')==['classic','garden']
+    expect(artwork()).to_have_js_property('value','classic');assert artwork().locator('option').evaluate_all('ns=>ns.map(n=>n.value)')==['classic','garden']
     assert 'chat-wallpaper-CalFkYM7.svg' in e.locator('.messages').evaluate('n=>getComputedStyle(n).backgroundImage')
-    expect(e.locator('#append-text')).to_have_value(data['draft'].replace('\r\n','\n'))
+    expect(e.locator('#append-text')).to_have_js_property('value',data['draft'].replace('\r\n','\n'))
     assert page.evaluate('saves.length')==0,(width,uuid,'Unexpected automatic save')
     assert page.evaluate('notes["'+uuid+'"].content.text')==notes[uuid]['content']['text']
    # The surviving alternative still saves through the normal note channel.
    artwork().select_option('garden');expect(e.locator('.editor-shell')).to_have_class(re.compile(r'artwork-garden'));page.wait_for_function('saves.length>0')
    saved=parse(page.evaluate('notes.b.content.text'));assert saved['settings']['artwork']=='garden';assert saved['messages']==data['messages'];assert saved['draft']==data['draft']
    assert page.evaluate('notes.a.content.text')==notes['a']['content']['text']
-   page.evaluate('openEditor("b","/next/index.html",true)');e=page.frame_locator('#editor');expect(e.locator('.editor-shell')).to_have_class(re.compile(r'artwork-garden'));expect(artwork()).to_have_value('garden')
+   page.evaluate('openEditor("b","/next/index.html",true)');e=page.frame_locator('#editor');expect(e.locator('.editor-shell')).to_have_class(re.compile(r'artwork-garden'));expect(artwork()).to_have_js_property('value','garden')
    assert not errors,errors;assert not retired,retired
    print(f'PASS {width}px: only original/Garden remain; both retired values display Classic without writes; messages/drafts retained; Garden saves/reloads; no retired-asset requests',flush=True);context.close()
   browser.close()

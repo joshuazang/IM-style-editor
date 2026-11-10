@@ -32,7 +32,7 @@ function ImReplyPreview({reply,cancel,show,exportReply}){
 }
 function ImBubbleQuote({reply,show,selecting}){
   return x.jsxs('button',{type:'button',className:'bubble-reply-quote','aria-label':'Show quoted message in chat',tabIndex:selecting?-1:0,
-    onClick:event=>{if(selecting)return;event.stopPropagation();show(reply)},children:[x.jsx('span',{children:reply.text||'Empty message'})]});
+    onClick:event=>{if(selecting)return;event.stopPropagation();show(reply)},children:[x.jsx('span',{children:imMarkdown.message(reply).text||'Empty message'})]});
 }
 function imUseReplyHighlight(noteId){
   const [id,setId]=dt.useState(null),timer=dt.useRef(0);
@@ -85,7 +85,7 @@ function ImPinnedPreview({messages,show,openList}){
  return x.jsxs('div',{className:'pinned-preview pinned-carousel',onClick:event=>{if(event.target===event.currentTarget)cycle()},children:[
   x.jsxs('button',{type:'button','aria-label':'Show pinned message',onClick:cycle,children:[
    x.jsx('span',{className:'pin-segments','aria-hidden':true,children:messages.map((item,i)=>x.jsx('i',{className:i===current?'active':'',style:{opacity:i===current?1:.25}},item.id))}),
-   x.jsxs('span',{className:'pin-summary',children:[x.jsx('span',{children:message.text})]})]}),
+   x.jsxs('span',{className:'pin-summary',children:[x.jsx('span',{children:imMarkdown.message(message).text})]})]}),
   x.jsx('button',{type:'button',className:'pin-list-button','aria-label':`Show all ${messages.length} pinned message${messages.length===1?'':'s'}`,onClick:openList,children:x.jsx(ImPinIcon,{list:true})})]})
 }
 function ImPinnedHeader({count,back,unpinAll}){

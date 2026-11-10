@@ -3,7 +3,7 @@ import functools, http.server, json, os, re, subprocess, threading
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 from playwright.sync_api import sync_playwright, expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import fill_search,click_outside_capture,choose_tag,open_more
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -70,7 +70,7 @@ readText:async()=>window.__incomingClipboard||''}});
         fill_search(e,'A title')
         e.locator('[data-id="'+small['messages'][0]['id']+'"]').click()
         pass
-        expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_value(small['messages'][0]['text'].replace('\r\n','\n'))
+        expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_js_property('value',small['messages'][0]['text'].replace('\r\n','\n'))
         e.get_by_role('button',name='Close',exact=True).click()
         expect(e.locator('dialog')).not_to_be_visible()
         assert page.evaluate('saves.length')==0
@@ -78,17 +78,17 @@ readText:async()=>window.__incomingClipboard||''}});
         fill_search(e,'')
 
         capture=e.get_by_role('textbox',name='Take a note',exact=True)
-        expect(capture).to_have_value(small['draft'].replace('\r\n','\n'))
-        capture.fill('A new thought\nFirst line\n\nSecond line 🙂')
+        expect(capture).to_have_js_property('value',small['draft'].replace('\r\n','\n'))
+        fill_field(capture,'A new thought\nFirst line\n\nSecond line 🙂')
         page.wait_for_function('notes.a.content.text.includes("Second line")')
         before_idle=page.evaluate('saves.length');page.wait_for_timeout(1600);assert page.evaluate('saves.length')==before_idle
         page.evaluate('holdAck=true')
         click_outside_capture(e)
         page.wait_for_function('(notes.a.content.text.match(/^@@IM:BUBBLE$/gm)||[]).length===21&&acks.length>0')
-        expect(capture).to_have_value('A new thought\nFirst line\n\nSecond line 🙂')
-        capture.fill('Newer typing survives')
+        expect(capture).to_have_js_property('value','A new thought\nFirst line\n\nSecond line 🙂')
+        fill_field(capture,'Newer typing survives')
         page.evaluate('holdAck=false;releaseAcks()')
-        expect(capture).to_have_value('Newer typing survives')
+        expect(capture).to_have_js_property('value','Newer typing survives')
         page.wait_for_function('notes.a.content.text.includes("Newer typing survives")')
         parsed=parse(page.evaluate('notes.a.content.text'))
         assert len(parsed['messages'])==21 and 'Newer typing survives' in parsed['draft']
@@ -98,12 +98,12 @@ readText:async()=>window.__incomingClipboard||''}});
 
         # Rejected final submissions keep input; retry saves exactly one card.
         page.evaluate('rejectSaves=true')
-        capture.fill('Retain on failure')
+        fill_field(capture,'Retain on failure')
         click_outside_capture(e)
         expect(e.locator('#notice')).to_contain_text('Saving was not confirmed')
-        expect(capture).to_have_value('Retain on failure')
+        expect(capture).to_have_js_property('value','Retain on failure')
         page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click()
-        expect(capture).to_have_value('')
+        expect(capture).to_have_js_property('value','')
         assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==22
 
         # Filtering and selection cover all matches, and persist only IDs as preferences.
@@ -132,18 +132,18 @@ readText:async()=>window.__incomingClipboard||''}});
     rendered=e.locator('.card').count();dom=e.locator('*').count();assert rendered<80 and dom<1600,(rendered,dom)
     e.locator('#viewport').evaluate('node=>node.scrollTop=node.scrollHeight/2');page.wait_for_timeout(100);assert e.locator('.card').count()<80
     fill_search(e,'Thought 4999');expect(e.locator('.card')).to_have_count(1)
-    e.locator('.card').click();e.get_by_role('textbox',name='Card body',exact=True).fill('Changed from Mosaic\nNew body')
+    e.locator('.card').click();fill_field(e.get_by_role('textbox',name='Card body',exact=True),'Changed from Mosaic\nNew body')
     e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     shared=parse(page.evaluate('notes.a.content.text'));assert shared['messages'][-1]['text'].startswith('Changed from Mosaic\n')
     assert shared['draft']==large['draft'] and shared['settings']['extra']=={'keep':True}
     if IM.exists():
         page.evaluate('openEditor("a","/im/next/index.html")')
-        im=page.frame_locator('#editor');expect(im.get_by_role('textbox',name='Message',exact=True)).to_have_value(large['draft'].replace('\r\n','\n'))
+        im=page.frame_locator('#editor');expect(im.get_by_role('textbox',name='Message',exact=True)).to_have_js_property('value',large['draft'].replace('\r\n','\n'))
         expect(im.locator('.message-wrap').last).to_contain_text('Changed from Mosaic')
-        im.get_by_role('textbox',name='Message',exact=True).fill('Draft changed in IM\nStill preserved')
+        fill_field(im.get_by_role('textbox',name='Message',exact=True),'Draft changed in IM\nStill preserved')
         page.wait_for_function('notes.a.content.text.includes("Draft changed in IM")')
         page.evaluate('openEditor("a")');e=page.frame_locator('#editor')
-        expect(e.locator('#capture-input')).to_have_value('Draft changed in IM\nStill preserved')
+        expect(e.locator('#capture-input')).to_have_js_property('value','Draft changed in IM\nStill preserved')
         back=parse(page.evaluate('notes.a.content.text'));assert back['messages']==shared['messages']
         assert back['settings']['extra']=={'keep':True}
         results.append('PASS: Mosaic → shared IM build → Mosaic, same note, card edits and shared drafts survive with message metadata intact')
@@ -154,12 +154,12 @@ readText:async()=>window.__incomingClipboard||''}});
     context,page,errors,external=setup();e=open_note(page)
     initial=page.evaluate('notes.a.content.text')
     page.evaluate('(text)=>stream({...notes.a,isMetadataUpdate:true,updated_at:"2030-01-01T00:00:00Z",content:{text}})',initial.replace('Unsent draft','Old stale draft'))
-    expect(e.locator('#capture-input')).to_have_value(small['draft'].replace('\r\n','\n'));assert page.evaluate('saves.length')==0
+    expect(e.locator('#capture-input')).to_have_js_property('value',small['draft'].replace('\r\n','\n'));assert page.evaluate('saves.length')==0
     page.evaluate('holdAck=true')
-    e.locator('#capture-input').fill('Local pending draft')
+    fill_field(e.locator('#capture-input'),'Local pending draft')
     page.evaluate('(text)=>stream({...notes.a,content:{...notes.a.content,text}})',initial.replace('Unsent draft','Remote draft'))
     expect(e.locator('#notice')).to_contain_text('neither version is silently overwritten')
-    expect(e.locator('#capture-input')).to_have_value('Local pending draft')
+    expect(e.locator('#capture-input')).to_have_js_property('value','Local pending draft')
     page.evaluate('holdAck=false;releaseAcks()')
     e.get_by_role('button',name='Review text',exact=True).click()
     expect(e.get_by_role('textbox',name='Current local note text',exact=True)).to_have_value(re.compile('Local pending draft'))
@@ -195,8 +195,8 @@ readText:async()=>window.__incomingClipboard||''}});
     assert frame(page).evaluate('window.__copied')==small['messages'][2]['text']
     assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['copied']
     find_card(2).click();e.locator('dialog').get_by_role('button',name='Card options',exact=True).click();e.get_by_role('menuitem',name='Reply',exact=True).click()
-    expect(e.locator('#capture-reply')).to_be_visible();e.locator('#capture-input').fill('A reply\nReply body');click_outside_capture(e)
-    expect(e.locator('#capture-input')).to_have_value('')
+    expect(e.locator('#capture-reply')).to_be_visible();fill_field(e.locator('#capture-input'),'A reply\nReply body');click_outside_capture(e)
+    expect(e.locator('#capture-input')).to_have_js_property('value','')
     parsed=parse(page.evaluate('notes.a.content.text'));assert parsed['messages'][-1]['replyTo']['id']==small['messages'][2]['id'] and not parsed['reply']
 
     # IM-style selection hides search controls; choose the broad filter first.
@@ -204,7 +204,7 @@ readText:async()=>window.__incomingClipboard||''}});
     e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight')
     e.locator('[data-id="'+small['messages'][4]['id']+'"]').click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click()
     e.locator('[data-id="'+small['messages'][5]['id']+'"]').click();e.get_by_role('button',name='Selection options',exact=True).click();e.get_by_role('menuitem',name='Merge selected',exact=True).click()
-    expect(e.get_by_role('textbox',name='Merged card preview',exact=True)).to_have_value(small['messages'][4]['text']+'\n\n'+small['messages'][5]['text'])
+    expect(e.get_by_role('textbox',name='Merged card preview',exact=True)).to_have_js_property('value',small['messages'][4]['text']+'\n\n'+small['messages'][5]['text'])
     e.get_by_role('button',name='Merge selected',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     parsed=parse(page.evaluate('notes.a.content.text'));combined=next(m for m in parsed['messages'] if m['id']==small['messages'][4]['id'])
     assert combined['edited'] and combined['text']==small['messages'][4]['text']+'\n\n'+small['messages'][5]['text']
@@ -218,10 +218,10 @@ readText:async()=>window.__incomingClipboard||''}});
     fill_search(e,'');open_more(e);e.get_by_role('menuitem',name='Export all cards',exact=True).click()
     exported=frame(page).evaluate('window.__copied');assert exported.startswith('#!im-style-forward 2')
     page.evaluate('switchNote("b")');open_more(e);e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
-    e.get_by_role('textbox',name='Import text',exact=True).fill(exported);e.get_by_role('button',name='Import',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
+    fill_field(e.get_by_role('textbox',name='Import text',exact=True),exported);e.get_by_role('button',name='Import',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     parsed=parse(page.evaluate('notes.b.content.text'));assert len(parsed['messages'])==20 and all(m.get('forwarding') and not m.get('exported') for m in parsed['messages'])
     open_more(e);e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
-    e.get_by_role('textbox',name='Import text',exact=True).fill(exported);page.evaluate('holdAck=true')
+    fill_field(e.get_by_role('textbox',name='Import text',exact=True),exported);page.evaluate('holdAck=true')
     e.get_by_role('button',name='Import and clear clipboard',exact=True).click()
     # An identical, previously acknowledged import may skip writing altogether.
     page.evaluate('holdAck=false;releaseAcks()');expect(e.locator('#dialog-title')).to_have_text('Clear your clipboard?')
@@ -242,7 +242,7 @@ readText:async()=>window.__incomingClipboard||''}});
     field.evaluate("node=>{node.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));node.value='中文未完成';node.dispatchEvent(new InputEvent('input',{bubbles:true,isComposing:true}));}")
     click_outside_capture(e);assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==20
     field.evaluate("node=>{node.value='中文已完成';node.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'已完成'}));node.dispatchEvent(new InputEvent('input',{bubbles:true,isComposing:false}));}")
-    expect(field).to_have_value('');parsed=parse(page.evaluate('notes.a.content.text'))
+    expect(field).to_have_js_property('value','');parsed=parse(page.evaluate('notes.a.content.text'))
     assert len(parsed['messages'])==21 and parsed['messages'][-1]['text']=='中文已完成'
     assert not errors,errors;assert not external,external
     results.append('PASS: click-outside waits for completed IME composition, submits once, and preserves the final Chinese text')

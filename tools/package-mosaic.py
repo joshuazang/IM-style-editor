@@ -33,6 +33,7 @@ for name in ['mosaic.ext.json','mosaic-'+VERSION+'.ext.json']:(ROOT/name).write_
 # Also retain the relative install link on the standalone preview page.
 (TARGET/'mosaic.ext.json').write_bytes(encoded);files['mosaic.ext.json']=encoded
 files['NOTICE.md']=(TARGET/'NOTICE.md').read_bytes()
+files['THIRD-PARTY-NOTICES.md']=(ROOT/'shared/vendor/THIRD-PARTY-NOTICES.md').read_bytes()
 entries={'Mosaic-'+VERSION+'/dist/'+name:data for name,data in files.items()}
 entries['Mosaic-'+VERSION+'/package.json']=(json.dumps({'name':'mosaic-standard-notes','version':VERSION,'private':True,'sn':{'main':'dist/index.html'}},indent=2)+'\n').encode()
 with ZipFile(ROOT/('Mosaic-'+VERSION+'.zip'),'w',ZIP_DEFLATED) as archive:

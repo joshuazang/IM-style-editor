@@ -132,6 +132,7 @@ serialized = json.dumps(metadata, indent=2) + '\n'
 (ROOT / 'im-style-editor-next.ext.json').write_text(serialized)
 (ROOT / f'im-style-editor-{VERSION}.ext.json').write_text(serialized)
 files['im-style-editor.ext.json'] = serialized.encode()
+files['THIRD-PARTY-NOTICES.md'] = (ROOT / 'shared/vendor/THIRD-PARTY-NOTICES.md').read_bytes()
 entries = {f'IM-style-editor-{VERSION}/dist/{name}': data for name, data in files.items()}
 entries[f'IM-style-editor-{VERSION}/icon.png'] = files['icon.png']
 entries[f'IM-style-editor-{VERSION}/package.json'] = (json.dumps({

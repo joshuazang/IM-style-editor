@@ -2,7 +2,7 @@
 import functools, http.server, json, subprocess, threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 
 ROOT = Path(__file__).resolve().parents[1]
 scope = {'__file__': str(ROOT / 'tests/mosaic-browser.py')}
@@ -40,7 +40,7 @@ try:
             def open_card():
                 card.click()
                 dialog.evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}')
-                expect(body).to_have_value(text)
+                expect(body).to_have_js_property('value',text)
 
             def still_open():
                 expect(dialog).to_be_visible()
@@ -100,13 +100,13 @@ try:
             assert page.evaluate('notes.a.content.text') == data['note']['content']['text']
 
             open_card()
-            body.fill(text + '\nRetained edit')
+            fill_field(body,text + '\nRetained edit')
             drag(body, 'right')
             assert page.evaluate('saves.length') == 0
             page.evaluate('rejectSaves=true')
             page.mouse.click(*outside('left'))
             expect(editor.get_by_role('button', name='Retry save', exact=True).last).to_be_visible()
-            expect(body).to_have_value(text + '\nRetained edit')
+            expect(body).to_have_js_property('value',text + '\nRetained edit')
             page.evaluate('rejectSaves=false')
             editor.get_by_role('button', name='Retry save', exact=True).last.click()
             expect(dialog).not_to_be_visible()
@@ -115,7 +115,7 @@ try:
             assert saved['draft'] == data['draft']
             card.click()
             dialog.evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}')
-            body.fill(text + '\nWait for acknowledgment')
+            fill_field(body,text + '\nWait for acknowledgment')
             page.evaluate('holdAck=true')
             page.mouse.click(*outside('right'))
             expect(dialog).to_be_visible()

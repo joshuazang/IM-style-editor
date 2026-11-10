@@ -5,7 +5,7 @@ VisualViewport events below simulate keyboard geometry, not native iOS UI.
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 
 ROOT=Path(__file__).resolve().parents[1];scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
@@ -62,10 +62,10 @@ try:
         ra,rb=a['box'],b['box'];assert min(ra['right'],rb['right'])-max(ra['left'],rb['left'])<1 or min(ra['bottom'],rb['bottom'])-max(ra['top'],rb['top'])<1
      e.get_by_role('button',name='Cancel selection',exact=True).click()
     # A real rejected save supplies a persistent warning above the toolbar.
-    page.evaluate('rejectSaves=true');capture.fill('Unconfirmed draft stays available')
+    page.evaluate('rejectSaves=true');fill_field(capture,'Unconfirmed draft stays available')
     expect(e.get_by_role('button',name='Retry save',exact=True).last).to_be_visible()
     e.get_by_role('button',name='Search and tags',exact=True).click();e.get_by_role('button',name='Jump to date',exact=True).click()
-    date=e.get_by_label('Date',exact=True);date.fill('2028-02-29');date.evaluate('n=>n.dataset.preserved="yes"')
+    date=e.get_by_label('Date',exact=True);fill_field(date,'2028-02-29');date.evaluate('n=>n.dataset.preserved="yes"')
     panel=e.locator('#search-tags-panel')
     def fits(top=0,available=None):
      page.wait_for_timeout(80);r=panel.bounding_box();bottom=top+(available if available is not None else page.viewport_size['height'])
@@ -80,16 +80,16 @@ try:
     for cycle in range(3):
      e.get_by_role('button',name='Search and tags',exact=True).click();assert capture.evaluate('()=>__panelHandlerCount()')==2
      if cycle==0:
-      e.get_by_role('button',name='Jump to date',exact=True).click();date=e.get_by_label('Date',exact=True);date.fill('2028-02-29');date.evaluate('n=>n.dataset.preserved="yes"')
+      e.get_by_role('button',name='Jump to date',exact=True).click();date=e.get_by_label('Date',exact=True);fill_field(date,'2028-02-29');date.evaluate('n=>n.dataset.preserved="yes"')
       for event,top,available in [('resize',40,220),('scroll',90,240),('resize',0,height)]:
        capture.evaluate('(node,{event,top,height})=>{Object.assign(visualViewport,{offsetTop:top,height});visualViewport.dispatchEvent(new Event(event));}',{'event':event,'top':top,'height':available});fits(top,available)
-       expect(date).to_have_value('2028-02-29');expect(date).to_have_attribute('data-preserved','yes')
+       expect(date).to_have_js_property('value','2028-02-29');expect(date).to_have_attribute('data-preserved','yes')
      page.keyboard.press('Escape');assert capture.evaluate('()=>__panelHandlerCount()')==0
     capture.evaluate('()=>Object.defineProperty(window,"visualViewport",{configurable:true,value:__nativeViewport})')
     e.get_by_role('button',name='Search and tags',exact=True).click();page.set_viewport_size({'width':width,'height':350});fits()
     e.get_by_role('button',name='Jump to date',exact=True).click();fits()
     if width==390:page.screenshot(path='/tmp/ui-followups-'+('mosaic' if mosaic else 'im')+'.png')
-    page.keyboard.press('Escape');expect(capture).to_have_value('Unconfirmed draft stays available')
+    page.keyboard.press('Escape');expect(capture).to_have_js_property('value','Unconfirmed draft stays available')
     assert page.evaluate('saves.length')==0;assert page.evaluate('notes.a.content.text')==data['note']['content']['text']
    assert not errors,errors;assert not external,external
    print(f'PASS {width}×{height}: 44px separate status rows, label taps, distinct selection labels and unchanged visible text/layout, complete tags via +N, bounded warning/short/visual viewport search panels, native field preserved, listener cleanup; no note writes or external requests',flush=True)

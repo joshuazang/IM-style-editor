@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.4.22](https://joshuazang.github.io/IM-style-editor/Mosaic-1.4.22.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.0](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.0.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -18,8 +18,8 @@ import them into a new format-3 note; keep the source until checked.
 ## Interface
 
 Each message becomes a card. All its text is body text, including the first line.
-A title appears only after Add title is explicitly chosen. Titles are optional
-message metadata in the same plain-text note. Viewing a note does not rewrite it.
+Use Aa → Heading for optional heading text in the body. Existing separate title
+metadata remains readable and editable. Viewing a note does not rewrite it.
 Pins appear first. Cards start newest-first and can be arranged by dragging;
 new captures still appear first. Board order does not rearrange the IM timeline.
 This is the current note's board, rather than an account-wide dashboard.
@@ -40,10 +40,10 @@ This is the current note's board, rather than an account-wide dashboard.
 - Board previews have no pin/More buttons or empty footer rows. Their actions
   remain in right-click/long-press menus. Font sizes and line spacing are retained;
   blank lines in message text stay intact. Opened cards keep Pin and More.
-- Add/Edit title from the context menu opens a target preview in the bottom
+- Edit title for an existing separate title from the context menu opens a target preview in the bottom
   composer. Enter saves and Shift+Enter adds a line. Cancel restores the capture
   draft. Starting another title cannot overwrite unfinished title entry.
-- An opened card initially has no editable title field. Add/Edit title from its
+- An opened card initially has no editable title field. Edit title from its
   context menu unlocks it above the body. Enter adds lines and Close saves.
   An existing title otherwise displays as a heading; untitled cards have no
   placeholder or reserved title space.
@@ -59,7 +59,10 @@ This is the current note's board, rather than an account-wide dashboard.
   Confirmed deletion removes that tag from every card and keeps all cards/text.
   Untagged is movable and defaults to last. Both editors share these commands.
 - A constant bottom “Take a note…” field. Enter adds a card and reveals it while keeping
-  focus; Shift+Enter inserts a newline. Clicking outside also adds the card.
+  focus in ordinary text. In lists/checklists/quotations Enter continues the
+  structure; after a heading it starts ordinary text. Send works in every format.
+  Cmd/Ctrl+Enter exits the format, clears bold/strike and adds ordinary text;
+  Shift+Enter inserts a line break within the current format. Clicking outside also adds the card.
   IME confirmation keys finish composition rather than sending early.
   The typing box retains its solid surface, with transparent space around it.
   Scroll clearance keeps the last card accessible above the box.
@@ -67,28 +70,27 @@ This is the current note's board, rather than an account-wide dashboard.
   Capture and opened-card text fields retain their normal surfaces without an
   additional rectangular focus outline.
 - Click a card to edit directly. Enter adds a body newline; **Close** at the
-  bottom right saves. Pin is the only top-right button, with palette and More
-  in the bottom toolbar. Creation timestamp and separate edited/status indicators
+  bottom right saves. Text formatting, Pin, palette and More sit in the bottom
+  toolbar. Creation timestamp and separate edited/status indicators
   appear above that toolbar; board previews omit timestamps.
 - A vector palette inside an opened card offers preset background colors, including
-  Iris blue with white text. Default removes the optional color field.
+  Iris blue with dark text. Default removes the optional color field.
 - More → **Color palette** offers Sage (the original soft green), Paper (white
   and charcoal), and Sand (warm cream). These affect the board and default cards;
-  explicit card colors are retained. Each palette keeps the existing automatic
-  OS night appearance.
+  explicit card colors are retained. All palettes stay light regardless of the OS setting.
 - More → **Font size** offers Small, Medium, Large and Extra large. Medium keeps
-  the previous card text sizes; Large is the default. Board text, opened-card
-  text and capture input respond to the choice, and measured card heights refresh.
+  the previous card text sizes; Large is the default. Board and opened-card text respond to the choice, and measured card heights
+  refresh. Capture typography shares IM’s text-scale setting.
   Phone capture text stays at least 16px to avoid input zoom.
 - Filter tags and board tags have visible rounded borders and frosted surfaces.
   Search tags share IM's hover tint, and pin controls have a circular hover tint.
   Board previews use tighter spacing and omit all status labels; opened cards
   retain their timestamp and separate statuses.
 - A separate quick-tag grid above the shared context actions. Emojis wrap across
-  rows, with scrolling for larger tag collections. There is no Add label button
+  rows so the complete picker is visible. There is no Add label button
   or inline emoji selector in the opened card. Context-tag changes in an opened
   card are staged and saved on Close; board context-tag changes save immediately.
-- Plain-text card editing, quoted replies and navigation to the original.
+- Visual Markdown editing, quoted replies and navigation to the original.
 - Touch context menus wait for release after a hold; moving or cancelling the
   gesture does not open them. The opening release cannot activate a menu action.
 - Selection matches IM: five top actions (tag, copy, export, more, delete) and
@@ -97,8 +99,9 @@ This is the current note's board, rather than an account-wide dashboard.
 - Manual clipboard clearing and Import and clear clipboard, with confirmation.
 - Three light palettes unaffected by system dark mode, reduced motion, keyboard menus and Escape to exit selection.
 
-No reminders, photos, checkboxes, Markdown rendering or rich-text editing.
-HTML-looking text is displayed literally. OpenKeep was a layout reference;
+The visual editor supports bold, strikethrough, headings, quotations, bullet
+and numbered lists, and checklists. Other formatting remains readable text;
+raw HTML never executes. There are no reminders or photo attachments. OpenKeep was a layout reference;
 no OpenKeep application code, assets or dependencies are included.
 
 ## Saving
@@ -357,3 +360,12 @@ card. Outside dismissal now requires a primary press and release outside the
 same modal session. Cancelled presses and presses from replaced dialogs cannot
 dismiss the card. Normal outside clicks, Close and Escape retain the existing
 save acknowledgment and failed-save retry protections.
+
+
+Mosaic 1.5.0 shares visual Markdown editing and the same seven-format codec with
+IM 4.4.0. Formatting controls are under Aa; capture includes an explicit Send
+button. Command/Control+Enter creates a new ordinary paragraph outside the
+current format, clearing bold/strike. In Card view Enter remains multiline and
+Close saves through the existing acknowledgment/conflict protection. Legacy
+titles remain editable; new optional headings are body content. See
+[the shared contract and dependency provenance](../docs/VISUAL-MARKDOWN.md).

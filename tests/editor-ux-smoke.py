@@ -2,7 +2,7 @@
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import open_more,open_search
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
@@ -118,30 +118,30 @@ try:
    for path in ['/next/index.html','/mosaic/index.html']:
     page.evaluate('(path)=>{holdAck=false;rejectSaves=false;openEditor("a",path,true)}',path)
     e=page.frame_locator('#editor');field=e.get_by_role('textbox',name='Message' if path.startswith('/next') else 'Take a note',exact=True);expect(field).to_be_visible()
-    status=e.locator('.ui-save-feedback');page.evaluate('holdAck=true');field.fill('Slow draft '+path)
+    status=e.locator('.ui-save-feedback');page.evaluate('holdAck=true');fill_field(field,'Slow draft '+path)
     page.wait_for_function('acks.length===1');expect(status).not_to_be_visible();page.wait_for_timeout(350);expect(status).to_have_text('Saving…')
     page.evaluate('holdAck=false;releaseAcks()');expect(status).to_have_text('Saved');expect(status).not_to_be_visible(timeout=2000)
-    field.fill('Fast draft '+path);page.wait_for_function('(path)=>notes.a.content.text.includes("Fast draft "+path)',arg=path);page.wait_for_timeout(350);expect(status).not_to_be_visible()
+    fill_field(field,'Fast draft '+path);page.wait_for_function('(path)=>notes.a.content.text.includes("Fast draft "+path)',arg=path);page.wait_for_timeout(350);expect(status).not_to_be_visible()
     count=page.evaluate('saves.length');page.wait_for_timeout(500);assert page.evaluate('saves.length')==count
-    page.evaluate('rejectSaves=true');field.fill('Retain rejected draft '+path);page.wait_for_timeout(400);expect(status).not_to_be_visible();expect(field).to_have_value('Retain rejected draft '+path)
+    page.evaluate('rejectSaves=true');fill_field(field,'Retain rejected draft '+path);page.wait_for_timeout(400);expect(status).not_to_be_visible();expect(field).to_have_js_property('value','Retain rejected draft '+path)
     retry=e.get_by_role('button',name='Retry save',exact=True).last;expect(retry).to_be_visible();page.evaluate('rejectSaves=false');retry.click();page.wait_for_function('(path)=>notes.a.content.text.includes("Retain rejected draft "+path)',arg=path)
-    page.evaluate('holdAck=true');field.fill('Pending across note switch '+path);page.wait_for_function('acks.length===1');page.evaluate('switchNote("b")');expect(field).to_have_value('');page.wait_for_timeout(350)
+    page.evaluate('holdAck=true');fill_field(field,'Pending across note switch '+path);page.wait_for_function('acks.length===1');page.evaluate('switchNote("b")');expect(field).to_have_js_property('value','');page.wait_for_timeout(350)
     expect(status).not_to_be_visible()
-    page.evaluate('holdAck=false;releaseAcks();switchNote("a")');expect(field).to_have_value('Pending across note switch '+path)
+    page.evaluate('holdAck=false;releaseAcks();switchNote("a")');expect(field).to_have_js_property('value','Pending across note switch '+path)
     assert e.locator('body').evaluate('()=>__storageWrites.length')==0
    print(f'PASS {width}px: both editors save immediately, quiet fast/idle states, delayed saving label, acknowledged success, retained failed draft/retry and isolated note switches',flush=True)
 
-   e=page.frame_locator('#editor');e.locator('#capture-input').fill('');page.wait_for_timeout(80)
+   e=page.frame_locator('#editor');fill_field(e.locator('#capture-input'),'');page.wait_for_timeout(80)
    # Cmd/Ctrl+F uses whole-note search, while an open card keeps its normal editing keys.
-   e.locator('.card').first.focus();page.keyboard.press('Control+f');search=e.locator('#search');expect(search).to_be_focused();search.fill('Short 0');page.keyboard.press('Escape')
+   e.locator('.card').first.focus();page.keyboard.press('Control+f');search=e.locator('#search');expect(search).to_be_focused();fill_field(search,'Short 0');page.keyboard.press('Escape')
    e.locator('.card').first.focus();page.keyboard.press('Meta+f');expect(search).to_be_focused();assert search.evaluate('n=>n.selectionStart===0&&n.selectionEnd===n.value.length')
-   search.fill('');search.press('Escape');e.locator('.card').first.click();title=e.get_by_role('textbox',name='Card body',exact=True);title.focus();page.keyboard.press('Control+f');expect(title).to_be_focused();e.get_by_role('button',name='Close',exact=True).click()
+   fill_field(search,'');search.press('Escape');e.locator('.card').first.click();title=e.get_by_role('textbox',name='Card body',exact=True);title.focus();page.keyboard.press('Control+f');expect(title).to_be_focused();e.get_by_role('button',name='Close',exact=True).click()
    open_more(e);e.get_by_role('menuitem',name='Arrange tags',exact=True).click();dialog=e.get_by_role('dialog',name='Arrange tags',exact=True)
    assert dialog.locator('.tag-arrange-row').last.inner_text()=='Untagged'
-   add=dialog.get_by_role('textbox',name='Add an emoji category',exact=True);before=page.evaluate('saves.length');add.fill('__untagged__');add.press('Enter');expect(dialog.locator('.dialog-error')).to_contain_text('Choose an emoji');assert page.evaluate('saves.length')==before
-   add.fill('⭐');add.press('Enter');expect(dialog.get_by_role('button',name='Edit ⭐',exact=True)).to_be_visible()
+   add=dialog.get_by_role('textbox',name='Add an emoji category',exact=True);before=page.evaluate('saves.length');fill_field(add,'__untagged__');add.press('Enter');expect(dialog.locator('.dialog-error')).to_contain_text('Choose an emoji');assert page.evaluate('saves.length')==before
+   fill_field(add,'⭐');add.press('Enter');expect(dialog.get_by_role('button',name='Edit ⭐',exact=True)).to_be_visible()
    dialog.get_by_role('button',name='Move Untagged earlier',exact=True).click();expect(dialog.get_by_role('button',name='Move Untagged earlier',exact=True)).to_be_enabled()
-   dialog.get_by_role('button',name='Edit 📓',exact=True).click();replacement=e.get_by_role('textbox',name='Replacement emoji',exact=True);replacement.fill('⭐');replacement.press('Enter');expect(dialog).to_be_visible();assert dialog.get_by_role('button',name='Edit 📓',exact=True).count()==0
+   dialog.get_by_role('button',name='Edit 📓',exact=True).click();replacement=e.get_by_role('textbox',name='Replacement emoji',exact=True);fill_field(replacement,'⭐');replacement.press('Enter');expect(dialog).to_be_visible();assert dialog.get_by_role('button',name='Edit 📓',exact=True).count()==0
    merged=parse(page.evaluate('notes.a.content.text'));assert sum('⭐' in m['reactions'] for m in merged['messages'])==20
    assert len(merged['messages'])==80 and [m['text'] for m in merged['messages']]==[m['text'] for m in data['messages']]
    assert merged['settings']['extra']=={'keep':True} and merged['settings']['untaggedPosition']==7
@@ -149,7 +149,7 @@ try:
    page.once('dialog',lambda d:d.accept());dialog.get_by_role('button',name='Delete ⭐',exact=True).click();expect(dialog.get_by_role('button',name='Edit ⭐',exact=True)).not_to_be_visible()
    removed=parse(page.evaluate('notes.a.content.text'));assert all(not m['reactions'] for m in removed['messages']) and len(removed['messages'])==80
    # A failed tag change stays retryable through the same note session.
-   page.evaluate('rejectSaves=true');add.fill('🔬');add.press('Enter');expect(dialog.locator('.dialog-error')).to_contain_text('retained');dialog.get_by_role('button',name='Done',exact=True).click()
+   page.evaluate('rejectSaves=true');fill_field(add,'🔬');add.press('Enter');expect(dialog.locator('.dialog-error')).to_contain_text('retained');dialog.get_by_role('button',name='Done',exact=True).click()
    page.evaluate('switchNote("b")');page.wait_for_timeout(70);page.evaluate('switchNote("a")');page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click();page.wait_for_function('notes.a.content.text.includes("🔬")')
    # Menu grid and keyboard focus stay accessible; filter still has no counts.
    open_search(e);tag=e.get_by_role('button',name='Filter by 🔬',exact=True);tag.focus();assert tag.evaluate('n=>n.getBoundingClientRect().height')>=44;tag.press('Enter');expect(e.locator('#filter-pill')).to_be_visible();assert not any(c.isdigit() for c in e.locator('#filter-pill').inner_text())
@@ -171,7 +171,7 @@ try:
       e.get_by_role('button',name='Cancel selection',exact=True).click()
     page.emulate_media(color_scheme='light');print('PASS all three palettes/light/dark: menu, dialog, filter and selection contrast; visible keyboard focus and input focus',flush=True)
    page.evaluate('openEditor("a","/next/index.html",true)');im=page.frame_locator('#editor');expect(im.get_by_role('textbox',name='Message',exact=True)).to_be_visible();im.get_by_role('button',name='Search and tags',exact=True).click();expect(im.locator('.search-tags-panel .chip').filter(has_text='🔬').first).to_be_visible()
-   im.get_by_role('button',name='More options',exact=True).click();im.get_by_role('button',name='Arrange tags',exact=True).click();before=page.evaluate('saves.length');im.get_by_role('textbox',name='Add an emoji category',exact=True).fill('__untagged__');im.get_by_role('textbox',name='Add an emoji category',exact=True).press('Enter');expect(im.locator('.transfer-notice')).to_contain_text('Choose an emoji');assert page.evaluate('saves.length')==before
+   im.get_by_role('button',name='More options',exact=True).click();im.get_by_role('button',name='Arrange tags',exact=True).click();before=page.evaluate('saves.length');fill_field(im.get_by_role('textbox',name='Add an emoji category',exact=True),'__untagged__');im.get_by_role('textbox',name='Add an emoji category',exact=True).press('Enter');expect(im.locator('.transfer-notice')).to_contain_text('Choose an emoji');assert page.evaluate('saves.length')==before
    final=parse(page.evaluate('notes.a.content.text'));assert final['messages']==removed['messages'];assert final['settings']['extra']=={'keep':True}
    assert not errors,errors;assert not outside,outside
    print(f'PASS {width}px: focused full-note search, modal editing keys, shared tag merge/delete confirmations/reorder/Untagged, failure recovery and IM interchange; no storage writes/external requests',flush=True)

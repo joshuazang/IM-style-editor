@@ -16,6 +16,7 @@ const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board')
 let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null), searchPanelFit=null;
 let dragPreview=null;
+let captureEditor;
 const boardMotion=new MosaicBoardMotion(board,viewport);
 const boardDrag=new MosaicBoardDrag({board,viewport,
   canStart:()=>writable()&&!active.view.selecting&&!modal.open&&menu.hidden,
@@ -253,13 +254,14 @@ function renderNotice() {
 }
 function renderCapture() {
   const s=active,field=$('capture-input'),value=MosaicModel.normalized(s?.titleEntry?.text??s?.captureValue??'');
+  captureEditor?.setContext((s?.note.uuid||'')+':'+(s?.titleEntry?.id||'capture'),value,!!s?.titleEntry);
   field.setAttribute('aria-label',s?.titleEntry?'Title':'Take a note');field.placeholder=s?.titleEntry?'Write a title…':'Take a note…';
   if(field.value!==value)field.value=value;
   field.disabled=!writable();growCapture();
   const quote=$('capture-reply');quote.replaceChildren();quote.hidden=!s?.reply&&!s?.titleEntry;
-  if(s?.titleEntry){const source=s.messages.find(m=>m.id===s.titleEntry.id);quote.append(el('strong','','Title for card'),el('span','inline-quote',source?.text.slice(0,160)||'Card'),button('Cancel title entry','close',()=>{s.titleEntry=null;if(!s.dirty&&!s.pending)retainedSessions.delete(s.note.uuid);renderCapture();},'icon-button'));}
+  if(s?.titleEntry){const source=s.messages.find(m=>m.id===s.titleEntry.id);quote.append(el('strong','','Title for card'),el('span','inline-quote',source?imMarkdown.message(source).text.slice(0,160)||'Card':'Card'),button('Cancel title entry','close',()=>{s.titleEntry=null;if(!s.dirty&&!s.pending)retainedSessions.delete(s.note.uuid);renderCapture();},'icon-button'));}
   else if(s?.reply){
-    const text=button('Show quoted card',null,()=>jumpTo(s.reply),'inline-quote');text.textContent=s.reply.text.replace(/\s+/g,' ').slice(0,160)||'Quoted message';
+    const text=button('Show quoted card',null,()=>jumpTo(s.reply),'inline-quote');text.textContent=imMarkdown.message(s.reply).text.replace(/\s+/g,' ').slice(0,160)||'Quoted message';
     quote.append(text,button('Cancel reply','close',()=>safeRun(()=>update(s,{reply:null},false)),'icon-button danger'));
   }
 }
@@ -273,7 +275,7 @@ function inputCapture(){
 }
 function submitCapture(s=active,tag=s?.view.tag){
   if(s?.titleEntry){if(s.composing){s.submitAfterComposition={title:true};return Promise.resolve();}return submitTitle(s);}
-  if(!writable(s)||s.submission||!s.captureValue.trim())return Promise.resolve();
+  if(!writable(s)||s.submission||!imMarkdown.hasText(s.captureValue))return Promise.resolve();
   if(s.composing){s.submitAfterComposition={tag};return Promise.resolve();}
   const text=s.captureValue,revision=s.captureRevision;
   const tags=tag&&tag!=='__untagged__'?[tag]:[];
@@ -396,10 +398,11 @@ function renderWindow() {
     const bodyStyle=body&&getComputedStyle(body),titleStyle=title&&getComputedStyle(title);
     const bodyLine=bodyStyle?parseFloat(bodyStyle.lineHeight):0,titleLine=titleStyle?parseFloat(titleStyle.lineHeight):0;
     const titleLines=title?Math.max(1,Math.floor(available/titleLine)):0;
-    return {node,titleLines,bodyLines:body?Math.max(1,Math.floor(available/bodyLine)):0};
+    const bodyLines=body?Math.max(1,Math.floor(available/bodyLine)):0;
+    return {node,titleLines,bodyLines,bodyHeight:bodyLines?bodyLines*bodyLine:available};
   };
   const limits=measurements.map(previewLimit);
-  for(const {node,titleLines,bodyLines} of limits){node.style.setProperty('--board-title-lines',titleLines);node.style.setProperty('--board-body-lines',bodyLines);}
+  for(const {node,titleLines,bodyLines,bodyHeight} of limits){node.style.setProperty('--board-title-lines',titleLines);node.style.setProperty('--board-body-lines',bodyLines);node.style.setProperty('--board-body-height',bodyHeight+'px');}
   // Measure only newly mounted/resized previews, in one read batch. Reuse those
   // real heights on future layouts rather than leaving guessed empty space.
   let changed=false;const selecting=!!active?.view.selecting;
@@ -484,8 +487,12 @@ function cardNode(message,width) {
   if(s.view.selecting){const check=el('span','selection-check');if(s.view.selected.has(message.id))check.append(mosaicIcon('check'));node.append(check);node.setAttribute('aria-label',(s.view.selected.has(message.id)?'Selected: ':'Select: ')+MosaicModel.label(message));}
   const activate=()=>{if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);};
   if(parts.title)node.append(el('h2','card-title',parts.title));
-  if(message.replyTo)node.append(el('div','card-reply',message.replyTo.text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
-  if(parts.body)node.append(el('p','card-body',parts.body));
+  if(message.replyTo)node.append(el('div','card-reply',imMarkdown.message(message.replyTo).text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
+  if(parts.body){const body=el('div','card-body im-rich-display');imMarkdown.render(body,imMarkdown.bounded(message),index=>{
+    if(active!==s||!writable(s))return;
+    if(s.view.selecting){toggleSelection(message.id);return;}
+    const source=s.messages.find(m=>m.id===message.id);if(source)safeRun(()=>update(s,{messages:s.messages.map(m=>m===source?imFormat.editMessage(m,imMarkdown.toggleCheck(m.text,index)):m)}));
+  });node.append(body);}
   if(message.reactions.length){
     const tags=el('div','card-tags');
     const tagCount=MosaicModel.boardTagCount(message,width,MosaicModel.appearance(s.settings).fontSize);
@@ -620,7 +627,7 @@ function cardMenu(message,event) {
   const editing=modalState?.kind==='edit'&&modalState.uuid===s.note.uuid&&modalState.id===message.id?modalState:null;
   const current=()=>s.messages.find(m=>m.id===message.id);
   const saved=action=>async()=>{if(editing&&!(await editing.commit(false)))return;return action();};
-  showMenu([['Edit','edit',()=>editCard(message.id)],[imFormat.title(message)?'Edit title':'Add title','textSize',()=>{if(editing)editing.unlockTitle();else beginTitle(message.id);}],['Reply','reply',saved(()=>replyTo(message.id))],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
+  showMenu([['Edit','edit',()=>editCard(message.id)],...(imFormat.title(message)?[['Edit title','textSize',()=>{if(editing)editing.unlockTitle();else beginTitle(message.id);}]]:[]),['Reply','reply',saved(()=>replyTo(message.id))],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
     ['Copy','copy',saved(()=>copyRecords(s,[current()]))],['Select','select',saved(()=>{closeModal(true);startSelection(message.id);})],null,['Delete','trash',saved(()=>deleteCards(s,new Set([message.id]))),true]],event,{
     message:editing?{...message,reactions:[...editing.tags]}:message,
     toggleTag:tag=>{
@@ -726,6 +733,7 @@ function closeModal(force=false) {
   cancelAnimationFrame(modalState?.bodyFrame);
   clearCardMotion(modalState);if(modalState?.transitionSource)modalState.transitionSource.style.removeProperty('visibility');$('modal-content').inert=false;
   modalState?.layoutObserver?.disconnect();modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
+  modalState?.body?.imRich?.destroy();
   hideMenu();if(modal.open)modal.close();modalState=null;
 }
 function stashEdit() {
@@ -815,15 +823,7 @@ function finishCard(d){
 function cardBodyStart(text,settings){
   const font=MosaicModel.fontSizes[MosaicModel.appearance(settings).fontSize];
   const firstLines=Math.ceil(innerHeight/(font.editBody*1.75))+4;
-  let end=Math.min(4096,text.length),lines=0;
-  for(let i=0;i<Math.min(text.length,32768);i++){
-    const c=text.charCodeAt(i);
-    if(c===13||(c===10&&text.charCodeAt(i-1)!==13)){
-      lines++;if(lines===firstLines)end=Math.min(end,i+1);
-      if(lines>=128)break;
-    }
-  }
-  return {text:text.slice(0,end),complete:end===text.length};
+  return imMarkdown.preview(text,firstLines);
 }
 function editorDialog(id=null) {
   if(!id){$('capture-input').focus();return;}
@@ -842,7 +842,7 @@ function editorDialog(id=null) {
   }
   const title=el('textarea','editor-title');title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
   const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
-  const body=el('textarea','editor-body');body.rows=1;body.placeholder='Text';body.setAttribute('aria-label','Card body');const startBody=cardBodyStart(d.currentText,s.settings);body.value=startBody.text;body.enterKeyHint='enter';d.body=body;d.bodyReady=startBody.complete;body.readOnly=!d.bodyReady;if(!d.bodyReady)body.setAttribute('aria-busy','true');
+  const startBody=cardBodyStart(d.currentText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,onResize:()=>{if(body.isConnected)growBody();}}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
   // One scroller owns title, full-height body and trailing metadata. The toolbar
   // stays outside it; the textarea itself never reserves a second scrollbar.
   const revealEnd=()=>{const bottom=body.offsetTop+body.offsetHeight;if(bottom>scroller.scrollTop+scroller.clientHeight)scroller.scrollTop=bottom-scroller.clientHeight+8;};
@@ -860,11 +860,11 @@ function editorDialog(id=null) {
     scroller.scrollTop=top;
   };
   const prepareForInput=event=>{if(event.type==='keydown'&&['Escape','Tab','Shift','Control','Alt','Meta'].includes(event.key))return;if(!d.bodyReady){if(d.deferBodyUntilMotion)settleCardMotion();else d.prepareBody();}};
-  for(const event of ['pointerdown','keydown','compositionstart','beforeinput','paste','cut','drop']){body.addEventListener(event,prepareForInput);title.addEventListener(event,prepareForInput);}
+  for(const event of ['pointerdown','keydown','compositionstart','beforeinput','paste','cut','drop']){body.addEventListener(event,prepareForInput,true);title.addEventListener(event,prepareForInput,true);}
   let measuredWidth=0;
   d.layoutObserver=new ResizeObserver(()=>{const width=body.clientWidth;if(width!==measuredWidth){measuredWidth=width;growBody();}});
   d.layoutObserver.observe(d.root);
-  body.addEventListener('input',()=>growBody(true));
+  body.addEventListener('im-markdown-change',()=>growBody(true));
   body.addEventListener('keyup',event=>{if(event.key==='End'&&body.selectionEnd===body.value.length)revealEnd();if(event.key==='Home'&&body.selectionStart===0)scroller.scrollTop=body.offsetTop;});
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
   const header=el('div','card-detail-heading');header.append(titlePreview,title);scroller.append(header,body);
@@ -877,12 +877,12 @@ function editorDialog(id=null) {
   const palette=button('Background options','palette',event=>colorMenu(id,event));
   const more=button('Card options','more',event=>cardMenu(s.messages.find(m=>m.id===id),event),'icon-button detail-more');
   const close=button('Close',null,()=>safeRun(()=>saveEditor(true)),'detail-close');d.submit=close;
-  footer.append(pin,palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');if(isIPhone)d.bottom.append(d.tagBadges);d.bottom.append(footer);d.root.append(d.bottom);
+  footer.append(bodyEditor.toggle,pin,palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');if(isIPhone)d.bottom.append(d.tagBadges);d.bottom.append(bodyEditor.toolbar,footer);d.root.append(d.bottom);
   d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
   scroller.addEventListener('scroll',d.updateScroll,{passive:true});
   d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
   const change=event=>{d.fieldRevision++;if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}if(d.bodyReady)d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}d.updateScroll();};
-  title.addEventListener('input',change);body.addEventListener('input',change);
+  title.addEventListener('input',change);body.addEventListener('im-markdown-change',change);
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
   bindContextMenu(d.tagBadges,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
@@ -941,7 +941,7 @@ function readCard(id) {
   const s=active,message=s?.messages.find(m=>m.id===id);if(!message)return;
   const d=openModal('read','Card'),parts=MosaicModel.preview(message);
   if(message.replyTo){const quote=button('Show quoted card',null,()=>{closeModal();jumpTo(message.replyTo);},'reply-preview');quote.textContent=message.replyTo.text||'Quoted message';d.root.append(quote);}
-  d.root.append(el('h3','reader-title',parts.title),el('div','reader-body',parts.body),el('p','reader-meta',metaText(message)));
+  const body=el('div','reader-body im-rich-display');imMarkdown.render(body,imMarkdown.message(message).doc);d.root.append(el('h3','reader-title',parts.title),body,el('p','reader-meta',metaText(message)));
   const tags=el('div','reader-tags');for(const tag of message.reactions)tags.append(el('span','card-tag',tag));d.root.append(tags);
   actions(d,[button('Copy','copy',()=>safeRun(()=>copyRecords(s,[message])),'secondary-button'),button('Reply','reply',()=>replyTo(id),'secondary-button'),button('Edit','edit',()=>editCard(id),'primary-button')]);
 }
@@ -1100,7 +1100,9 @@ $('search-button').append(mosaicToolbarIcon('searchTags'));$('clear-filter').app
 $('search-button').addEventListener('click',toggleSearch);$('change-filter').addEventListener('click',toggleSearch);
 $('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';searchOpen=false;renderAll();});
 $('more-button').addEventListener('click',mainMenu);
-$('capture-input').addEventListener('input',inputCapture);
+captureEditor=imRichField.create({id:'capture-input',label:'Take a note',placeholder:'Take a note…',capture:true,sendButton:true,onSubmit:()=>safeRun(()=>submitCapture()),onResize:growCapture});
+const originalCapture=$('capture-field');originalCapture.replaceWith(captureEditor.wrapper);
+$('capture-input').addEventListener('im-markdown-change',inputCapture);
 $('capture-input').addEventListener('compositionstart',()=>{if(active)active.composing=true;});
 $('capture-input').addEventListener('compositionend',()=>{
   const s=active;if(!s)return;s.composing=false;
@@ -1112,7 +1114,6 @@ $('capture-input').addEventListener('compositionend',()=>{
     if(request)safeRun(()=>submitCapture(s,request.tag));
   },0);
 });
-bindSubmitField($('capture-input'),()=>safeRun(()=>submitCapture()),{composing:()=>!!active?.composing});
 let outsideCapture=null;
 document.addEventListener('pointerdown',event=>{
   outsideCapture=!active?.titleEntry&&document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu,.card-tag,#search-button,#change-filter,#search-tags-panel')?{session:active,tag:active?.view.tag,x:event.clientX,y:event.clientY}:null;

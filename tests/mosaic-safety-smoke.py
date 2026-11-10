@@ -2,7 +2,7 @@
 import functools, http.server, json, re, subprocess, threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import fill_search,click_outside_capture,choose_tag,open_more
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -53,24 +53,24 @@ try:
     context,page,e,errors,outside=start(width=width);field=e.locator('#capture-input')
     assert field.evaluate('n=>n.spellcheck') is False
     assert field.get_attribute('autocomplete')=='off' and field.get_attribute('writingsuggestions')=='false'
-    page.evaluate('rejectSaves=true;enforceContext=true');field.fill('Retained failed draft 🙂\n\nStill unsent')
+    page.evaluate('rejectSaves=true;enforceContext=true');fill_field(field,'Retained failed draft 🙂\n\nStill unsent')
     expect(e.locator('#notice')).to_contain_text('Saving was not confirmed')
-    page.evaluate('switchNote("b")');expect(field).to_have_value('')
-    page.evaluate('switchNote("a")');expect(field).to_have_value('Retained failed draft 🙂\n\nStill unsent')
+    page.evaluate('switchNote("b")');expect(field).to_have_js_property('value','')
+    page.evaluate('switchNote("a")');expect(field).to_have_js_property('value','Retained failed draft 🙂\n\nStill unsent')
     page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click()
     expect(e.locator('#notice')).not_to_be_visible()
-    expect(field).to_have_value('Retained failed draft 🙂\n\nStill unsent')
+    expect(field).to_have_js_property('value','Retained failed draft 🙂\n\nStill unsent')
     saved=parse(page.evaluate('notes.a.content.text'));assert saved['draft']=='Retained failed draft 🙂\n\nStill unsent' and len(saved['messages'])==20
     finish(context,errors,outside);print(f'PASS {width}px: rejected draft survives switches; Retry preserves unsent state; private input defaults',flush=True)
 
   # A failed final submission survives switching without duplication on retry.
   context,page,e,errors,outside=start();field=e.locator('#capture-input')
-  page.evaluate('rejectSaves=true');field.fill('Final message survives failure');click_outside_capture(e)
+  page.evaluate('rejectSaves=true');fill_field(field,'Final message survives failure');click_outside_capture(e)
   expect(e.locator('#notice')).to_contain_text('Saving was not confirmed')
-  expect(field).to_have_value('Final message survives failure')
-  page.evaluate('switchNote("b")');expect(field).to_have_value('');page.evaluate('switchNote("a")')
-  expect(field).to_have_value('Final message survives failure');page.evaluate('rejectSaves=false')
-  e.get_by_role('button',name='Retry save',exact=True).click();expect(field).to_have_value('')
+  expect(field).to_have_js_property('value','Final message survives failure')
+  page.evaluate('switchNote("b")');expect(field).to_have_js_property('value','');page.evaluate('switchNote("a")')
+  expect(field).to_have_js_property('value','Final message survives failure');page.evaluate('rejectSaves=false')
+  e.get_by_role('button',name='Retry save',exact=True).click();expect(field).to_have_js_property('value','')
   result=parse(page.evaluate('notes.a.content.text'))
   assert len(result['messages'])==21 and sum(m['text']=='Final message survives failure' for m in result['messages'])==1
   finish(context,errors,outside)
@@ -83,11 +83,11 @@ try:
     e.get_by_role('menuitem',name='Edit',exact=True).click()
     field=e.get_by_role('textbox',name='Card body',exact=True)
     assert field.evaluate('n=>n.spellcheck') is False
-    field.fill('Unfinished card '+str(index));page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
+    fill_field(field,'Unfinished card '+str(index));page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   for index in [3,2]:
     open_more(e);e.get_by_role('menuitem',name='Resume unfinished edit',exact=True).click()
-    expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_value('Unfinished card '+str(index))
+    expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_js_property('value','Unfinished card '+str(index))
     e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
   result=parse(page.evaluate('notes.a.content.text'))
   assert result['messages'][2]['text']=='Unfinished card 2' and result['messages'][3]['text']=='Unfinished card 3'
@@ -103,7 +103,7 @@ try:
     f.wait_for_function('typeof window.__finishClipboard==="function"')
     remote=changed(small['note']['content']['text'],"s.messages[19].text='New remote body';s.draft='New remote draft'")
     page.evaluate('(text)=>{notes.a.content.text=text;notes.a.content.title="New native title";stream(notes.a)}',remote)
-    expect(e.locator('#capture-input')).to_have_value('New remote draft');f.evaluate('window.__finishClipboard()')
+    expect(e.locator('#capture-input')).to_have_js_property('value','New remote draft');f.evaluate('window.__finishClipboard()')
     page.wait_for_function('(flag)=>notes.a.content.text.includes("\\n"+flag+"\\n")',arg=flag)
     result=parse(page.evaluate('notes.a.content.text'));assert result['messages'][19]['text']=='New remote body' and result['draft']=='New remote draft' and result['messages'][2][flag]
     assert page.evaluate('notes.a.content.title')=='New native title';finish(context,errors,outside)
@@ -112,7 +112,7 @@ try:
   # Inactive notes are not written through the current-note-only host permission.
   context,page,e,errors,outside=start();f=frame(page);f.evaluate('window.__holdClipboard=true')
   fill_search(e,'Thought 2');e.locator('.card').click(button='right');e.get_by_role('menuitem',name='Copy',exact=True).click();f.wait_for_function('typeof window.__finishClipboard==="function"')
-  page.evaluate('enforceContext=true;switchNote("b")');expect(e.locator('#capture-input')).to_have_value('')
+  page.evaluate('enforceContext=true;switchNote("b")');expect(e.locator('#capture-input')).to_have_js_property('value','')
   f.evaluate('window.__finishClipboard()');page.wait_for_timeout(80);assert page.evaluate('window.saveCount||0')==0
   page.evaluate('switchNote("a")');page.wait_for_function('(notes.a.content.text.match(/^copied$/gm)||[]).length===2')
   assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['copied'];finish(context,errors,outside)
@@ -127,9 +127,9 @@ try:
   assert result['messages'][2]['text']=='Changed while copying' and not result['messages'][2].get('copied');finish(context,errors,outside)
 
   for queued in [False,True]:
-    context,page,e,errors,outside=start();field=e.locator('#capture-input');page.evaluate('holdAck=true');field.fill('First draft')
+    context,page,e,errors,outside=start();field=e.locator('#capture-input');page.evaluate('holdAck=true');fill_field(field,'First draft')
     page.wait_for_function('acks.length>0')
-    if queued:field.fill('Latest queued draft')
+    if queued:fill_field(field,'Latest queued draft')
     page.evaluate('notes.a.content.title="Host title";notes.a.content.references=[{uuid:"fresh"}];notes.a.content.appData.unrelated.newField="keep";stream(notes.a)')
     page.evaluate('holdAck=false;releaseAcks()')
     page.wait_for_function('acks.length===0&&notes.a.content.title==="Host title"')
@@ -137,13 +137,13 @@ try:
     content=page.evaluate('notes.a.content');assert content['references']==[{'uuid':'fresh'}] and content['appData']['unrelated']['newField']=='keep'
     assert parse(content['text'])['draft']==('Latest queued draft' if queued else 'First draft')
     finish(context,errors,outside)
-  context,page,e,errors,outside=start();page.evaluate('notes.a.content.title="Idle host title";stream(notes.a)');e.locator('#capture-input').fill('Later write')
+  context,page,e,errors,outside=start();page.evaluate('notes.a.content.title="Idle host title";stream(notes.a)');fill_field(e.locator('#capture-input'),'Later write')
   page.wait_for_function('notes.a.content.text.includes("Later write")');assert page.evaluate('notes.a.content.title')=='Idle host title';finish(context,errors,outside)
   print('PASS: idle, in-flight and queued native metadata updates survive later saves',flush=True)
 
   # New host content cancels a queued local write; review preserves both versions.
-  context,page,e,errors,outside=start();field=e.locator('#capture-input');page.evaluate('holdAck=true');field.fill('First pending')
-  page.wait_for_function('acks.length>0');field.fill('Latest pending retained')
+  context,page,e,errors,outside=start();field=e.locator('#capture-input');page.evaluate('holdAck=true');fill_field(field,'First pending')
+  page.wait_for_function('acks.length>0');fill_field(field,'Latest pending retained')
   remote=changed(small['note']['content']['text'],"s.messages[19].text='Remote saved content';s.draft='Remote saved draft'")
   page.evaluate('(text)=>{notes.a.content.text=text;stream(notes.a)}',remote)
   expect(e.locator('#notice')).to_contain_text('neither version is silently overwritten');page.evaluate('holdAck=false;releaseAcks()');page.wait_for_timeout(100)
@@ -152,15 +152,15 @@ try:
   expect(e.get_by_role('textbox',name='Current local note text',exact=True)).to_have_value(re.compile('Latest pending retained'))
   expect(e.get_by_role('textbox',name='Standard Notes version',exact=True)).to_have_value(re.compile('Remote saved content'))
   e.get_by_role('button',name='Use Standard Notes version',exact=True).click();e.get_by_role('button',name='Use saved version',exact=True).click()
-  expect(field).to_have_value('Remote saved draft');finish(context,errors,outside)
+  expect(field).to_have_js_property('value','Remote saved draft');finish(context,errors,outside)
   print('PASS: conflicting host updates stop waiting writes and retain both versions until explicit review',flush=True)
 
   # All text-input updates keep the cached message section after changing records.
   large=fixture(5000);large['note']['content']['text']=changed(large['note']['content']['text'],"s.draft=''")
-  context,page,e,errors,outside=start(large);field=e.locator('#capture-input');field.fill('Prime cache')
-  page.wait_for_function('notes.a.content.text.includes("Prime cache")');click_outside_capture(e);expect(field).to_have_value('')
+  context,page,e,errors,outside=start(large);field=e.locator('#capture-input');fill_field(field,'Prime cache')
+  page.wait_for_function('notes.a.content.text.includes("Prime cache")');click_outside_capture(e);expect(field).to_have_js_property('value','')
   f=frame(page);f.evaluate('window.__perf={parses:0,joins:0,encodes:0}')
-  for i in range(5):field.fill('Post-send draft '+str(i));page.wait_for_function('(text)=>notes.a.content.text.includes(text)',arg='Post-send draft '+str(i))
+  for i in range(5):fill_field(field,'Post-send draft '+str(i));page.wait_for_function('(text)=>notes.a.content.text.includes(text)',arg='Post-send draft '+str(i))
   counters=f.evaluate('window.__perf');assert counters=={'parses':0,'joins':0,'encodes':0},counters
   assert e.locator('.card').count()<80
   finish(context,errors,outside);print('PASS: 5,000-message post-send typing performs zero full parses, section joins or unchanged bubble encodes',flush=True)

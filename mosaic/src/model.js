@@ -53,7 +53,8 @@ const MosaicModel = (() => {
   function prepare(message,previous){
     if(prepared.has(message))return prepared.get(message);
     const sameText=previous?.message.text===message.text&&imFormat.title(previous.message)===imFormat.title(message);
-    const value={message,search:sameText?previous.search:(imFormat.title(message)?imFormat.title(message)+'\n'+message.text:message.text).toLocaleLowerCase(),parts:sameText?previous.parts:{title:imFormat.title(message),body:message.text},tags:previous?.message.reactions===message.reactions?previous.tags:new Set(message.reactions)};
+    const readable=()=>typeof imMarkdown==='undefined'?message.text:imMarkdown.message(message).text;
+    const value={message,search:sameText?previous.search:(imFormat.title(message)?imFormat.title(message)+'\n'+readable():readable()).toLocaleLowerCase(),parts:sameText?previous.parts:{title:imFormat.title(message),body:message.text},tags:previous?.message.reactions===message.reactions?previous.tags:new Set(message.reactions)};
     prepared.set(message,value);return value;
   }
   function index(messages){
@@ -67,7 +68,7 @@ const MosaicModel = (() => {
     const value={byId,counts,tags,untagged,lastQuery:null};indexes.set(messages,value);latestIndex=value;return value;
   }
   const preview = message => prepare(message).parts;
-  const label = message => {const {title,body}=preview(message);return title||body.slice(0,70).replace(/\s+/g,' ').trim()||'Empty card';};
+  const label = message => {const {title,body}=preview(message);return title||(typeof imMarkdown==='undefined'?body:imMarkdown.message(message).text).slice(0,70).replace(/\s+/g,' ').trim()||'Empty card';};
   const boardTagLimit=10;
   const matches = (message, query, tag, pinned, pinIds) =>
     (!query || prepare(message).search.includes(query.toLocaleLowerCase())) &&

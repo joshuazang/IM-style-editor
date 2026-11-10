@@ -2,7 +2,7 @@
 import functools,http.server,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 ROOT=Path(__file__).resolve().parents[1];scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
 data=scope['fixture'](4)
@@ -23,7 +23,7 @@ try:
     assert tags.locator('.emoji-tag-body').first.evaluate('n=>getComputedStyle(n).fill')==card.locator('.emoji-tag-body').first.evaluate('n=>getComputedStyle(n).fill')
     count=page.evaluate('saves.length');tags.get_by_role('listitem').first.click();assert page.evaluate('saves.length')==count;expect(dialog).to_be_visible()
     e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();assert page.evaluate('saves.length')==count
-    card.click();body=e.get_by_role('textbox',name='Card body',exact=True);body.fill('Retain this failed edit');page.evaluate('rejectSaves=true');e.get_by_role('button',name='Close',exact=True).click();expect(e.get_by_role('button',name='Retry save',exact=True).last).to_be_visible();expect(body).to_have_value('Retain this failed edit')
+    card.click();body=e.get_by_role('textbox',name='Card body',exact=True);fill_field(body,'Retain this failed edit');page.evaluate('rejectSaves=true');e.get_by_role('button',name='Close',exact=True).click();expect(e.get_by_role('button',name='Retry save',exact=True).last).to_be_visible();expect(body).to_have_js_property('value','Retain this failed edit')
     page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).last.click();expect(dialog).not_to_be_visible()
     card.click();e.get_by_role('button',name='Close',exact=True).click();page.evaluate('stream({...notes.a,uuid:"replacement-note"})');expect(dialog).not_to_be_visible();assert e.locator('#modal-content').evaluate('n=>!n.inert')
     assert not errors,errors

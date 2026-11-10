@@ -2,7 +2,7 @@
 import functools,http.server,json,re,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
@@ -28,17 +28,17 @@ try:
    target=data['messages'][0]['id'];row=e.locator('[data-message-id="'+target+'"]')
    def edit():
     e.locator('.messages').evaluate('n=>n.scrollTop=0');row.click(button='right');e.get_by_role('menuitem',name='Edit',exact=True).click();return e.get_by_role('textbox',name='Edit message',exact=True)
-   field=edit();page.evaluate('rejectSaves=true');field.fill('Retained rejected edit');field.press('Enter')
-   expect(field).to_have_value('Retained rejected edit');expect(e.get_by_role('alert')).to_contain_text('Could not save')
+   field=edit();page.evaluate('rejectSaves=true');fill_field(field,'Retained rejected edit');field.press('Enter')
+   expect(field).to_have_js_property('value','Retained rejected edit');expect(e.get_by_role('alert')).to_contain_text('Could not save')
    assert parse(page.evaluate('notes.a.content.text'))['messages'][0]['text']==data['messages'][0]['text']
    page.evaluate('switchNote("b")');expect(e.get_by_role('textbox',name='Message',exact=True)).to_be_visible()
-   page.evaluate('switchNote("a")');expect(field).to_have_value('Retained rejected edit')
+   page.evaluate('switchNote("a")');expect(field).to_have_js_property('value','Retained rejected edit')
    page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(field).not_to_be_visible()
    assert parse(page.evaluate('notes.a.content.text'))['messages'][0]['text']=='Retained rejected edit'
    # New typing during a successful delayed edit acknowledgment stays editable.
-   field=edit();page.evaluate('holdAck=true');field.fill('First acknowledged edit');field.press('Enter');page.wait_for_function('acks.length===1')
-   expect(field).to_have_value('First acknowledged edit');field.fill('Newer edit survives acknowledgment')
-   page.evaluate('holdAck=false;releaseAcks()');expect(field).to_have_value('Newer edit survives acknowledgment')
+   field=edit();page.evaluate('holdAck=true');fill_field(field,'First acknowledged edit');field.press('Enter');page.wait_for_function('acks.length===1')
+   expect(field).to_have_js_property('value','First acknowledged edit');fill_field(field,'Newer edit survives acknowledgment')
+   page.evaluate('holdAck=false;releaseAcks()');expect(field).to_have_js_property('value','Newer edit survives acknowledgment')
    field.press('Enter');expect(field).not_to_be_visible();saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][0]['text']=='Newer edit survives acknowledgment'
    assert saved['messages'][0]['custom']=={'keep':True} and len(saved['messages'])==20
    # Non-text mutations also survive rejection and note switches.
@@ -47,12 +47,12 @@ try:
    expect(e.get_by_role('alert')).to_contain_text('Could not save');page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(e.get_by_role('alert')).not_to_be_visible()
    assert target in parse(page.evaluate('notes.a.content.text'))['settings']['pinnedMessageIds']
    # A metadata-only event cannot replace text, even when it carries an old body.
-   capture=e.get_by_role('textbox',name='Message',exact=True);capture.fill('Before conflict')
+   capture=e.get_by_role('textbox',name='Message',exact=True);fill_field(capture,'Before conflict')
    page.wait_for_function('notes.a.content.text.includes("Before conflict")')
    page.evaluate('(old)=>stream({...notes.a,isMetadataUpdate:true,updated_at:"2099-01-01T00:00:00Z",content:{...notes.a.content,text:old}})',data['note']['content']['text'])
-   expect(capture).to_have_value('Before conflict')
+   expect(capture).to_have_js_property('value','Before conflict')
    # Pause an actual waiting write for a genuinely different host version.
-   page.evaluate('holdAck=true;saves=[]');capture.fill('Local first draft');page.wait_for_function('acks.length===1');capture.fill('Local waiting draft')
+   page.evaluate('holdAck=true;saves=[]');fill_field(capture,'Local first draft');page.wait_for_function('acks.length===1');fill_field(capture,'Local waiting draft')
    def foreign(marker):
     return e.locator('body').evaluate('(n,[text,marker])=>{const f=__testFormat,d=f.inspect(text);return f.portable([...d.messages,{id:f.newId(),text:marker,reactions:[]}],d.settings,"Remote draft")}',[page.evaluate('notes.a.content.text'),marker])
    remote=foreign('Genuine incoming message');page.evaluate('(text)=>{notes.a={...notes.a,content:{...notes.a.content,text,title:"New native title"}};stream(notes.a)}',remote)
@@ -64,34 +64,34 @@ try:
    page.evaluate('holdAck=false;releaseAcks()');expect(dialog.get_by_role('button',name='Use Standard Notes version',exact=True)).to_be_enabled()
    assert page.evaluate('saves.length')==1 and 'Genuine incoming message' in page.evaluate('notes.a.content.text')
    # Cancel/close never chooses either version or re-enables writing.
-   dialog.get_by_role('button',name='Close',exact=True).click();capture.fill('New local draft while paused');capture.press('Enter');assert page.evaluate('saves.length')==1
+   dialog.get_by_role('button',name='Close',exact=True).click();fill_field(capture,'New local draft while paused');capture.press('Enter');assert page.evaluate('saves.length')==1
    e.locator('.messages').evaluate('n=>n.scrollTop=0');row.click(button='right');e.get_by_role('menuitem',name='Unpin',exact=True).click();assert page.evaluate('saves.length')==1
    e.get_by_role('button',name='Review text',exact=True).click();expect(dialog.get_by_role('textbox',name='Current local note text',exact=True)).to_contain_text('New local draft while paused')
    page.once('dialog',lambda d:d.dismiss());dialog.get_by_role('button',name='Use Standard Notes version',exact=True).click();assert 'Genuine incoming message' in page.evaluate('notes.a.content.text')
-   page.once('dialog',lambda d:d.accept());dialog.get_by_role('button',name='Use Standard Notes version',exact=True).click();expect(capture).to_have_value('Remote draft');expect(e.get_by_role('alert')).not_to_be_visible()
+   page.once('dialog',lambda d:d.accept());dialog.get_by_role('button',name='Use Standard Notes version',exact=True).click();expect(capture).to_have_js_property('value','Remote draft');expect(e.get_by_role('alert')).not_to_be_visible()
    assert page.evaluate('notes.a.content.title')=='New native title'
    # Choosing local is explicit, keeps refreshed native fields, and can be retried.
-   page.evaluate('holdAck=true;saves=[]');capture.fill('Local chosen first');page.wait_for_function('acks.length===1');capture.fill('Local chosen latest')
+   page.evaluate('holdAck=true;saves=[]');fill_field(capture,'Local chosen first');page.wait_for_function('acks.length===1');fill_field(capture,'Local chosen latest')
    remote=foreign('Second incoming message');page.evaluate('(text)=>{notes.a={...notes.a,content:{...notes.a.content,text,title:"Latest native title"}};stream(notes.a)}',remote)
    expect(e.get_by_role('alert')).to_contain_text('different version');page.evaluate('holdAck=false;releaseAcks()')
    e.get_by_role('button',name='Review text',exact=True).click();expect(dialog.get_by_role('button',name='Save my local version',exact=True)).to_be_enabled()
    page.evaluate('rejectSaves=true');page.once('dialog',lambda d:d.accept());dialog.get_by_role('button',name='Save my local version',exact=True).click()
    expect(e.get_by_role('alert')).to_contain_text('Could not save');assert 'Second incoming message' in page.evaluate('notes.a.content.text')
-   page.evaluate('switchNote("b")');page.wait_for_timeout(60);page.evaluate('switchNote("a")');expect(capture).to_have_value('Local chosen latest')
+   page.evaluate('switchNote("b")');page.wait_for_timeout(60);page.evaluate('switchNote("a")');expect(capture).to_have_js_property('value','Local chosen latest')
    page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(e.get_by_role('alert')).not_to_be_visible()
    saved=parse(page.evaluate('notes.a.content.text'));assert saved['draft']=='Local chosen latest' and all(m['text']!='Second incoming message' for m in saved['messages'])
    assert page.evaluate('notes.a.content.title')=='Latest native title'
    # Known content with new native fields rebases the waiting snapshot.
-   page.evaluate('holdAck=true');capture.fill('Metadata first');page.wait_for_function('acks.length===1');capture.fill('Metadata latest')
+   page.evaluate('holdAck=true');fill_field(capture,'Metadata first');page.wait_for_function('acks.length===1');fill_field(capture,'Metadata latest')
    page.evaluate('()=>{notes.a={...notes.a,content:{...notes.a.content,title:"Concurrent title"}};stream(notes.a)}')
    page.evaluate('holdAck=false;releaseAcks()');page.wait_for_function('notes.a.content.text.includes("Metadata latest")&&notes.a.content.title==="Concurrent title"')
-   expect(e.get_by_role('alert')).not_to_be_visible();expect(capture).to_have_value('Metadata latest')
+   expect(e.get_by_role('alert')).not_to_be_visible();expect(capture).to_have_js_property('value','Metadata latest')
    # Genuine parent updates in source-less mobile JSON form still reach the receiver.
    original=page.evaluate('subscription');item=page.evaluate('notes.a')
    e.locator('body').evaluate('(n,p)=>document.dispatchEvent(new MessageEvent("message",{origin:p.origin,source:null,data:JSON.stringify({action:"reply",original:p.original,data:{item:p.item}})}))',{'origin':BASE,'original':original,'item':item})
-   expect(capture).to_have_value('Metadata latest')
+   expect(capture).to_have_js_property('value','Metadata latest')
    page.evaluate('([original,item])=>{for(const request of [{...original,sessionKey:"wrong"},{...original,messageId:"unknown"}])editor.contentWindow.postMessage({action:"reply",original:request,data:{item:{...item,content:{...item.content,text:"Untrusted replacement"}}}},"*");editor.contentWindow.postMessage({action:"themes",data:{themes:["/untrusted.css"]}},"*")}',[original,item])
-   page.wait_for_timeout(60);expect(capture).to_have_value('Metadata latest')
+   page.wait_for_timeout(60);expect(capture).to_have_js_property('value','Metadata latest')
    assert e.locator('link[href*="untrusted.css"]').count()==0
    # Same-origin non-parent registration/themes and malformed messages are rejected.
    before=e.locator('body').evaluate('()=>({session:__testBridge.component.sessionKey,callbacks:__testBridge.sentMessages.length,links:document.querySelectorAll("link[rel=stylesheet]").length})')
@@ -103,7 +103,7 @@ try:
    # Exercise real selection/timer writers without successful preference replies.
    e.locator('body').evaluate('(n,id)=>new Promise(async resolve=>{for(let i=0;i<250;i++){__testRemember("audit-note",new Set([id]));__testTimer(5);await Promise.resolve()}resolve()})',target)
    assert e.locator('body').evaluate('()=>__testBridge.sentMessages.length')<=3
-   capture.fill('Still saving after bridge hardening');page.wait_for_function('notes.a.content.text.includes("Still saving after bridge hardening")')
+   fill_field(capture,'Still saving after bridge hardening');page.wait_for_function('notes.a.content.text.includes("Still saving after bridge hardening")')
    assert e.locator('body').evaluate('()=>__storageWrites.length')==0
    assert not errors,errors;assert not external,external
    print(f'PASS {width}px: rejected edits/pins retained across switches; acknowledged retry; newer typing; metadata/foreign-version handling and explicit review; sender/session guard; native JSON transport; bounded preference callbacks; no new browser persistence',flush=True)

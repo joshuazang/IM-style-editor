@@ -1,8 +1,8 @@
 """Phone capture, two-column layout, labels and preset colors; synthetic notes only."""
-import functools,http.server,json,re,threading
+import functools,http.server,json,re,threading,subprocess
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import fill_search,click_outside_capture,choose_tag,open_more
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
@@ -17,6 +17,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Handler,directory=str(ROOT)))
 threading.Thread(target=server.serve_forever,daemon=True).start();BASE='http://127.0.0.1:'+str(server.server_port)
 small=fixture(200)
+small['messages'][192]['title']='Legacy title'
+small['note']['content']['text']=subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(f.portable(d.messages,d.settings,d.draft));"],cwd=ROOT,input=json.dumps(small),text=True)
 try:
  with sync_playwright() as p:
   browser=p.chromium.launch(**chromium_options())
@@ -35,21 +37,21 @@ try:
    clipped=e.locator('.card').evaluate_all('nodes=>nodes.filter(n=>(n.querySelector(".card-body")||n.querySelector(".card-title")).getBoundingClientRect().bottom>n.getBoundingClientRect().bottom-2).map(n=>n.dataset.id)')
    assert not clipped,clipped
    # Keep focus, send with Enter, reveal the new card even while reading farther down.
-   e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight/2');field.fill('Sent from Enter')
+   e.locator('#viewport').evaluate('n=>n.scrollTop=n.scrollHeight/2');fill_field(field,'Sent from Enter')
    field.press('Shift+Enter');field.press('Shift+Enter');field.press('End');field.type('Exact second paragraph')
-   expect(field).to_have_value('Sent from Enter\n\nExact second paragraph');field.press('Enter')
-   expect(field).to_have_value('');assert field.evaluate('n=>document.activeElement===n')
-   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][-1]['text']=='Sent from Enter\n\nExact second paragraph'
+   expect(field).to_have_js_property('value','Sent from Enter<br>\nExact second paragraph');field.press('Enter')
+   expect(field).to_have_js_property('value','');assert field.evaluate('n=>document.activeElement===n')
+   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][-1]['text']=='Sent from Enter<br>\nExact second paragraph'
    card=e.locator('[data-id="'+saved['messages'][-1]['id']+'"]');expect(card).to_be_in_viewport()
    assert len(saved['messages'])==201
    # A soft keyboard beforeinput event also submits, without inserting a newline.
-   field.fill('Soft keyboard send')
+   fill_field(field,'Soft keyboard send')
    prevented=field.evaluate("n=>!n.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertLineBreak'}))")
-   assert prevented;expect(field).to_have_value('');saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][-1]['text']=='Soft keyboard send'
+   assert prevented;expect(field).to_have_js_property('value','');saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][-1]['text']=='Soft keyboard send'
    # An IME confirmation Enter is not a send.
-   field.fill('中文输入');field.evaluate("n=>n.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',keyCode:229,isComposing:true,bubbles:true,cancelable:true}))")
-   expect(field).to_have_value('中文输入');assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==202
-   field.fill('');page.wait_for_function('!notes.a.content.text.includes("中文输入")')
+   fill_field(field,'中文输入');field.evaluate("n=>n.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',keyCode:229,isComposing:true,bubbles:true,cancelable:true}))")
+   expect(field).to_have_js_property('value','中文输入');assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==202
+   fill_field(field,'');page.wait_for_function('!notes.a.content.text.includes("中文输入")')
    # Color and label actions are independent from text and status changes.
    fill_search(e,'Thought 192');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
    expect(card).to_be_visible();assert card.get_by_role('button',name='Background options',exact=True).count()==0
@@ -68,24 +70,24 @@ try:
    assert saved['messages'][192]['text']==small['messages'][192]['text'] and not saved['messages'][192].get('edited')
    # An opened card uses multiline Enter and saves with Close.
    card.click(button='right');e.get_by_role('menuitem',name='Edit',exact=True).click()
-   e.locator('.detail-more').click();e.get_by_role('menuitem',name='Add title',exact=True).click()
+   e.locator('.detail-more').click();e.get_by_role('menuitem',name='Edit title',exact=True).click()
    title=e.get_by_role('textbox',name='Card title',exact=True);body=e.get_by_role('textbox',name='Card body',exact=True)
-   title.fill('Changed title');title.press('End');title.press('Shift+Enter');expect(title).to_have_value('Changed title\n');body.focus()
-   body.fill('Body');body.press('Shift+Enter');body.type('New line');body.press('Enter');expect(body).to_have_value('Body\nNew line\n');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
-   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['text']=='Body\nNew line\n' and saved['messages'][192]['title']=='Changed title\n' and saved['messages'][192]['cardColor']=='iris'
+   fill_field(title,'Changed title');title.press('End');title.press('Shift+Enter');expect(title).to_have_js_property('value','Changed title\n');body.focus()
+   fill_field(body,'Body');body.press('Shift+Enter');body.type('New line');body.press('Enter');expect(body).to_have_js_property('value','Body\nNew line\n\n');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
+   saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['text']=='Body\nNew line\n\n' and saved['messages'][192]['title']=='Changed title\n' and saved['messages'][192]['cardColor']=='iris'
    # Colors survive editor round trips, including writes performed by IM.
    page.evaluate('openEditor("a","/next/index.html")');im=page.frame_locator('#editor').get_by_role('textbox',name='Message',exact=True)
-   im.fill('Draft from IM');page.wait_for_function('notes.a.content.text.includes("Draft from IM")');page.evaluate('openEditor("a")')
-   e=page.frame_locator('#editor');expect(e.locator('#capture-input')).to_have_value('Draft from IM')
+   fill_field(im,'Draft from IM');page.wait_for_function('notes.a.content.text.includes("Draft from IM")');page.evaluate('openEditor("a")')
+   e=page.frame_locator('#editor');expect(e.locator('#capture-input')).to_have_js_property('value','Draft from IM')
    saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][192]['cardColor']=='iris' and saved['messages'][192]['reactions']==['📓','📍']
    # A deliberate failed send keeps text, and retry creates exactly one card.
-   page.evaluate('rejectSaves=true');e.locator('#capture-input').fill('Keep rejected Enter');e.locator('#capture-input').press('Enter')
-   expect(e.locator('#notice')).to_contain_text('Saving was not confirmed');expect(e.locator('#capture-input')).to_have_value('Keep rejected Enter')
-   page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(e.locator('#capture-input')).to_have_value('')
+   page.evaluate('rejectSaves=true');fill_field(e.locator('#capture-input'),'Keep rejected Enter');e.locator('#capture-input').press('Enter')
+   expect(e.locator('#notice')).to_contain_text('Saving was not confirmed');expect(e.locator('#capture-input')).to_have_js_property('value','Keep rejected Enter')
+   page.evaluate('rejectSaves=false');e.get_by_role('button',name='Retry save',exact=True).click();expect(e.locator('#capture-input')).to_have_js_property('value','')
    assert sum(m['text']=='Keep rejected Enter' for m in parse(page.evaluate('notes.a.content.text'))['messages'])==1
    # Tapping a card tool still works when click-outside captures a draft first.
    fill_search(e,'Changed title');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
-   e.locator('#capture-input').fill('Touch outside still sends')
+   fill_field(e.locator('#capture-input'),'Touch outside still sends')
    card.click(button='right')
    expect(e.get_by_role('menuitem',name='Copy',exact=True)).to_be_visible();page.keyboard.press('Escape')
    assert parse(page.evaluate('notes.a.content.text'))['draft']=='Touch outside still sends'

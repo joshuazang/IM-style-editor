@@ -2,7 +2,7 @@
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 from mosaic_helpers import fill_search
 
 ROOT=Path(__file__).resolve().parents[1];scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
@@ -48,14 +48,14 @@ try:
      assert card.evaluate('n=>[...n.children].filter(c=>!c.classList.contains("selection-check")).every(c=>c.getBoundingClientRect().bottom<=n.getBoundingClientRect().bottom-2)'),(width,font,card.inner_text())
     body=cards[2].locator('.card-body');assert body.evaluate('n=>n.scrollHeight>n.clientHeight&&getComputedStyle(n).webkitLineClamp!=="none"')
     assert page.evaluate('saves.length')==0
-    cards[2].click();expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_value(texts[2]);e.get_by_role('button',name='Close',exact=True).click()
+    cards[2].click();expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_js_property('value',texts[2]);e.get_by_role('button',name='Close',exact=True).click()
     assert page.evaluate('saves.length')==0
     assert not errors,errors
     if width==390 and font=='large':page.screenshot(path='/tmp/mosaic-board-proportions.png')
     fill_search(e,'Hidden ending');expect(e.locator('.card')).to_have_count(1)
     assert cards[2].bounding_box()['height']<=ratio*minimum+1
     assert page.evaluate('saves.length')==0
-    cards[2].click();e.get_by_role('textbox',name='Card body',exact=True).fill('Shortened')
+    cards[2].click();fill_field(e.get_by_role('textbox',name='Card body',exact=True),'Shortened')
     e.get_by_role('button',name='Close',exact=True).click();fill_search(e,'Shortened');expect(e.locator('.card')).to_have_count(1)
     assert cards[2].bounding_box()['height']<2*minimum,'A shortened card must lose its full-height presentation'
     print(f'PASS {width}px {font}: proportional heights, {ratio}x body allowance, additive titles/tags/replies and intact opened text',flush=True)

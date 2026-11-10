@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.2.6](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.2.1](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.4.0](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.5.0](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -351,3 +351,24 @@ Mosaic 1.4.21 keeps the Board body preview at 8× on phones and expands it to
 
 Mosaic 1.4.22 keeps Card view open when a text selection starts inside the
 card and is released outside. Outside dismissal requires a press outside too.
+
+
+IM 4.4.0 / Mosaic 1.5.0 add one shared visual Markdown editor: bold,
+strikethrough, headings, quotation blocks, bullet/numbered lists and interactive
+checklists. Use **Aa** for formatting; the note still stores plain Markdown in
+its existing format-3 message bodies. New headings replace new separate-title
+entry; existing separate titles remain visible and editable. Viewing never
+converts message bodies. See [the editing rules](docs/VISUAL-MARKDOWN.md).
+
+In IM input and Mosaic Board input, ordinary Enter sends. In lists and
+checklists it continues the list, in quotes it continues the quotation, and
+after headings it starts ordinary text. In opened Mosaic cards ordinary Enter
+adds a paragraph. **Command/Control+Enter always creates ordinary text below the
+current format and clears bold/strike**; it never sends or closes. Shift+Enter
+keeps the current format and inserts a line break. **Send** works from every
+format; **Close** saves an opened Mosaic card.
+
+Both plugins bundle their editor dependencies locally with pinned official
+source checksums and license notices. No new runtime connection, plaintext
+browser storage or encryption layer is introduced. Existing save acknowledgment,
+conflict review and failed-draft protections also apply to formatted content.

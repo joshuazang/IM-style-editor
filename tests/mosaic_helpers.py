@@ -1,5 +1,6 @@
 """Use the real top-right controls; search and tags are now a popover."""
 from playwright.sync_api import expect
+from browser_engine import fill_field
 
 def open_search(editor):
     if not editor.locator('#search').is_visible():
@@ -10,7 +11,7 @@ def open_search(editor):
 
 def fill_search(editor,text):
     open_search(editor)
-    editor.locator('#search').fill(text)
+    fill_field(editor.locator('#search'),text)
     editor.locator('#search').press('Escape')
 
 def click_outside_capture(editor):

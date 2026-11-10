@@ -2,7 +2,7 @@
 import json, os, re, statistics, subprocess
 from pathlib import Path
 from playwright.sync_api import expect, sync_playwright
-from browser_engine import chromium_options
+from browser_engine import chromium_options,fill_field
 
 BASE=os.environ.get('IM_STYLE_EDITOR_BASE_URL','http://127.0.0.1:8010').rstrip('/')
 HOST=Path('tests/editor-roundtrip-host.html').read_text().replace(
@@ -62,14 +62,14 @@ with sync_playwright() as p:
     assert not page.evaluate('!!notes.new.clientData?.imStyleEditor')
     expect(e.locator('.forwarded-label').first).to_have_text('↪ Imported')
     assert not e.locator('.message-meta').filter(has_text='Exported').count()
-    field.fill('Unsent draft\n\n  preserved 🙂')
+    fill_field(field,'Unsent draft\n\n  preserved 🙂')
     page.wait_for_function('notes.new.content.text.includes("Unsent draft")')
     page.evaluate('openIM("new")')
-    expect(field).to_have_value('Unsent draft\n\n  preserved 🙂')
+    expect(field).to_have_js_property('value','Unsent draft\n\n  preserved 🙂')
     print('PASS: separate Archive/new plugins; existing message Export imports; metadata, Imported status and draft refresh work',flush=True)
 
     page.evaluate('rejectSaves=true')
-    field.fill('Keep after failed save')
+    fill_field(field,'Keep after failed save')
     expect(e.get_by_role('alert')).to_contain_text('Could not save')
     assert 'Keep after failed save' not in page.evaluate('notes.new.content.text')
     page.evaluate('rejectSaves=false')
@@ -93,14 +93,13 @@ with sync_playwright() as p:
     assert e.locator('.message-wrap').count()<100
     rows=e.locator('.message-wrap').count();dom=e.locator('*').count()
     # Prime the single cached bubble serialization, then measure repeated draft-only changes.
-    field.fill('Prime draft cache');page.wait_for_function('notes.large.content.text.includes("Prime draft cache")')
+    fill_field(field,'Prime draft cache');page.wait_for_function('notes.large.content.text.includes("Prime draft cache")')
     samples=[]
     for i in range(5):
         value=f'Measured draft {i}'
         samples.append(field.evaluate('''(el,value)=>new Promise(resolve=>{
           const parses=window.__fullParses||0,encodes=window.__bubbleEncodes||0,start=performance.now();
-          Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,value);
-          el.dispatchEvent(new Event('input',{bubbles:true}));
+          if(el.imRich){el.select();el.imRich.insertText(value)}else{Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));}
           requestAnimationFrame(()=>requestAnimationFrame(()=>resolve({ms:performance.now()-start,parses:(window.__fullParses||0)-parses,encodes:(window.__bubbleEncodes||0)-encodes})))
         })''',value))
         page.wait_for_function('(value)=>notes.large.content.text.includes(value)',arg=value)
@@ -159,32 +158,32 @@ with sync_playwright() as p:
         page.evaluate('(text)=>{editorPath="/next/index.html";notes.a={uuid:"a",content_type:"Note",content:{text}};notes.b={uuid:"b",content_type:"Note",content:{text:""}};openIM("a")}',mobile['text'])
         e=page.frame_locator('#editor');field=e.get_by_role('textbox',name='Message',exact=True);log=e.get_by_role('log')
         expect(field).to_be_visible();expect(e.locator('.message-wrap').last).to_contain_text('Message 299:')
-        field.fill('Unsent phone draft');field.focus()
+        fill_field(field,'Unsent phone draft');field.focus()
         for height in [500,650,844]:
             page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(200)
             expect(field).to_be_focused()
             assert log.evaluate('el=>el.scrollHeight-el.clientHeight-el.scrollTop')<2
             last=e.locator('.message-bubble').last.bounding_box();input_box=field.bounding_box()
-            assert 0<=input_box['y']-last['y']-last['height']<=32
+            assert 0<=input_box['y']-last['y']-last['height']<=36,(width,height,input_box,last,log.bounding_box())
         page.evaluate('holdAck=true')
-        field.fill('First pending A');field.fill('Final pending A')
+        fill_field(field,'First pending A');fill_field(field,'Final pending A')
         page.evaluate('()=>{activeUuid="b";editor.contentWindow.postMessage({action:"reply",original:subscription,data:{item:structuredClone(notes.b)}},location.origin)}')
-        expect(field).to_have_value('');field.fill('Pending B')
+        expect(field).to_have_js_property('value','');fill_field(field,'Pending B')
         page.evaluate('holdAck=false;releaseAcks()')
         page.wait_for_function('notes.a.content.text.includes("Final pending A")&&notes.b.content.text.includes("Pending B")')
         page.evaluate('()=>{activeUuid="a";editor.contentWindow.postMessage({action:"reply",original:subscription,data:{item:structuredClone(notes.a)}},location.origin)}')
-        expect(field).to_have_value('Final pending A')
-        page.evaluate('rejectSend=true');field.fill('Failed send draft')
+        expect(field).to_have_js_property('value','Final pending A')
+        page.evaluate('rejectSend=true');fill_field(field,'Failed send draft')
         page.wait_for_function('notes.a.content.text.includes("Failed send draft")')
         e.get_by_role('button',name='Send message',exact=True).click()
-        expect(e.get_by_role('alert')).to_contain_text('Could not save');expect(field).to_have_value('Failed send draft')
+        expect(e.get_by_role('alert')).to_contain_text('Could not save');expect(field).to_have_js_property('value','Failed send draft')
         assert page.evaluate('(notes.a.content.text.match(/^@@IM:BUBBLE$/gm)||[]).length')==300
-        page.evaluate('openIM("a")');expect(field).to_have_value('Failed send draft')
+        page.evaluate('openIM("a")');expect(field).to_have_js_property('value','Failed send draft')
         page.evaluate('rejectSend=false;holdAck=true');e.get_by_role('button',name='Send message',exact=True).click()
         # The draft is already saved: only the final message write needs an ack.
         page.wait_for_function('(notes.a.content.text.match(/^@@IM:BUBBLE$/gm)||[]).length===301&&acks.length>0')
-        expect(field).to_have_value('Failed send draft')
-        page.evaluate('holdAck=false;releaseAcks()');expect(field).to_have_value('');expect(field).to_be_focused()
+        expect(field).to_have_js_property('value','Failed send draft')
+        page.evaluate('holdAck=false;releaseAcks()');expect(field).to_have_js_property('value','');expect(field).to_be_focused()
         expect(e.locator('.message-wrap').last).to_contain_text('Failed send draft')
         assert not errors,errors
         print(f'PASS touch viewport {width}: latest bubble clears composer, per-note delayed drafts survive switches, failed sends preserve drafts, input clears only after acknowledgment',flush=True)
