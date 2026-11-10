@@ -14,6 +14,14 @@ try:
    context=browser.new_context(viewport={'width':width,'height':700},has_touch=width<600,is_mobile=width<600);page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
    page.goto(f'http://127.0.0.1:{server.server_port}/tests/markdown-field-host.html');detail=page.get_by_role('textbox',name='Card body',exact=True);box=page.locator('#detail')
    box.get_by_role('button',name='Text formatting',exact=True).click();toggle=box.get_by_role('button',name='Checklist',exact=True)
+   # Native typing and native multi-line fill exercise DOM-created paragraphs,
+   # unlike the separate Markdown paste path used by the fixtures below.
+   for method in ['Enter','Shift+Enter','fill']:
+    fill_field(detail,'Reset');detail.press('Control+a');detail.type('First line')
+    if method=='fill':detail.fill('First line\nSecond line\nThird line')
+    else:
+     detail.press(method);detail.type('Second line');detail.press(method);detail.type('Third line')
+    detail.press('Control+a');toggle.click();expect(detail.get_by_role('checkbox')).to_have_count(3);assert detail.locator('li p').all_text_contents()==['First line','Second line','Third line']
    fill_field(detail,'First task\nSecond task');detail.press('Control+a');toggle.click();expect(detail.get_by_role('checkbox')).to_have_count(2);expect(detail.locator('li')).to_have_count(2);expect(detail.locator('br')).to_have_count(0)
    # Hit targets end before the text; tapping the first character must not check it.
    for item in detail.locator('li').all():
