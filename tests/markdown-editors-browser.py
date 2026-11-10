@@ -6,6 +6,17 @@ from browser_engine import chromium_options,fill_field
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')};exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
 fixture,parse=scope['fixture'],scope['parse']
+def check_floating_formatting(e):
+ selectors=['dialog','.card-detail-tools','.card-detail-scroll']
+ before=[e.locator(s).bounding_box() for s in selectors]
+ toggle=e.get_by_role('button',name='Text formatting',exact=True)
+ toggle.click();panel=e.locator('.im-format-toolbar');expect(panel).to_be_visible()
+ e.get_by_role('button',name='Heading',exact=True).click()
+ assert [e.locator(s).bounding_box() for s in selectors]==before,'Formatting must not resize card, text pane or bottom controls'
+ assert panel.bounding_box()['y']+panel.bounding_box()['height']<=before[1]['y']+1
+ assert panel.evaluate('n=>{const r=n.getBoundingClientRect();return n.contains(document.elementFromPoint(r.left+20,r.top+20))}'),'Floating panel must remain clickable outside the short card'
+ e.get_by_role('button',name='Heading',exact=True).click();toggle.click()
+ assert [e.locator(s).bounding_box() for s in selectors]==before
 class H(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
  def end_headers(self):self.send_header('Access-Control-Allow-Origin','*');super().end_headers()
@@ -27,7 +38,7 @@ try:
     before=page.evaluate('notes.a.content.text');other='/next/index.html' if mosaic else '/mosaic/index.html';page.evaluate('(path)=>openEditor("a",path,true)',other);e=page.frame_locator('#editor');expect(e.locator('.message-body h2' if mosaic else '.card-body h2')).to_have_text('My heading');assert parse(page.evaluate('notes.a.content.text'))['messages']==parse(before)['messages']
     # Opened Mosaic cards are multiline; Ctrl/Meta+Enter never save/close.
     if not mosaic:
-     e.locator('.card').first.click();detail=e.get_by_role('textbox',name='Card body',exact=True);expect(detail.locator('h2')).to_have_text('My heading');detail.locator('h2').click();e.get_by_role('button',name='Text formatting',exact=True).click();e.get_by_role('button',name='Heading',exact=True).click();expect(e.get_by_role('button',name='Heading 2',exact=True)).to_have_attribute('aria-pressed','true');e.get_by_role('button',name='Heading 2',exact=True).click();expect(detail.locator('h2')).to_have_count(0);e.get_by_role('button',name='Heading',exact=True).click();e.get_by_role('button',name='Heading 2',exact=True).click();expect(detail.locator('h2')).to_have_text('My heading');detail.press('Control+End');detail.press('Meta+Enter');detail.type('Appended in card');expect(e.locator('dialog')).to_be_visible();assert parse(page.evaluate('notes.a.content.text'))['messages']==parse(before)['messages'];e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert 'Appended in card' in parse(page.evaluate('notes.a.content.text'))['messages'][0]['text'];assert next(f for f in page.frames if f.parent_frame).evaluate('imRichField.stats().live')==1
+     e.locator('.card').first.click();detail=e.get_by_role('textbox',name='Card body',exact=True);expect(detail.locator('h2')).to_have_text('My heading');e.locator('dialog').evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');check_floating_formatting(e);detail.locator('h2').click();e.get_by_role('button',name='Text formatting',exact=True).click();e.get_by_role('button',name='Heading',exact=True).click();expect(e.get_by_role('button',name='Heading 2',exact=True)).to_have_attribute('aria-pressed','true');e.get_by_role('button',name='Heading 2',exact=True).click();expect(detail.locator('h2')).to_have_count(0);e.get_by_role('button',name='Heading',exact=True).click();e.get_by_role('button',name='Heading 2',exact=True).click();expect(detail.locator('h2')).to_have_text('My heading');detail.press('Control+End');detail.press('Meta+Enter');detail.type('Appended in card');expect(e.locator('dialog')).to_be_visible();assert parse(page.evaluate('notes.a.content.text'))['messages']==parse(before)['messages'];e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert 'Appended in card' in parse(page.evaluate('notes.a.content.text'))['messages'][0]['text'];assert next(f for f in page.frames if f.parent_frame).evaluate('imRichField.stats().live')==1
      # Select one character in the middle of a plain-text three-line paragraph.
      # A heading belongs to that line, never all lines in the containing block.
      e.locator('.card').first.click();detail=e.get_by_role('textbox',name='Card body',exact=True);fill_field(detail,'Before line\nChosen line\nAfter line');detail.press('Control+Home');detail.press('ArrowDown');detail.press('ArrowRight');detail.press('Shift+ArrowRight');assert detail.evaluate('()=>getSelection().toString()')=='h'

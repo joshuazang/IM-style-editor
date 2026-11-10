@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.2](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.2.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.3](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.3.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -381,3 +381,6 @@ Mosaic 1.5.2 applies Heading to the current logical line, or only the selected
 lines in a multiline selection. Pasted text with single line breaks no longer
 becomes one large heading when only one character is selected. The shared fix
 preserves surrounding lines, inline marks, selection, Undo and saved formatting.
+
+Mosaic 1.5.3 floats the Aa formatting panel above the Card toolbar, keeping
+short cards compact and leaving the bottom controls and text area stationary.

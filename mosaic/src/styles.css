@@ -336,6 +336,8 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card-edit-dialog #modal-content .card-detail-scroll:not(:has(.detail-title:not([hidden]),.editor-title:not([hidden]))) .editor-body{padding-top:12px}
 .card-edit-dialog #modal-content .card-detail-meta{margin:6px 10px 0 0}
 .card-detail-bottom{position:relative;flex:none;background:inherit}
+.card-edit-dialog #modal-content{overflow:visible}
+.card-edit-dialog .card-detail-bottom>.im-format-toolbar{position:absolute;bottom:calc(100% + 6px);left:8px;right:8px;z-index:5;margin:0;max-height:min(240px,calc(50dvh - 24px));overflow:auto;overscroll-behavior:contain;box-shadow:0 5px 20px #00000026}
 .card-detail-bottom.has-content-below{box-shadow:0 -7px 10px -7px #00000045}
 .card-edit-dialog #modal-content .card-detail-tools{margin:0;padding:0 8px;gap:8px;align-items:flex-end}
 .card-edit-dialog #modal-content .card-detail-tools .icon-button{width:42px;height:42px}
