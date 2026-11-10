@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.1 / Mosaic 1.5.1.
+Status: implemented for IM 4.4.2 / Mosaic 1.5.2.
 
 ## Agreed behavior
 
@@ -13,6 +13,12 @@ Status: implemented for IM 4.4.1 / Mosaic 1.5.1.
 - Card view highlights the current H1–H6 choice. Clicking that active level
   again changes the selected heading to an ordinary paragraph in place; it
   preserves text and the caret rather than adding a new paragraph.
+- Heading applies to the whole current logical line (bounded by actual line
+  breaks), even when only one character is selected. A multiline selection
+  affects only its selected lines; ending at the next line's start excludes
+  that next line. Wrapped screen lines do not create new formatting boundaries.
+  Surrounding lines, blank lines and inline marks remain intact. Heading soft
+  breaks serialize explicitly so saved headings retain their line boundaries.
 - Ordinary paragraphs remain the default. A first line becomes a heading only
   through heading formatting or Markdown heading syntax.
 - Message bodies and capture drafts use one Markdown interpretation. The user

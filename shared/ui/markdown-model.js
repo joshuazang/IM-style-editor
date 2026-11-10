@@ -25,7 +25,7 @@ const imMarkdown=(()=>{
     list_item:(s,n)=>{if(n.attrs.checked!==null)s.write(n.attrs.checked?'[x] ':'[ ] ');s.renderContent(n);},
     // Single newlines display as line breaks in both editors. Consecutive or
     // trailing soft breaks need an explicit br so they cannot become paragraphs.
-    hard_break:(s,n,parent,index)=>s.write(index===parent.childCount-1?(s.options.imLastBlock===parent&&parent.type===schema.nodes.paragraph&&!s.delim&&parent.textContent.trim()?'\n':'<br>'):parent.child(index+1).type===schema.nodes.hard_break?'<br>':'\n'),text:base.nodes.text
+    hard_break:(s,n,parent,index)=>s.write(parent.type===schema.nodes.heading?'<br>':index===parent.childCount-1?(s.options.imLastBlock===parent&&parent.type===schema.nodes.paragraph&&!s.delim&&parent.textContent.trim()?'\n':'<br>'):parent.child(index+1).type===schema.nodes.hard_break?'<br>':'\n'),text:base.nodes.text
   },{strong:base.marks.strong,strike:{open:'~~',close:'~~',mixable:true,expelEnclosingWhitespace:true}},{tightLists:true,escapeExtraCharacters:/[&<]/g});
   const cache=new Map(),records=new WeakMap();let cachedCharacters=0;
   const entities={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:'\u00a0'};

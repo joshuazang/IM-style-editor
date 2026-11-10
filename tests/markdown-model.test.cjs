@@ -41,3 +41,8 @@ for(const content of [[s.text('end'),s.node('hard_break')],[s.node('hard_break')
 for(const source of ['- [ ] '+('item\n- [x] another\n').repeat(200),'# Heading\n\n'+('long body '.repeat(10000)),('\n'.repeat(500)+'last')]){
  const cut=m.preview(source,12,1024);assert.equal(cut.complete,false);assert.ok(cut.text.length<2048);m.parse(cut.text).check();
 }
+for(let level=1;level<=6;level++){
+ for(const content of [[s.text('one'),s.node('hard_break'),s.text('two')],[s.node('hard_break'),s.text('body')],[s.text('end'),s.node('hard_break')]]){
+  const d=doc([s.node('heading',{level},content),p('Ordinary after')]);assert.ok(m.parse(m.serialize(d)).eq(d),'Soft breaks inside headings retain their original scope');
+ }
+}

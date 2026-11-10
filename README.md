@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.4.1](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.5.1](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.4.2](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.5.2](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -379,3 +379,8 @@ Mosaic Board input, freeing that space for capture. Formatting controls remain
 in opened Mosaic cards. The heading picker highlights the current H1–H6 level;
 clicking that active level again returns the selected text to ordinary paragraphs
 without adding a line or removing text. Moving the caret updates the highlight.
+
+IM 4.4.2 / Mosaic 1.5.2 limit heading commands to the current logical line, or
+the lines covered by a selection. A single selected character no longer makes
+every line of a pasted paragraph a heading. Surrounding text, inline formatting,
+selection and blank lines are preserved, including through Undo and save/reopen.

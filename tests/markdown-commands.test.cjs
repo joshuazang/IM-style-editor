@@ -35,3 +35,42 @@ assert.equal(c.headingLevel(sameAll),2);const ordinary=run(sameAll,c.heading(2))
 const mixed=state('# One\n\n### Three'),mixedAll=mixed.apply(mixed.tr.setSelection(new d.state.AllSelection(mixed.doc)));
 assert.equal(c.headingLevel(mixedAll),null);assert.equal(c.headingLevel(run(mixedAll,c.heading(3))),3);
 console.log('PASS: H1–H6 current-level detection, same-level removal, level changes, whole-document and mixed selections preserve text/caret');
+
+function rangeState(text,first,last=first+1,backward=false){
+ let current=state(text);const doc=current.doc;
+ return current.apply(current.tr.setSelection(d.state.TextSelection.create(doc,backward?last:first,backward?first:last)));
+}
+const visible=doc=>doc.textBetween(0,doc.content.size,'\n','\n');
+for(const level of [1,2,3,4,5,6]){
+ for(const [from,to] of [[1,2],[13,14],[25,26],[11,12],[12,23],[13,24]]){
+  for(const backward of [false,true]){
+   const before=rangeState('First line\nSecond line\nThird line',from,to,backward),after=run(before,c.heading(level));
+   assert.equal(visible(after.doc),visible(before.doc),'All lines and line breaks survive');
+   const wanted=(from<=11?['First line']:[]).concat(from<=23&&to>12?['Second line']:[]).concat(to>24?['Third line']:[]);
+   const headings=[];after.doc.descendants(node=>{if(node.type.name==='heading')headings.push(node.textContent);});
+   assert.deepEqual(headings,wanted,JSON.stringify({from,to,backward,headings,wanted}));
+   assert.ok(m.parse(m.serialize(after.doc)).eq(after.doc),'Local headings round-trip');
+   assert.equal(after.selection.anchor>after.selection.head,backward&&after.selection.from!==after.selection.to,'Selection direction survives');
+  }
+ }
+}
+const one=rangeState('First line\nSecond line\nThird line',13,14),oneHeading=run(one,c.heading(2));
+assert.deepEqual(Array.from(oneHeading.doc.content.content,n=>n.type.name),['paragraph','heading','paragraph']);
+assert.equal(oneHeading.doc.textBetween(oneHeading.selection.from,oneHeading.selection.to),'e');
+const off=run(oneHeading,c.heading(2));off.doc.forEach(node=>assert.equal(node.type.name,'paragraph'));assert.equal(visible(off.doc),visible(one.doc));
+const cursor=run(state('First line\nSecond line\nThird line','Second'),c.heading(3));assert.equal(cursor.doc.child(1).type.name,'heading');assert.equal(cursor.doc.child(1).textContent,'Second line');
+const quoted=run(state('> First\n> Second\n> Third','Second'),c.heading(2));assert.equal(quoted.doc.firstChild.type.name,'blockquote');assert.equal(quoted.doc.firstChild.child(1).type.name,'heading');assert.equal(quoted.doc.firstChild.firstChild.type.name,'paragraph');assert.equal(quoted.doc.firstChild.lastChild.type.name,'paragraph');
+const marked=run(state('Before\n**Chosen ~~line~~**\nAfter','Chosen'),c.heading(2));assert.ok(marked.doc.child(1).firstChild.marks.some(mark=>mark.type.name==='strong'));assert.ok(m.parse(m.serialize(marked.doc)).eq(marked.doc));
+const emptyLines=run(state('Before<br>\nChosen<br>\nAfter','Chosen'),c.heading(4));assert.equal(visible(emptyLines.doc),'Before\n\nChosen\n\nAfter');assert.ok(m.parse(m.serialize(emptyLines.doc)).eq(emptyLines.doc));
+const twoParagraphs=rangeState('One\n\nTwo',1,6),boundary=run(twoParagraphs,c.heading(2));assert.equal(boundary.doc.firstChild.type.name,'heading');assert.equal(boundary.doc.lastChild.type.name,'paragraph');assert.equal(c.headingLevel(boundary),2);
+const withHistory=d.state.EditorState.create({doc:one.doc,selection:one.selection,plugins:[d.history.history()]});const changedOnce=run(withHistory,c.heading(2)),undone=run(changedOnce,d.history.undo);assert.ok(undone.doc.eq(one.doc),'One undo restores the original lines');assert.ok(undone.selection.eq(one.selection),'Undo restores the original selection');
+console.log('PASS: partial-character and cursor heading changes stay within selected lines; ranges, direction, quotes, marks, blank lines, save/reopen and undo retain surrounding text');
+const redone=run(run(run(changedOnce,c.heading(2)),d.history.undo),d.history.redo);assert.equal(c.headingLevel(redone),null);
+const toggled=run(changedOnce,c.heading(2)),undoToggle=run(toggled,d.history.undo);assert.ok(undoToggle.doc.eq(changedOnce.doc),'Each heading toggle is a separate undo action');
+for(const lineBreak of ['\n','\r\n']){
+ const literal=m.schema.node('doc',null,[m.schema.node('paragraph',null,m.schema.text('Before'+lineBreak+'Middle'+lineBreak+'After'))]);let pos=1+'Before'.length+lineBreak.length+2;
+ const initial=d.state.EditorState.create({doc:literal,selection:d.state.TextSelection.create(literal,pos,pos+1)}),localized=run(initial,c.heading(5));assert.equal(localized.doc.child(1).textContent,'Middle');assert.equal(localized.doc.firstChild.type.name,'paragraph');assert.equal(localized.doc.lastChild.type.name,'paragraph');
+}
+const item=run(state('- Before\n  Middle\n  After','Middle'),c.heading(3));assert.equal(item.doc.firstChild.type.name,'bullet_list');assert.equal(item.doc.firstChild.firstChild.child(1).type.name,'heading');assert.ok(m.parse(m.serialize(item.doc)).eq(item.doc));
+const unsupported=state('- First item','First');let didDispatch=false;assert.equal(c.heading(2)(unsupported,()=>didDispatch=true),false);assert.equal(didDispatch,false,'Unsupported list boundary cannot partially modify the document');
+const nodeSelected=d.state.EditorState.create({doc:one.doc,selection:d.state.NodeSelection.create(one.doc,0)}),nodeChanged=run(nodeSelected,c.heading(1));assert.equal(visible(nodeChanged.doc),visible(one.doc));assert.equal(c.headingLevel(nodeChanged),1);

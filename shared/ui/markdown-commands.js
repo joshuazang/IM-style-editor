@@ -54,19 +54,71 @@ const imMarkdownCommands=(()=>{
     });
   };}
   function quote(state,dispatch){return ancestor(state,schema.nodes.blockquote)?C.lift(state,dispatch):C.wrapIn(schema.nodes.blockquote)(state,dispatch);}
+  function selectedTextblocks(state,visit){
+    const {selection}=state;
+    if(selection.empty){if(selection.$from.parent.isTextblock)visit(selection.$from.parent,selection.$from.before());return;}
+    state.doc.nodesBetween(selection.from,selection.to,(node,pos)=>{
+      if(!node.isTextblock)return;
+      const start=pos+1,end=start+node.content.size;
+      if(selection.to>start&&(!node.content.size||selection.from<end))visit(node,pos);
+      return false;
+    });
+  }
   function headingLevel(state){
     if(state.selection.empty){const node=state.selection.$from.parent;return node.type===schema.nodes.heading?node.attrs.level:null;}
     let level=null,mixed=false;
-    state.doc.nodesBetween(state.selection.from,state.selection.to,node=>{
-      if(mixed)return false;
-      if(!node.isTextblock)return;
-      if(node.type!==schema.nodes.heading){mixed=true;return false;}
+    selectedTextblocks(state,node=>{
+      if(mixed)return;
+      if(node.type!==schema.nodes.heading){mixed=true;return;}
       if(level!==null&&level!==node.attrs.level)mixed=true;else level=node.attrs.level;
-      return false;
     });
     return mixed?null:level;
   }
-  function heading(level){return (state,dispatch)=>headingLevel(state)===level?C.setBlockType(schema.nodes.paragraph)(state,dispatch):C.setBlockType(schema.nodes.heading,{level})(state,dispatch);}
+  function heading(level){return (state,dispatch)=>{
+    const type=headingLevel(state)===level?schema.nodes.paragraph:schema.nodes.heading,attrs=type===schema.nodes.heading?{level}:null,changes=[];
+    // A pasted plain-text note can be one paragraph containing many hard
+    // breaks. Bound the heading to its selected lines before changing type.
+    selectedTextblocks(state,(node,pos)=>{
+      if(node.type===type&&(type!==schema.nodes.heading||node.attrs.level===level))return;
+      const lines=[];let start=0;
+      const boundary=(offset,size)=>{lines.push({from:start,to:offset});start=offset+size;};
+      node.forEach((child,offset)=>{
+        if(child.type===schema.nodes.hard_break)boundary(offset,1);
+        else if(child.isText){const breaks=/\r\n?|\n/g;let match;while((match=breaks.exec(child.text)))boundary(offset+match.index,match[0].length);}
+      });
+      lines.push({from:start,to:node.content.size});
+      const firstOffset=Math.max(0,state.selection.from-pos-1),lastOffset=state.selection.empty?firstOffset:Math.min(node.content.size,Math.max(0,state.selection.to-pos-2));
+      const lineAt=offset=>{const index=lines.findIndex(line=>offset<=line.to);return index<0?lines.length-1:index;};
+      const first=lineAt(firstOffset),last=lineAt(lastOffset),pieces=[];
+      const piece=(from,to,selected)=>pieces.push({from,to,node:selected?type.create(attrs,node.content.cut(from,to),node.marks):node.copy(node.content.cut(from,to))});
+      const unchanged=(from,to)=>{
+        // A leading soft break in a paragraph is stored as an empty Markdown
+        // paragraph. Make that boundary explicit so saving/reopening agrees.
+        while(node.type===schema.nodes.paragraph&&from<to&&lines[from].from===lines[from].to){piece(lines[from].from,lines[from].to,false);from++;}
+        piece(lines[from].from,lines[to].to,false);
+      };
+      if(first)unchanged(0,first-1);
+      for(let i=first;i<=last;i++)piece(lines[i].from,lines[i].to,true);
+      if(last<lines.length-1)unchanged(last+1,lines.length-1);
+      const $pos=state.doc.resolve(pos),index=$pos.index(),replacement=imRichDeps.model.Fragment.fromArray(pieces.map(piece=>piece.node));
+      changes.push({pos,node,pieces,replacement,valid:$pos.parent.canReplace(index,index+1,replacement)});
+    });
+    if(!changes.length||changes.some(change=>!change.valid))return false;
+    if(!dispatch)return true;
+    const tr=state.tr;
+    for(let i=changes.length-1;i>=0;i--){const change=changes[i];if(change.pieces.length===1)tr.setNodeMarkup(change.pos,type,attrs);else tr.replaceWith(change.pos,change.pos+change.node.nodeSize,change.replacement);}
+    const mapPosition=old=>{
+      const change=changes.find(change=>old>=change.pos&&old<=change.pos+change.node.nodeSize);
+      if(!change)return tr.mapping.map(old);
+      const offset=old-change.pos-1;let next=tr.mapping.map(change.pos,-1);
+      if(offset<0)return next+1;
+      for(const piece of change.pieces){if(offset<=piece.to)return next+1+Math.max(0,offset-piece.from);next+=piece.node.nodeSize;}
+      return next-1;
+    };
+    if(state.selection instanceof imRichDeps.state.AllSelection)tr.setSelection(new imRichDeps.state.AllSelection(tr.doc));
+    else tr.setSelection(TextSelection.between(tr.doc.resolve(mapPosition(state.selection.anchor)),tr.doc.resolve(mapPosition(state.selection.head))));
+    tr.setStoredMarks(state.storedMarks);dispatch(imRichDeps.history.closeHistory(tr).scrollIntoView());return true;
+  };}
   function markActive(state,name){const type=schema.marks[name],{$from,empty,from,to}=state.selection;return empty?!!type.isInSet(state.storedMarks||$from.marks()):state.doc.rangeHasMark(from,to,type);}
   return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,quote,headingLevel,heading,markActive};
 })();

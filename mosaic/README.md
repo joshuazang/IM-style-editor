@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.1](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.1.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.2](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.2.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -376,3 +376,8 @@ IM 4.4.1. Card view retains its formatting toolbar. H1–H6 choices show the act
 level with a tint, follow the caret or selection, and toggle back to ordinary
 text when the active level is clicked again. Text, selection and existing
 capture/send behavior are preserved.
+
+Mosaic 1.5.2 applies Heading to the current logical line, or only the selected
+lines in a multiline selection. Pasted text with single line breaks no longer
+becomes one large heading when only one character is selected. The shared fix
+preserves surrounding lines, inline marks, selection, Undo and saved formatting.
