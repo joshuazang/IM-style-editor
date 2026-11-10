@@ -19,9 +19,21 @@ try:
    fill_field(detail,'card text');count=page.evaluate('sends.length');detail.press('Enter');detail.type('second');detail.press('Meta+Enter');detail.type('third');assert detail.locator('p').count()==3;assert page.evaluate('sends.length')==count
    detail.press('Shift+Enter');detail.type('fourth');assert detail.locator('p').count()==3;assert detail.locator('br').count()>=1
    capture.evaluate('n=>{capture.setContext("task","- [ ] task");n.focus()}');capture.get_by_role('checkbox').click();assert '[x]' in capture.evaluate('n=>n.value')
-   capture.evaluate('n=>{capture.setContext("toolbar","select me");n.select();n.focus()}');page.locator('#capture').get_by_role('button',name='Text formatting',exact=True).click();page.locator('#capture').get_by_role('button',name='Bold',exact=True).click();assert capture.locator('strong').inner_text()=='select me'
+   expect(page.locator('#capture .im-format-toggle,#capture .im-format-toolbar')).to_have_count(0)
+   detail.evaluate('n=>{detail.setContext("toolbar","select me");n.select();n.focus()}');page.locator('#detail').get_by_role('button',name='Text formatting',exact=True).click();page.locator('#detail').get_by_role('button',name='Bold',exact=True).click();assert detail.locator('strong').inner_text()=='select me'
+   box=page.locator('#detail');heading=box.get_by_role('button',name='Heading',exact=True)
+   def choices():
+    if heading.get_attribute('aria-expanded')!='true':heading.click()
+   for level in range(1,7):
+    fill_field(detail,'Heading candidate');detail.press('Control+a');choices();box.get_by_role('button',name='Heading '+str(level),exact=True).click();expect(detail.locator('h'+str(level))).to_have_text('Heading candidate');choices()
+    for choice in range(1,7):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
+    active=box.get_by_role('button',name='Heading '+str(level),exact=True);assert active.evaluate('n=>getComputedStyle(n).backgroundColor') not in ['rgba(0, 0, 0, 0)','transparent'];active.click();expect(detail.locator('h1,h2,h3,h4,h5,h6')).to_have_count(0);expect(detail.locator('p')).to_have_text('Heading candidate');expect(heading).to_have_attribute('aria-pressed','false');assert detail.evaluate('n=>n.value')=='Heading candidate'
+   fill_field(detail,'# First\n\n### Third\n\nOrdinary')
+   for selector,level in [('h1',1),('h3',3),('p',0)]:
+    detail.locator(selector).click();choices()
+    for choice in range(1,7):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
    before=capture.evaluate('n=>n.value');capture.dispatch_event('keydown',{'key':'Enter','keyCode':229,'isComposing':True,'bubbles':True});assert capture.evaluate('n=>n.value')==before
    assert not errors,errors
-   print(json.dumps({'PASS':width,'checks':'visual bold/checkboxes; capture Enter; list/quote/heading continuation; Ctrl/Meta+Enter ordinary text; Shift+Enter; undo; selection retained by toolbar'}),flush=True);context.close()
+   print(json.dumps({'PASS':width,'checks':'visual bold/checkboxes; capture Enter; list/quote/heading continuation; Ctrl/Meta+Enter ordinary text; Shift+Enter; undo; no capture toolbar; selection retained in Card toolbar; H1–H6 active states and removal'}),flush=True);context.close()
   browser.close()
 finally:server.shutdown()

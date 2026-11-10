@@ -7,7 +7,7 @@ const imRichField=(()=>{
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
-    const controls=new Map();let send;
+    const formatting=!options.capture,controls=new Map(),headingLevels=new Map();let send;
     function action(label,content,command){
       const b=document.createElement('button');b.type='button';b.className='im-format-action';b.title=label;b.setAttribute('aria-label',label);b.textContent=content;
       b.addEventListener('pointerdown',event=>{if(event.button===0)event.preventDefault();});
@@ -17,17 +17,19 @@ const imRichField=(()=>{
     const execute=command=>command(view.state,view.dispatch,view);
     function refresh(){
       dom.dataset.empty=String(view.state.doc.childCount===1&&view.state.doc.firstChild.type===schema.nodes.paragraph&&!view.state.doc.firstChild.content.size);
+      const state=view.state,headingLevel=formatting?K.headingLevel(state):null;
       for(const [key,button] of controls){
-        const state=view.state;let active=false;
+        let active=false;
         if(key==='strong'||key==='strike')active=K.markActive(state,key);
         else if(key==='quote')active=!!K.ancestor(state,schema.nodes.blockquote);
         else if(key==='bullet')active=!!K.ancestor(state,schema.nodes.bullet_list)&&K.ancestor(state,schema.nodes.list_item)?.node.attrs.checked===null;
         else if(key==='ordered')active=!!K.ancestor(state,schema.nodes.ordered_list);
         else if(key==='checklist')active=K.ancestor(state,schema.nodes.list_item)?.node.attrs.checked!=null;
-        else if(key==='heading')active=state.selection.$from.parent.type===schema.nodes.heading;
+        else if(key==='heading')active=headingLevel!==null;
         button.setAttribute('aria-pressed',String(active));button.disabled=disabled||readOnly;
       }
-      toggle.disabled=disabled||readOnly;toggle.hidden=plain;
+      for(const [level,button] of headingLevels){button.setAttribute('aria-pressed',String(headingLevel===level));button.disabled=disabled||readOnly;}
+      toggle.disabled=disabled||readOnly;toggle.hidden=plain||!formatting;
       if(send)send.disabled=disabled||readOnly||!view.state.doc.textContent.trim();
       if(plain){toolbar.hidden=true;toggle.setAttribute('aria-expanded','false');}
     }
@@ -121,19 +123,22 @@ const imRichField=(()=>{
     dom.setSelectionRange=(from,to,direction)=>{const a=position(from),b=position(to);view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc,direction==='backward'?b:a,direction==='backward'?a:b)));};
     dom.select=()=>dom.setSelectionRange(0,source.length);
     function add(key,label,text,command){const b=action(label,text,()=>execute(command));controls.set(key,b);toolbar.append(b);return b;}
-    add('strong','Bold','B',C.toggleMark(schema.marks.strong)).classList.add('im-format-bold');
-    add('strike','Strikethrough','S',C.toggleMark(schema.marks.strike)).classList.add('im-format-strike');
-    add('quote','Quotation block','❞',K.quote);
-    add('bullet','Bullet list','•',K.toggleList('bullet'));
-    add('ordered','Numbered list','1.',K.toggleList('ordered'));
-    add('checklist','Checklist','☑',K.toggleList('checklist'));
-    const levels=document.createElement('div');levels.className='im-heading-levels';levels.hidden=true;
-    const headingButton=action('Heading','H',()=>{levels.hidden=!levels.hidden;headingButton.setAttribute('aria-expanded',String(!levels.hidden));config.onResize?.();});controls.set('heading',headingButton);toolbar.append(headingButton);headingButton.setAttribute('aria-expanded','false');
-    for(let level=1;level<=6;level++)levels.append(action('Heading '+level,'H'+level,()=>{execute(K.heading(level));levels.hidden=true;headingButton.setAttribute('aria-expanded','false');config.onResize?.();}));
-    toolbar.append(action('Start ordinary text','¶',()=>execute(K.exitFormat)),levels);
-    main.append(toggle,dom);
+    if(formatting){
+      add('strong','Bold','B',C.toggleMark(schema.marks.strong)).classList.add('im-format-bold');
+      add('strike','Strikethrough','S',C.toggleMark(schema.marks.strike)).classList.add('im-format-strike');
+      add('quote','Quotation block','❞',K.quote);
+      add('bullet','Bullet list','•',K.toggleList('bullet'));
+      add('ordered','Numbered list','1.',K.toggleList('ordered'));
+      add('checklist','Checklist','☑',K.toggleList('checklist'));
+      const levels=document.createElement('div');levels.className='im-heading-levels';levels.hidden=true;
+      const headingButton=action('Heading','H',()=>{levels.hidden=!levels.hidden;headingButton.setAttribute('aria-expanded',String(!levels.hidden));config.onResize?.();});controls.set('heading',headingButton);toolbar.append(headingButton);headingButton.setAttribute('aria-expanded','false');
+      for(let level=1;level<=6;level++){const choice=action('Heading '+level,'H'+level,()=>{execute(K.heading(level));levels.hidden=true;headingButton.setAttribute('aria-expanded','false');config.onResize?.();});headingLevels.set(level,choice);levels.append(choice);}
+      toolbar.append(action('Start ordinary text','¶',()=>execute(K.exitFormat)),levels);
+      main.append(toggle);
+    }
+    main.append(dom);
     if(options.sendButton){send=action('Send','↑',()=>config.onSubmit?.());send.classList.add('im-rich-send');main.append(send);}
-    wrapper.append(main,toolbar);refresh();
+    wrapper.append(main);if(formatting)wrapper.append(toolbar);refresh();
     const controller={dom,wrapper,toggle,toolbar,view,
       setContext:(key,value,plainMode=false)=>{const reset=key!==context||plain!==plainMode;context=key;plain=plainMode;setValue(value,reset);},
       configure:next=>{const before=JSON.stringify(attrs());config={...config,...next};if(next.disabled!==undefined)disabled=!!next.disabled;if(next.readOnly!==undefined)readOnly=!!next.readOnly;if(JSON.stringify(attrs())!==before)editableChanged();else refresh();},
@@ -141,7 +146,8 @@ const imRichField=(()=>{
       appendText:text=>{const selection=TextSelection.atEnd(view.state.doc),marks=view.state.storedMarks||selection.$from.marks();view.dispatch(view.state.tr.setSelection(selection).setStoredMarks(marks).insertText(text).scrollIntoView());view.focus();},
       backspaceAtEnd:()=>{view.dispatch(view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)));const state=view.state,from=state.selection.from,before=state.selection.$from.nodeBefore;if(state.selection.$from.parentOffset){const last=before?.isText?Array.from(before.text).at(-1):'';view.dispatch(state.tr.delete(from-(last?.length||1),from).scrollIntoView());}else C.joinBackward(state,view.dispatch,view);view.focus();},
       destroy:()=>{if(destroyed)return;destroyed=true;view.destroy();live--;wrapper.remove();toolbar.remove();toggle.remove();},
-      value:()=>source
+      value:()=>source,
+      get plain(){return plain;}
     };dom.imRich=controller;return controller;
   }
   return {create,stats:()=>({live})};

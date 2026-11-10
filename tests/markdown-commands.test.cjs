@@ -23,3 +23,15 @@ clearTasks.doc.firstChild.forEach(item=>assert.equal(item.attrs.checked,null));
 const wholeHeading=state('# Whole heading');
 const exitAll=run(wholeHeading.apply(wholeHeading.tr.setSelection(new d.state.AllSelection(wholeHeading.doc))),c.exitFormat);
 assert.equal(exitAll.doc.firstChild.type.name,'heading');assert.equal(exitAll.doc.lastChild.type.name,'paragraph');
+
+for(let level=1;level<=6;level++){
+ const before=state('#'.repeat(level)+' Heading');assert.equal(c.headingLevel(before),level);
+ const plain=run(before,c.heading(level));assert.equal(c.headingLevel(plain),null);assert.equal(plain.doc.firstChild.type.name,'paragraph');assert.equal(plain.doc.textContent,'Heading');assert.equal(plain.selection.head,before.selection.head);
+ const restore=run(plain,c.heading(level));assert.equal(c.headingLevel(restore),level);
+ const changed=run(before,c.heading(level===6?1:level+1));assert.equal(c.headingLevel(changed),level===6?1:level+1);
+}
+const same=state('## One\n\n## Two'),sameAll=same.apply(same.tr.setSelection(new d.state.AllSelection(same.doc)));
+assert.equal(c.headingLevel(sameAll),2);const ordinary=run(sameAll,c.heading(2));ordinary.doc.forEach(node=>assert.equal(node.type.name,'paragraph'));assert.equal(ordinary.doc.textContent,same.doc.textContent);
+const mixed=state('# One\n\n### Three'),mixedAll=mixed.apply(mixed.tr.setSelection(new d.state.AllSelection(mixed.doc)));
+assert.equal(c.headingLevel(mixedAll),null);assert.equal(c.headingLevel(run(mixedAll,c.heading(3))),3);
+console.log('PASS: H1–H6 current-level detection, same-level removal, level changes, whole-document and mixed selections preserve text/caret');

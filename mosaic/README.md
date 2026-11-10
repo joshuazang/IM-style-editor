@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.0](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.0.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.1](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.1.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -18,7 +18,7 @@ import them into a new format-3 note; keep the source until checked.
 ## Interface
 
 Each message becomes a card. All its text is body text, including the first line.
-Use Aa → Heading for optional heading text in the body. Existing separate title
+In an opened card, use Aa → Heading for optional heading text in the body. Existing separate title
 metadata remains readable and editable. Viewing a note does not rewrite it.
 Pins appear first. Cards start newest-first and can be arranged by dragging;
 new captures still appear first. Board order does not rearrange the IM timeline.
@@ -369,3 +369,10 @@ current format, clearing bold/strike. In Card view Enter remains multiline and
 Close saves through the existing acknowledgment/conflict protection. Legacy
 titles remain editable; new optional headings are body content. See
 [the shared contract and dependency provenance](../docs/VISUAL-MARKDOWN.md).
+
+
+Mosaic 1.5.1 keeps the Board capture field free of Aa/formatting controls, matching
+IM 4.4.1. Card view retains its formatting toolbar. H1–H6 choices show the active
+level with a tint, follow the caret or selection, and toggle back to ordinary
+text when the active level is clicked again. Text, selection and existing
+capture/send behavior are preserved.

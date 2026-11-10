@@ -17,5 +17,5 @@ def fill_field(locator,value,**kwargs):
     from playwright.sync_api import expect
     expect(locator).to_be_editable()
     if locator.evaluate('n=>!!n.imRich'):
-        locator.evaluate('''(n,text)=>{n.focus();n.select();if(n.imRich.toggle.hidden||!text){n.imRich.insertText(text);return;}const data=new DataTransfer();data.setData('text/plain',text);n.dispatchEvent(new ClipboardEvent('paste',{bubbles:true,cancelable:true,clipboardData:data}));}''',value)
+        locator.evaluate('''(n,text)=>{n.focus();n.select();if(n.imRich.plain||!text){n.imRich.insertText(text);return;}const data=new DataTransfer();data.setData('text/plain',text);n.dispatchEvent(new ClipboardEvent('paste',{bubbles:true,cancelable:true,clipboardData:data}));}''',value)
     else:locator.fill(value,**kwargs)

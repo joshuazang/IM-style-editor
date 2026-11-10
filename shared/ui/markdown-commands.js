@@ -54,7 +54,19 @@ const imMarkdownCommands=(()=>{
     });
   };}
   function quote(state,dispatch){return ancestor(state,schema.nodes.blockquote)?C.lift(state,dispatch):C.wrapIn(schema.nodes.blockquote)(state,dispatch);}
-  function heading(level){return C.setBlockType(schema.nodes.heading,{level});}
+  function headingLevel(state){
+    if(state.selection.empty){const node=state.selection.$from.parent;return node.type===schema.nodes.heading?node.attrs.level:null;}
+    let level=null,mixed=false;
+    state.doc.nodesBetween(state.selection.from,state.selection.to,node=>{
+      if(mixed)return false;
+      if(!node.isTextblock)return;
+      if(node.type!==schema.nodes.heading){mixed=true;return false;}
+      if(level!==null&&level!==node.attrs.level)mixed=true;else level=node.attrs.level;
+      return false;
+    });
+    return mixed?null:level;
+  }
+  function heading(level){return (state,dispatch)=>headingLevel(state)===level?C.setBlockType(schema.nodes.paragraph)(state,dispatch):C.setBlockType(schema.nodes.heading,{level})(state,dispatch);}
   function markActive(state,name){const type=schema.marks[name],{$from,empty,from,to}=state.selection;return empty?!!type.isInSet(state.storedMarks||$from.marks()):state.doc.rangeHasMark(from,to,type);}
-  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,quote,heading,markActive};
+  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,quote,headingLevel,heading,markActive};
 })();

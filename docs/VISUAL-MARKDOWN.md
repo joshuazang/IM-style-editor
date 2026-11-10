@@ -1,13 +1,18 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.0 / Mosaic 1.5.0.
+Status: implemented for IM 4.4.1 / Mosaic 1.5.1.
 
 ## Agreed behavior
 
 - Both IM and Mosaic support bold, quotation blocks, bullet lists, numbered
   lists, headings, interactive checklists, and strikethrough.
-- Editing is visual. Formatting commands and keyboard shortcuts are available;
-  typing Markdown symbols is not required.
+- Editing is visual. The formatting toolbar is available in opened Mosaic
+  cards. IM and Mosaic Board capture inputs have no Aa button, toolbar, or
+  reserved formatting-control space. Existing formatted content and keyboard
+  behavior remain supported in capture fields.
+- Card view highlights the current H1–H6 choice. Clicking that active level
+  again changes the selected heading to an ordinary paragraph in place; it
+  preserves text and the caret rather than adding a new paragraph.
 - Ordinary paragraphs remain the default. A first line becomes a heading only
   through heading formatting or Markdown heading syntax.
 - Message bodies and capture drafts use one Markdown interpretation. The user
