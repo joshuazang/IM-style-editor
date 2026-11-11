@@ -3,8 +3,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.4.4](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.5.5](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.4.5](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.5.6](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -396,3 +396,7 @@ IM 4.4.4 / Mosaic 1.5.5 convert selected plain-text lines into separate list
 items, retain empty checkboxes through save/reopen, and separate checkbox touch
 targets from text. Replacing all text clears old list structure; list/quote
 formatting commands each have a separate Undo step.
+
+IM 4.4.5 moves capture text and its placeholder 10px farther from the rounded
+left edge. Mosaic 1.5.6 moves capture text 2px left. Font sizes, vertical spacing
+and the two input shapes remain unchanged.
