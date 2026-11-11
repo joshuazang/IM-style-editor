@@ -1,6 +1,7 @@
 /* One toolbar, shared between manual Aa use and selected editable text. */
 function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
   const doc=dom.ownerDocument,win=doc.defaultView;let frame=0,floating=false,manualOpen=false,marker=null,dismissed='',destroyed=false,selecting=false;
+  const phone=()=>/\b(?:iPhone|iPod)\b|Android.*Mobile/i.test(win.navigator.userAgent)||(win.matchMedia('(pointer:coarse) and (hover:none)').matches&&Math.min(win.screen.width,win.screen.height)<=600);
   const key=()=>`${view.state.selection.from}:${view.state.selection.to}`;
   function restore(){
     if(!floating)return;
@@ -10,6 +11,7 @@ function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
   function close(){restore();if(!manualOpen){toolbar.querySelector('.im-heading-levels').hidden=true;toolbar.querySelector('[aria-label=Heading]').setAttribute('aria-expanded','false');}toolbar.hidden=!manualOpen;toggle.setAttribute('aria-expanded',String(manualOpen));}
   function render(){
     frame=0;if(destroyed)return;
+    if(phone()){if(!canFormat()){manualOpen=false;}close();return;}
     const selection=doc.getSelection(),active=doc.activeElement;
     const inside=selection?.rangeCount&&dom.contains(selection.anchorNode)&&dom.contains(selection.focusNode);
     const selected=!view.state.selection.empty&&inside&&!selection.isCollapsed;

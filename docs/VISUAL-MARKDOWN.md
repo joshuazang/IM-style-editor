@@ -1,14 +1,15 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.11 / Mosaic 1.5.12.
+Status: implemented for IM 4.4.12 / Mosaic 1.5.13.
 
 ## Agreed behavior
 
 - Both IM and Mosaic support bold, quotation blocks, bullet lists, numbered
   lists, headings, interactive checklists, and strikethrough.
 - Editing is visual. The formatting toolbar is available in opened Mosaic
-  cards through Aa, and beside selected text in all editable capture/body
-  fields. Capture inputs have no Aa button or reserved formatting-control
+  cards through Aa. Automatic selection popups are enabled in desktop editable
+  fields and disabled on phones, including IM capture/edit and Mosaic capture/
+  opened cards. The manual Card Aa toolbar remains available on phones. Capture inputs have no Aa button or reserved formatting-control
   space. Read-only sent bubbles and Board cards never open this toolbar.
 - Card view highlights the current H1–H6 choice. Clicking that active level
   again changes the selected heading to an ordinary paragraph in place; it
