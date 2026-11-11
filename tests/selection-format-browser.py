@@ -48,7 +48,7 @@ try:
      field.evaluate('n=>n.blur()');readonly.evaluate('n=>{const r=document.createRange();r.selectNodeContents(n);const s=getSelection();s.removeAllRanges();s.addRange(r);}');expect(popup).to_have_count(0)
      field.click();field.press(select_all);expect(popup).to_be_visible()
     if mode=='mosaic-card':
-     field.press('Alt+F10');page.keyboard.press('Escape');expect(e.locator('dialog')).not_to_be_visible()
+     field.press('Alt+F10');page.keyboard.press('Escape');expect(e.locator('dialog')).to_be_visible();assert field.evaluate('n=>n.imRich.view.state.selection.empty&&getSelection().isCollapsed');expect(popup).to_have_count(0);page.keyboard.press('Escape');expect(e.locator('dialog')).not_to_be_visible()
     # Context switches destroy the old popup; an ordinary caret never reserves space.
     page.evaluate('switchNote("b")');expect(e.locator('.im-format-toolbar.is-selection-format')).to_have_count(0)
     assert not errors,errors

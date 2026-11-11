@@ -63,19 +63,37 @@ try:
                 page.mouse.up()
                 still_open()
 
-            # Escape must reach the dialog cancel/save path on its first press,
-            # regardless of which formatting surface currently owns focus.
-            for toolbar_mode in ['caret','manual','heading-menu','selection','toolbar-focus']:
+            # Escape clears highlighted text before closing; without a selection,
+            # it closes even when a formatting panel owns focus.
+            for toolbar_mode in ['caret','manual','heading-menu','selection','backward-selection','toolbar-focus','title-input','readonly-title']:
                 open_card()
                 if toolbar_mode in ['manual','heading-menu']:
                     editor.get_by_role('button',name='Text formatting',exact=True).click()
                     if toolbar_mode=='heading-menu':editor.get_by_role('button',name='Heading',exact=True).click()
-                elif toolbar_mode in ['selection','toolbar-focus']:
+                elif toolbar_mode in ['selection','backward-selection','toolbar-focus']:
                     body.press('Control+a')
                     expect(editor.locator('.im-format-toolbar.is-selection-format')).to_be_visible()
+                    if toolbar_mode=='backward-selection':body.press('Control+End');body.press('Control+Shift+Home')
                     if toolbar_mode=='toolbar-focus':body.press('Alt+F10')
+                elif toolbar_mode=='title-input':
+                    body.press('Control+a')
+                    editor.locator('.detail-more').click();editor.get_by_role('menuitem',name='Edit title',exact=True).click()
+                    editor.get_by_role('textbox',name='Card title',exact=True).press('Control+a')
+                elif toolbar_mode=='readonly-title':
+                    editor.locator('.detail-title').evaluate('n=>{n.tabIndex=-1;n.focus();const r=document.createRange();r.selectNodeContents(n);const s=getSelection();s.removeAllRanges();s.addRange(r)}')
                 else:body.click()
+                head=body.evaluate('n=>{const s=getSelection();const v=n.imRich.view;return imRichDeps.state.TextSelection.near(v.state.doc.resolve(v.posAtDOM(s.focusNode,s.focusOffset))).head}') if toolbar_mode in ['selection','backward-selection','toolbar-focus'] else None
                 page.keyboard.press('Escape')
+                if toolbar_mode in ['selection','backward-selection','toolbar-focus','title-input','readonly-title']:
+                    still_open()
+                    if toolbar_mode=='title-input':assert editor.get_by_role('textbox',name='Card title',exact=True).evaluate('n=>n.selectionStart===n.selectionEnd')
+                    elif toolbar_mode=='readonly-title':assert body.evaluate('()=>getSelection().isCollapsed')
+                    else:
+                        assert body.evaluate('n=>n.imRich.view.state.selection.empty&&getSelection().isCollapsed')
+                        assert body.evaluate('n=>n.imRich.view.state.selection.head')==head,(toolbar_mode,head,body.evaluate('n=>n.imRich.view.state.selection.toJSON()'))
+                    expect(editor.locator('.im-format-toolbar.is-selection-format')).to_have_count(0)
+                    dialog.dispatch_event('keydown',{'key':'Escape','repeat':True,'bubbles':True});still_open()
+                    page.keyboard.press('Escape')
                 expect(dialog).not_to_be_visible()
                 assert page.evaluate('saves.length')==0
             open_card()
@@ -119,6 +137,7 @@ try:
             drag(body, 'right')
             assert page.evaluate('saves.length') == 0
             page.evaluate('rejectSaves=true')
+            body.press('Control+a');body.press('Escape');still_open()
             body.press('Escape')
             expect(editor.get_by_role('button', name='Retry save', exact=True).last).to_be_visible()
             expect(body).to_have_js_property('value',text + '\nRetained edit')
@@ -139,7 +158,7 @@ try:
             expect(dialog).not_to_be_visible()
             assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text'] == text + '\nWait for acknowledgment'
             assert not errors, errors
-            print(f'PASS reduced={reduced}: real body/title selection in all directions, press origin, cancellation, replaced dialogs, one-press Escape from caret/manual/selection/keyboard toolbars, ordinary outside close, acknowledgment and retained Escape failed save/retry', flush=True)
+            print(f'PASS reduced={reduced}: real body/title selection in all directions, press origin, cancellation, replaced dialogs, selection-first Escape from body/keyboard toolbars and one-press close without selection, ordinary outside close, acknowledgment and retained Escape failed save/retry', flush=True)
             context.close()
         context = browser.new_context(viewport={'width': 390, 'height': 1200}, user_agent='Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36', is_mobile=True, has_touch=True)
         page = context.new_page()

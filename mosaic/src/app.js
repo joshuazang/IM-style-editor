@@ -1173,12 +1173,28 @@ document.addEventListener('keydown',event=>{
     const next=event.key==='Home'?0:event.key==='End'?items.length-1:(i+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;items[next]?.focus();
   }
 });
-// ProseMirror's built-in key capture prevents Escape's native dialog action.
-// Handle it before the editor, using the same guarded save-and-close path
-// as Close, including failed-save retention and pending acknowledgments.
+// Escape clears a selection first; a subsequent press follows the same
+// guarded save-and-close path as Close. Capture it before ProseMirror prevents
+// the browser's native dialog action, while allowing IME cancellation to work.
+function clearCardSelection(event){
+  const field=document.activeElement;
+  if(modal.contains(field)&&field.matches('textarea,input')&&field.selectionStart!==null&&field.selectionStart!==field.selectionEnd){
+    const head=field.selectionDirection==='backward'?field.selectionStart:field.selectionEnd;field.setSelectionRange(head,head);return true;
+  }
+  const body=modalState.body,view=body?.imRich?.view,selection=window.getSelection();
+  const inBody=selection?.rangeCount&&body.contains(selection.anchorNode)&&body.contains(selection.focusNode);
+  if(view&&(inBody&&!selection.isCollapsed||!view.state.selection.empty&&(body.contains(event.target)||event.target.closest('.im-format-toolbar')))){
+    const head=inBody&&!selection.isCollapsed?view.posAtDOM(selection.focusNode,selection.focusOffset):view.state.selection.head;
+    view.dispatch(view.state.tr.setSelection(imRichDeps.state.TextSelection.near(view.state.doc.resolve(head))));view.focus();return true;
+  }
+  if(selection?.rangeCount&&!selection.isCollapsed&&modal.contains(selection.anchorNode)&&modal.contains(selection.focusNode)){
+    selection.collapse(selection.focusNode,selection.focusOffset);return true;
+  }
+  return false;
+}
 modal.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&!event.isComposing&&event.keyCode!==229&&!event.defaultPrevented&&modalState?.kind==='edit'&&!modalState.body?.imRich?.view.composing){
-    event.preventDefault();event.stopPropagation();closeModal();
+    event.preventDefault();event.stopPropagation();if(!event.repeat&&!clearCardSelection(event))closeModal();
   }
 },true);
 modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});

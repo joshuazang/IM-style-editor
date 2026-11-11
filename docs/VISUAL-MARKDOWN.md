@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.9 / Mosaic 1.5.9.
+Status: implemented for IM 4.4.9 / Mosaic 1.5.10.
 
 ## Agreed behavior
 
@@ -25,8 +25,10 @@ Status: implemented for IM 4.4.9 / Mosaic 1.5.9.
   operate on the current block. Each toggle is one undo step. If a deeply nested
   boundary cannot be split safely, the command leaves it unchanged instead of
   extending formatting into unselected text.
-- Escape in Mosaic Card View returns to Board through the ordinary save and
-  acknowledgment path, including with a formatting popup open or focused.
+- Escape in Mosaic Card View first collapses highlighted text, retaining the
+  caret and open card. With no selection, Escape returns to Board through the
+  ordinary save and acknowledgment path, including with a formatting popup open
+  or focused.
   An IM formatting popup still dismisses locally on Escape.
 - Ordinary paragraphs remain the default. A first line becomes a heading only
   through heading formatting or Markdown heading syntax.
