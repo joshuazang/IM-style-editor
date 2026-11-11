@@ -6,7 +6,7 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.4.5](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[IM-style-editor 4.4.6](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
 - **[Mosaic 1.5.6](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
@@ -403,3 +403,7 @@ formatting commands each have a separate Undo step.
 IM 4.4.5 moves capture text and its placeholder 10px farther from the rounded
 left edge. Mosaic 1.5.6 moves capture text 2px left. Font sizes, vertical spacing
 and the two input shapes remain unchanged.
+
+IM 4.4.6 restores native mouse/touch hit testing in the capture and message-edit
+fields. Edit initially places the caret at the end; subsequent clicks and native
+text selection control the caret normally. Mosaic is unchanged.

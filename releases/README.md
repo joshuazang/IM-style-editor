@@ -11,6 +11,7 @@ file contents: their original bytes are retained.
 
 ## IM
 
+- [4.4.5](im/4.4.5/)
 - [4.4.4](im/4.4.4/)
 - [4.4.3](im/4.4.3/)
 - [4.4.2](im/4.4.2/)

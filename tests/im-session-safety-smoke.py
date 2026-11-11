@@ -27,8 +27,21 @@ try:
    e=page.frame_locator('#editor');expect(e.get_by_role('textbox',name='Message',exact=True)).to_be_visible();page.wait_for_timeout(100)
    target=data['messages'][0]['id'];row=e.locator('[data-message-id="'+target+'"]')
    def edit():
-    e.locator('.messages').evaluate('n=>n.scrollTop=0');row.click(button='right');e.get_by_role('menuitem',name='Edit',exact=True).click();return e.get_by_role('textbox',name='Edit message',exact=True)
-   field=edit();page.evaluate('rejectSaves=true');fill_field(field,'Retained rejected edit');field.press('Enter')
+    e.locator('.messages').evaluate('n=>n.scrollTop=0');row.click(button='right');e.get_by_role('menuitem',name='Edit',exact=True).click();field=e.get_by_role('textbox',name='Edit message',exact=True);expect(field).to_be_focused();value=field.evaluate('n=>n.value');expect(field).to_have_js_property('selectionStart',len(value));expect(field).to_have_js_property('selectionEnd',len(value));return field
+   field=edit()
+   text='One line for click editing'
+   for offset in [0,4,len(text)]:
+    fill_field(field,text)
+    point=field.evaluate('(n,offset)=>{const r=document.createRange();r.setStart(n.querySelector("p").firstChild,offset);r.collapse(true);const c=r.getBoundingClientRect(),b=n.getBoundingClientRect();return {x:c.left-b.left+.2,y:c.top-b.top+c.height/2}}',offset)
+    field.click(position=point);expect(field).to_be_focused();expect(field).to_have_js_property('selectionStart',offset);field.type('!');expect(field).to_have_js_property('value',text[:offset]+'!'+text[offset:])
+   fill_field(field,'First line\nSecond line\nThird line')
+   point=field.evaluate('n=>{const text=[...n.querySelector("p").childNodes].find(c=>c.nodeType===3&&c.textContent.includes("Second")),r=document.createRange();r.setStart(text,3);r.collapse(true);const c=r.getBoundingClientRect(),b=n.getBoundingClientRect();return {x:c.left-b.left+.2,y:c.top-b.top+c.height/2}}')
+   field.click(position=point);field.type('!');expect(field).to_have_js_property('value','First line\nSec!ond line\nThird line')
+   fill_field(field,text)
+   def range_point(offset):
+    point=field.evaluate('(n,offset)=>{const r=document.createRange();r.setStart(n.querySelector("p").firstChild,offset);r.collapse(true);const c=r.getBoundingClientRect(),b=n.getBoundingClientRect();return {x:c.left-b.left+.2,y:c.top-b.top+c.height/2}}',offset);bounds=field.bounding_box();return (bounds['x']+point['x'],bounds['y']+point['y'])
+   page.mouse.move(*range_point(4));page.mouse.down();page.mouse.move(*range_point(8),steps=6);page.mouse.up();expect(field).to_have_js_property('selectionStart',4);expect(field).to_have_js_property('selectionEnd',8);field.type('replacement');expect(field).to_have_js_property('value',text[:4]+'replacement'+text[8:])
+   page.evaluate('rejectSaves=true');fill_field(field,'Retained rejected edit');field.press('Enter')
    expect(field).to_have_js_property('value','Retained rejected edit');expect(e.get_by_role('alert')).to_contain_text('Could not save')
    assert parse(page.evaluate('notes.a.content.text'))['messages'][0]['text']==data['messages'][0]['text']
    page.evaluate('switchNote("b")');expect(e.get_by_role('textbox',name='Message',exact=True)).to_be_visible()

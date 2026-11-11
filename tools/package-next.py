@@ -99,6 +99,7 @@ styles = ':root{color-scheme:light}\n' + (ROOT / css_path).read_text() + '''
 }
 '''
 styles += '\n' + ui_styles()
+styles += '\n.editor-shell .composer .im-rich-input{pointer-events:auto}\n'
 files = {}
 for data, suffix in [(script.encode(), '.js'), (styles.encode(), '.css')]:
     name = 'assets/index-' + hashlib.sha256(data).hexdigest()[:12] + suffix
