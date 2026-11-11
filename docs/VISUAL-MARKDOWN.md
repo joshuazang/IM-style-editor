@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.8 / Mosaic 1.5.8.
+Status: implemented for IM 4.4.9 / Mosaic 1.5.9.
 
 ## Agreed behavior
 
@@ -19,6 +19,15 @@ Status: implemented for IM 4.4.8 / Mosaic 1.5.8.
   that next line. Wrapped screen lines do not create new formatting boundaries.
   Surrounding lines, blank lines and inline marks remain intact. Heading soft
   breaks serialize explicitly so saved headings retain their line boundaries.
+- With a nonempty highlight, quotation blocks, bullet lists, numbered lists,
+  and checklists split at the exact text endpoints. Unselected paragraph
+  prefixes/suffixes retain their formatting. Without a highlight, these commands
+  operate on the current block. Each toggle is one undo step. If a deeply nested
+  boundary cannot be split safely, the command leaves it unchanged instead of
+  extending formatting into unselected text.
+- Escape in Mosaic Card View returns to Board through the ordinary save and
+  acknowledgment path, including with a formatting popup open or focused.
+  An IM formatting popup still dismisses locally on Escape.
 - Ordinary paragraphs remain the default. A first line becomes a heading only
   through heading formatting or Markdown heading syntax.
 - Message bodies and capture drafts use one Markdown interpretation. The user

@@ -46,7 +46,63 @@ const imMarkdownCommands=(()=>{
       return command(get(),apply);
     });
   }
-  function nearestList(state){for(let depth=state.selection.$from.depth;depth>0;depth--){const node=state.selection.$from.node(depth);if([schema.nodes.bullet_list,schema.nodes.ordered_list].includes(node.type))return {node,pos:state.selection.$from.before(depth)};}return null;}
+  // Block commands must not expand a nonempty highlight to its surrounding
+  // paragraph. Split the end first, then the start, including wrapper boundaries
+  // where the schema allows it. All steps remain one undoable transaction.
+  function exactSelection(state,dispatch,command,listMode=false){
+    if(state.selection.empty)return command(state,dispatch);
+    return transactionChain(state,dispatch,(get,apply)=>{
+      const tr=get().tr,{anchor,head}=get().selection;let {from,to,$from,$to}=get().selection;
+      // A range ending at the next paragraph's first caret has not selected
+      // that paragraph. Native blockRange otherwise includes it anyway.
+      if($to.parent.isTextblock&&$to.parentOffset===0&&$to.before()>from)to=TextSelection.findFrom(tr.doc.resolve($to.before()),-1,true)?.from??to;
+      if($from.parent.isTextblock&&$from.parentOffset===$from.parent.content.size&&$from.after()<to)from=TextSelection.findFrom(tr.doc.resolve($from.after()),1,true)?.from??from;
+      function boundary(original,assoc){
+        let pos=tr.mapping.map(original,assoc),$pos=tr.doc.resolve(pos);
+        const list=listMode?nearestList({selection:TextSelection.create(tr.doc,pos)}):null;
+        // List commands isolate the nearest list, keeping an enclosing quote or
+        // parent item intact. A plain paragraph only needs a textblock split.
+        const scope=listMode?(list?tr.doc.resolve(list.pos).depth+1:$pos.depth):1;
+        while($pos.depth&&($pos.parentOffset===0||$pos.parentOffset===$pos.parent.content.size)){
+          pos=$pos.parentOffset===0?$pos.before():$pos.after();$pos=tr.doc.resolve(pos);
+        }
+        for(let depth=$pos.depth-scope+1;depth>0;depth--){
+          // A nested list item must start with a paragraph. Try shallower
+          // splits rather than inserting empty parent items or invalid nodes.
+          const trial=get().tr;for(const step of tr.steps)trial.step(step);
+          const typesAfter=[];
+          for(let level=$pos.depth-depth+1;level<=$pos.depth;level++){
+            const node=$pos.node(level);typesAfter.push(node.type===schema.nodes.ordered_list?{type:node.type,attrs:{...node.attrs,order:node.attrs.order+$pos.index(level)}}:null);
+          }
+          try{trial.split(pos,depth,typesAfter);}catch{continue;}
+          for(let i=tr.steps.length;i<trial.steps.length;i++)tr.step(trial.steps[i]);return;
+        }
+      }
+      boundary(to,-1);boundary(from,1);
+      const first=tr.mapping.map(from,1),last=tr.mapping.map(to,-1);
+      tr.setSelection(TextSelection.between(tr.doc.resolve(anchor<=head?first:last),tr.doc.resolve(anchor<=head?last:first)));
+      if(tr.steps.length||!tr.selection.eq(get().selection))apply(tr);
+      return command(get(),apply);
+    });
+  }
+  const joinFormats=(before,after)=>before.type===after.type&&(before.type===schema.nodes.blockquote||before.type===schema.nodes.bullet_list||before.type===schema.nodes.ordered_list&&before.attrs.order+before.childCount===after.attrs.order);
+  function joinSelectedFormats(tr){
+    // Joining surrounding quotes can expose another join one level below it.
+    // Inspect only boundaries intersecting this highlight and its wrappers.
+    for(;;){
+      const from=Math.max(0,tr.selection.from-tr.selection.$from.depth),to=Math.min(tr.doc.content.size,tr.selection.to+tr.selection.$to.depth),points=[];
+      const scan=(node,start)=>{let previous=null;node.forEach((child,offset)=>{const pos=start+offset;if(previous&&pos>=from&&pos<=to&&joinFormats(previous,child))points.push(pos);previous=child;});};
+      scan(tr.doc,0);tr.doc.nodesBetween(from,to,(node,pos)=>{if(!node.isLeaf)scan(node,pos+1);});
+      if(!points.length)return tr;
+      for(const pos of points.sort((a,b)=>b-a))tr.join(pos);
+    }
+  }
+  function formatCommand(command,listMode=false){
+    return (state,dispatch)=>textSelection(state,dispatch?tr=>dispatch(imRichDeps.history.closeHistory(tr.docChanged?joinSelectedFormats(tr):tr)):undefined,(state,dispatch)=>exactSelection(state,dispatch,command,listMode));
+  }
+  function toggleList(kind){return formatCommand(listCommand(kind),true);}
+  function quote(state,dispatch){return formatCommand(quoteCommand)(state,dispatch);}
+  function nearestList(state){const item=ancestor(state,schema.nodes.list_item);if(item&&state.selection.$from.before()!==item.pos+1)return null;for(let depth=state.selection.$from.depth;depth>0;depth--){const node=state.selection.$from.node(depth);if([schema.nodes.bullet_list,schema.nodes.ordered_list].includes(node.type))return {node,pos:state.selection.$from.before(depth)};}return null;}
   function listKind(state){
     let kind=null,mixed=false;
     selectedTextblocks(state,(node,pos)=>{
@@ -56,10 +112,22 @@ const imMarkdownCommands=(()=>{
     });return mixed?null:kind;
   }
   function quoteActive(state){let count=0,active=true;selectedTextblocks(state,(node,pos)=>{count++;if(!ancestor({selection:TextSelection.create(state.doc,pos+1)},schema.nodes.blockquote))active=false;});return count>0&&active;}
-  function toggleList(kind){return (state,dispatch)=>textSelection(state,dispatch?tr=>dispatch(imRichDeps.history.closeHistory(tr)):undefined,(state,dispatch)=>{
+  function listCommand(kind){return (state,dispatch)=>textSelection(state,dispatch?tr=>dispatch(imRichDeps.history.closeHistory(tr)):undefined,(state,dispatch)=>{
     const type=kind==='ordered'?schema.nodes.ordered_list:schema.nodes.bullet_list;
     const list=nearestList(state);
     if(list){
+      if(!state.selection.empty&&listKind(state)===kind&&state.selection.to<=list.pos+list.node.nodeSize&&!state.doc.textBetween(list.pos,state.selection.from)&&!state.doc.textBetween(state.selection.to,list.pos+list.node.nodeSize)){
+        const unwrap=node=>{
+          if(node.type===schema.nodes.bullet_list||node.type===schema.nodes.ordered_list){const result=[];node.forEach(item=>item.forEach(child=>result.push(...unwrap(child))));return result;}
+          if(node.isTextblock)return [node];
+          const children=[];node.forEach(child=>children.push(...unwrap(child)));return [node.copy(imRichDeps.model.Fragment.fromArray(children))];
+        };
+        const replacement=imRichDeps.model.Fragment.fromArray(unwrap(list.node)),$pos=state.doc.resolve(list.pos),index=$pos.index();
+        if(!$pos.parent.canReplace(index,index+1,replacement))return false;
+        if(dispatch){const tr=state.tr.replaceWith(list.pos,list.pos+list.node.nodeSize,replacement),start=tr.doc.resolve(list.pos),end=tr.doc.resolve(list.pos+replacement.size);
+          tr.setSelection(TextSelection.between(state.selection.anchor<=state.selection.head?start:end,state.selection.anchor<=state.selection.head?end:start));dispatch(tr.scrollIntoView());}
+        return true;
+      }
       if(listKind(state)===kind)return transactionChain(state,dispatch,(get,apply)=>{
         while(listKind(get())===kind){
           const current=get();if(L.liftListItem(schema.nodes.list_item)(current,apply))continue;
@@ -73,6 +141,7 @@ const imMarkdownCommands=(()=>{
           apply(tr.setSelection(current.selection.map(tr.doc,tr.mapping)));
         }return true;
       });
+      if(state.selection.to>list.pos+list.node.nodeSize)return false;
       if(dispatch){const tr=state.tr;if(list.node.type!==type)tr.setNodeMarkup(list.pos,type,type===schema.nodes.ordered_list?{order:1}:null);dispatch(selectedItems(tr,kind==='checklist'?false:null).scrollIntoView());}return true;
     }
     return transactionChain(state,dispatch,(get,apply)=>{
@@ -81,12 +150,14 @@ const imMarkdownCommands=(()=>{
       return L.wrapInList(type)(get(),tr=>{if(kind==='checklist')selectedItems(tr,false);apply(tr);});
     });
   });}
-  function quote(state,dispatch){
+  function quoteCommand(state,dispatch){
     if(dispatch){const send=dispatch;dispatch=tr=>send(imRichDeps.history.closeHistory(tr));}
     if(!quoteActive(state)){
-      const wrap=C.wrapIn(schema.nodes.blockquote);if(wrap(state,dispatch))return true;
+      const wrap=C.wrapIn(schema.nodes.blockquote),range=state.selection.$from.blockRange(state.selection.$to);
+      const bounded=state.selection.empty||range&&!state.doc.textBetween(range.start,state.selection.from)&&!state.doc.textBetween(state.selection.to,range.end);
+      if(bounded&&wrap(state,dispatch))return true;
       const list=nearestList(state);
-      if(!list||state.selection.to>list.pos+list.node.nodeSize)return false;
+      if(!list||state.selection.to>list.pos+list.node.nodeSize||!state.selection.empty&&(state.doc.textBetween(list.pos,state.selection.from)||state.doc.textBetween(state.selection.to,list.pos+list.node.nodeSize)))return false;
       const temporary=state.apply(state.tr.setSelection(imRichDeps.state.NodeSelection.create(state.doc,list.pos)));
       return wrap(temporary,dispatch?tr=>dispatch(tr.setSelection(state.selection.map(tr.doc,tr.mapping))):undefined);
     }
@@ -104,6 +175,7 @@ const imMarkdownCommands=(()=>{
     });
     if(!ranges.length){const range=state.selection.$from.blockRange(state.selection.$to,node=>node.type===schema.nodes.blockquote);if(range)ranges.push(range);}
     if(!ranges.length)return false;
+    if(!state.selection.empty&&ranges.some(range=>state.doc.textBetween(range.start,state.selection.from)||state.doc.textBetween(state.selection.to,range.end)))return false;
     if(dispatch){const tr=state.tr;for(const range of ranges.reverse())tr.lift(range,range.depth-1);dispatch(tr.scrollIntoView());}return true;
   }
   function selectedTextblocks(state,visit){

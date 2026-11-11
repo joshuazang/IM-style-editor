@@ -48,7 +48,7 @@ function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
   const selectionIntent=event=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)||((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='a')){dismissed='';update();}};
   const released=()=>{selecting=false;update();};
   const keys=event=>{
-    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();dismiss();view.focus();}
+    if(event.key==='Escape'){if(dom.closest('dialog'))return;event.preventDefault();event.stopPropagation();dismiss();view.focus();}
     else if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){
       const buttons=[...toolbar.querySelectorAll('button:not(:disabled)')].filter(b=>b.getClientRects().length),index=buttons.indexOf(doc.activeElement);
       if(index<0)return;event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowLeft'?-1:1)+buttons.length)%buttons.length]?.focus();

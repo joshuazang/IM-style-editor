@@ -63,6 +63,21 @@ try:
                 page.mouse.up()
                 still_open()
 
+            # Escape must reach the dialog cancel/save path on its first press,
+            # regardless of which formatting surface currently owns focus.
+            for toolbar_mode in ['caret','manual','heading-menu','selection','toolbar-focus']:
+                open_card()
+                if toolbar_mode in ['manual','heading-menu']:
+                    editor.get_by_role('button',name='Text formatting',exact=True).click()
+                    if toolbar_mode=='heading-menu':editor.get_by_role('button',name='Heading',exact=True).click()
+                elif toolbar_mode in ['selection','toolbar-focus']:
+                    body.press('Control+a')
+                    expect(editor.locator('.im-format-toolbar.is-selection-format')).to_be_visible()
+                    if toolbar_mode=='toolbar-focus':body.press('Alt+F10')
+                else:body.click()
+                page.keyboard.press('Escape')
+                expect(dialog).not_to_be_visible()
+                assert page.evaluate('saves.length')==0
             open_card()
             for side in ['right', 'left', 'top', 'bottom']:
                 drag(body, side)
@@ -104,7 +119,7 @@ try:
             drag(body, 'right')
             assert page.evaluate('saves.length') == 0
             page.evaluate('rejectSaves=true')
-            page.mouse.click(*outside('left'))
+            body.press('Escape')
             expect(editor.get_by_role('button', name='Retry save', exact=True).last).to_be_visible()
             expect(body).to_have_js_property('value',text + '\nRetained edit')
             page.evaluate('rejectSaves=false')
@@ -124,7 +139,7 @@ try:
             expect(dialog).not_to_be_visible()
             assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text'] == text + '\nWait for acknowledgment'
             assert not errors, errors
-            print(f'PASS reduced={reduced}: real body/title selection in all directions, press origin, cancellation, replaced dialogs, ordinary outside close, acknowledgment and retained failed save/retry', flush=True)
+            print(f'PASS reduced={reduced}: real body/title selection in all directions, press origin, cancellation, replaced dialogs, one-press Escape from caret/manual/selection/keyboard toolbars, ordinary outside close, acknowledgment and retained Escape failed save/retry', flush=True)
             context.close()
         context = browser.new_context(viewport={'width': 390, 'height': 1200}, user_agent='Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36', is_mobile=True, has_touch=True)
         page = context.new_page()

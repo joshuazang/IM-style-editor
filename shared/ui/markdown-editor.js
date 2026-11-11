@@ -94,7 +94,7 @@ const imRichField=(()=>{
         }
       },
       handleKeyDown:(v,event)=>{
-        if(event.key==='Escape'&&floating?.dismiss()){event.preventDefault();event.stopPropagation();return true;}
+        if(event.key==='Escape'&&!dom.closest('dialog')&&floating?.dismiss()){event.preventDefault();event.stopPropagation();return true;}
         if((event.key==='End'||event.key==='Home')&&v.state.selection instanceof imRichDeps.state.AllSelection){v.dispatch(v.state.tr.setSelection(event.key==='End'?TextSelection.atEnd(v.state.doc):TextSelection.atStart(v.state.doc)).scrollIntoView());return true;}
         if(event.key!=='Enter'){config.onKeyDown?.(event);if(event.defaultPrevented)return true;}return enter(event);
       },

@@ -1173,6 +1173,14 @@ document.addEventListener('keydown',event=>{
     const next=event.key==='Home'?0:event.key==='End'?items.length-1:(i+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;items[next]?.focus();
   }
 });
+// ProseMirror's built-in key capture prevents Escape's native dialog action.
+// Handle it before the editor, using the same guarded save-and-close path
+// as Close, including failed-save retention and pending acknowledgments.
+modal.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!event.isComposing&&event.keyCode!==229&&!event.defaultPrevented&&modalState?.kind==='edit'&&!modalState.body?.imRich?.view.composing){
+    event.preventDefault();event.stopPropagation();closeModal();
+  }
+},true);
 modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});
 function isOutsideModal(event){const box=modal.getBoundingClientRect();return event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom;}
 modal.addEventListener('pointerdown',event=>{

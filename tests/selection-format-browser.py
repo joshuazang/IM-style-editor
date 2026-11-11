@@ -32,13 +32,14 @@ try:
     if manual:assert manual.evaluate('(n)=>n.classList.contains("is-selection-format")')
     assert field.evaluate('()=>getSelection().toString()')=='beta'
     bold=popup.get_by_role('button',name='Bold',exact=True);bold.click();expect(field.locator('strong')).to_have_text('beta');expect(bold).to_have_attribute('aria-pressed','true');bold.click();expect(field.locator('strong')).to_have_count(0);assert field.evaluate('()=>getSelection().toString()')=='beta'
-    quote=popup.get_by_role('button',name='Quotation block',exact=True);quote.click();expect(field.locator('blockquote')).to_have_count(1)
+    quote=popup.get_by_role('button',name='Quotation block',exact=True);quote.click();expect(field.locator('blockquote')).to_have_count(1);expect(field.locator('blockquote')).to_have_text('beta')
     style=field.locator('blockquote').evaluate('n=>({bg:getComputedStyle(n).backgroundColor,radius:getComputedStyle(n).borderRadius,mark:getComputedStyle(n,"::after").content})');assert style['bg'] not in ['transparent','rgba(0, 0, 0, 0)'] and style['radius']=='7px' and '”' in style['mark'],style
     quote.click();expect(field.locator('blockquote')).to_have_count(0)
-    popup.get_by_role('button',name='Heading',exact=True).click();expect(popup.get_by_role('button',name='Heading 2',exact=True)).to_be_visible();popup.get_by_role('button',name='Heading 2',exact=True).click();expect(field.locator('h2')).to_have_text('alpha beta gamma')
+    popup.get_by_role('button',name='Heading',exact=True).click();expect(popup.get_by_role('button',name='Heading 2',exact=True)).to_be_visible();popup.get_by_role('button',name='Heading 2',exact=True).click();expect(field.locator('h2')).to_have_text('beta')
     assert len(scope['parse'](page.evaluate('notes.a.content.text'))['messages'])==1,'Formatting must not send the capture draft'
-    field.press('Escape');expect(popup).to_have_count(0);expect(field).to_be_focused();assert 'beta' in field.inner_text()
-    field.press('ArrowRight');field.press(select_all);expect(popup).to_be_visible();field.press('Alt+F10');expect(popup.get_by_role('button',name='Quotation block',exact=True)).to_be_focused();page.keyboard.press('ArrowRight');expect(popup.get_by_role('button',name='Bold',exact=True)).to_be_focused();page.keyboard.press('Escape');expect(popup).to_have_count(0);expect(field).to_be_focused()
+    if mode!='mosaic-card':
+     field.press('Escape');expect(popup).to_have_count(0);expect(field).to_be_focused();assert 'beta' in field.inner_text()
+     field.press('ArrowRight');field.press(select_all);expect(popup).to_be_visible();field.press('Alt+F10');expect(popup.get_by_role('button',name='Quotation block',exact=True)).to_be_focused();page.keyboard.press('ArrowRight');expect(popup.get_by_role('button',name='Bold',exact=True)).to_be_focused();page.keyboard.press('Escape');expect(popup).to_have_count(0);expect(field).to_be_focused()
     field.press('ArrowRight');field.press(select_all);expect(popup).to_be_visible();page.set_viewport_size({'width':width,'height':430});expect(popup).to_be_visible();popup.evaluate('n=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');bounds=popup.bounding_box();assert bounds['x']>=-1 and bounds['x']+bounds['width']<=width+1 and bounds['y']>=-1 and bounds['y']+bounds['height']<=431,(mode,width,bounds)
     # The quote glyph is decorative: it must never become stored note text.
     assert '”' not in field.evaluate('n=>n.value')
@@ -46,6 +47,8 @@ try:
      readonly=e.locator('.message-body' if im else '.card-body').first
      field.evaluate('n=>n.blur()');readonly.evaluate('n=>{const r=document.createRange();r.selectNodeContents(n);const s=getSelection();s.removeAllRanges();s.addRange(r);}');expect(popup).to_have_count(0)
      field.click();field.press(select_all);expect(popup).to_be_visible()
+    if mode=='mosaic-card':
+     field.press('Alt+F10');page.keyboard.press('Escape');expect(e.locator('dialog')).not_to_be_visible()
     # Context switches destroy the old popup; an ordinary caret never reserves space.
     page.evaluate('switchNote("b")');expect(e.locator('.im-format-toolbar.is-selection-format')).to_have_count(0)
     assert not errors,errors
