@@ -257,7 +257,7 @@ function renderCapture() {
   captureEditor?.setContext((s?.note.uuid||'')+':'+(s?.titleEntry?.id||'capture'),value,!!s?.titleEntry);
   field.setAttribute('aria-label',s?.titleEntry?'Title':'Take a note');field.placeholder=s?.titleEntry?'Write a title…':'Take a note…';
   if(field.value!==value)field.value=value;
-  field.disabled=!writable();growCapture();
+  field.disabled=!writable();scheduleWindow();
   const quote=$('capture-reply');quote.replaceChildren();quote.hidden=!s?.reply&&!s?.titleEntry;
   if(s?.titleEntry){const source=s.messages.find(m=>m.id===s.titleEntry.id);quote.append(el('strong','','Title for card'),el('span','inline-quote',source?imMarkdown.message(source).text.slice(0,160)||'Card':'Card'),button('Cancel title entry','close',()=>{s.titleEntry=null;if(!s.dirty&&!s.pending)retainedSessions.delete(s.note.uuid);renderCapture();},'icon-button'));}
   else if(s?.reply){
@@ -265,7 +265,6 @@ function renderCapture() {
     quote.append(text,button('Cancel reply','close',()=>safeRun(()=>update(s,{reply:null},false)),'icon-button danger'));
   }
 }
-function growCapture(){const field=$('capture-input');field.style.height='0px';field.style.height=Math.min(180,Math.max(46,field.scrollHeight))+'px';scheduleWindow();}
 function inputCapture(){
   const s=active;if(!writable(s))return;
   const value=$('capture-input').value;
@@ -732,7 +731,7 @@ function closeModal(force=false) {
   if(modalState?.viewportResize){window.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('scroll',modalState.viewportResize);modal.style.removeProperty('--card-view-height');modal.style.removeProperty('--card-view-top');}
   cancelAnimationFrame(modalState?.bodyFrame);
   clearCardMotion(modalState);if(modalState?.transitionSource)modalState.transitionSource.style.removeProperty('visibility');$('modal-content').inert=false;
-  modalState?.layoutObserver?.disconnect();modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
+  modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
   modalState?.body?.imRich?.destroy();
   hideMenu();if(modal.open)modal.close();modalState=null;
 }
@@ -842,33 +841,29 @@ function editorDialog(id=null) {
   }
   const title=el('textarea','editor-title');title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
   const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
-  const startBody=cardBodyStart(d.currentText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,onResize:()=>{if(body.isConnected)growBody();}}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
+  const startBody=cardBodyStart(d.currentText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,onResize:()=>d.updateScroll?.()}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
   // One scroller owns title, full-height body and trailing metadata. The toolbar
-  // stays outside it; the textarea itself never reserves a second scrollbar.
-  const revealEnd=()=>{const bottom=body.offsetTop+body.offsetHeight;if(bottom>scroller.scrollTop+scroller.clientHeight)scroller.scrollTop=bottom-scroller.clientHeight+8;};
-  const growBody=(typing=false)=>{const top=scroller.scrollTop;body.style.height='0px';body.style.height=body.scrollHeight+'px';body.scrollTop=0;scroller.scrollTop=top;if(typing&&document.activeElement===body&&body.selectionEnd===body.value.length)revealEnd();d.updateScroll?.();};
+  // stays outside it; the editor itself never reserves a second scrollbar.
+  // The visual editor is a normal contenteditable block, so CSS owns its
+  // height. Textarea-style zero-height measurement would relayout the entire
+  // Markdown tree repeatedly during opening, typing and width changes.
   // A bounded first page lets compositor motion start before laying out a
-  // very long native textarea. Never expose a partial value to user edits.
+  // very long visual document. Never expose a partial value to user edits.
   d.prepareBody=()=>{
     if(modalState!==d||d.bodyReady)return;
     cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;
     const top=scroller.scrollTop,start=body.selectionStart,end=body.selectionEnd,direction=body.selectionDirection;
     // An opening caret at the preview's end means the end of the full body.
     const append=d.pendingEndCaret&&start===end&&end===body.value.length;d.pendingEndCaret=false;
-    body.value=d.currentText;body.readOnly=false;body.removeAttribute('aria-busy');d.bodyReady=true;d.deferBodyUntilMotion=false;growBody();
+    body.value=d.currentText;body.readOnly=false;body.removeAttribute('aria-busy');d.bodyReady=true;d.deferBodyUntilMotion=false;
     if(!isIPhone||document.activeElement===body)body.setSelectionRange(append?body.value.length:start,append?body.value.length:end,direction);
     scroller.scrollTop=top;
   };
   const prepareForInput=event=>{if(event.type==='keydown'&&['Escape','Tab','Shift','Control','Alt','Meta'].includes(event.key))return;if(!d.bodyReady){if(d.deferBodyUntilMotion)settleCardMotion();else d.prepareBody();}};
   for(const event of ['pointerdown','keydown','compositionstart','beforeinput','paste','cut','drop']){body.addEventListener(event,prepareForInput,true);title.addEventListener(event,prepareForInput,true);}
-  let measuredWidth=0;
-  d.layoutObserver=new ResizeObserver(()=>{const width=body.clientWidth;if(width!==measuredWidth){measuredWidth=width;growBody();}});
-  d.layoutObserver.observe(d.root);
-  body.addEventListener('im-markdown-change',()=>growBody(true));
-  body.addEventListener('keyup',event=>{if(event.key==='End'&&body.selectionEnd===body.value.length)revealEnd();if(event.key==='Home'&&body.selectionStart===0)scroller.scrollTop=body.offsetTop;});
   const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
   const header=el('div','card-detail-heading');header.append(titlePreview,title);scroller.append(header,body);
-  d.unlockTitle=()=>{d.prepareBody();d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';growBody();hideMenu();title.focus();};
+  d.unlockTitle=()=>{d.prepareBody();d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';hideMenu();title.focus();};
   d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');modal.append(d.tagBadges);
   d.tagObserver=new ResizeObserver(()=>positionEditorTags(d));d.tagObserver.observe(d.tagBadges);
   d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);};
@@ -881,7 +876,7 @@ function editorDialog(id=null) {
   d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
   scroller.addEventListener('scroll',d.updateScroll,{passive:true});
   d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
-  const change=event=>{d.fieldRevision++;if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}if(d.bodyReady)d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}d.updateScroll();};
+  const change=event=>{d.fieldRevision++;if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}if(d.bodyReady)d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(event.target===title&&!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}};
   title.addEventListener('input',change);body.addEventListener('im-markdown-change',change);
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
@@ -919,14 +914,13 @@ function editorDialog(id=null) {
     d.viewportResize=()=>{if(modalState!==d)return;const view=window.visualViewport;modal.style.setProperty('--card-view-height',(view?.height||innerHeight)+'px');modal.style.setProperty('--card-view-top',(view?.offsetTop||0)+'px');};
     window.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('scroll',d.viewportResize);d.viewportResize();
   }
-  refreshEditorMetadata();growBody();
+  refreshEditorMetadata();
   if(!d.bodyReady){
     const line=parseFloat(getComputedStyle(body).lineHeight);
     // Only defer when the prefix already exceeds the final viewport. Thus
     // replacing it with the full value cannot change the card's outer size.
     if(scroller.scrollHeight<=scroller.clientHeight+2*line||matchMedia('(prefers-reduced-motion: reduce)').matches)d.prepareBody();
   }
-  measuredWidth=body.clientWidth;
   // Restore text focus before motion, with new typing appending to the body.
   if(isIPhone)modal.focus({preventScroll:true});
   else{d.pendingEndCaret=!d.bodyReady;body.setSelectionRange(body.value.length,body.value.length);body.focus({preventScroll:true});}
@@ -1100,7 +1094,7 @@ $('search-button').append(mosaicToolbarIcon('searchTags'));$('clear-filter').app
 $('search-button').addEventListener('click',toggleSearch);$('change-filter').addEventListener('click',toggleSearch);
 $('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';searchOpen=false;renderAll();});
 $('more-button').addEventListener('click',mainMenu);
-captureEditor=imRichField.create({id:'capture-input',label:'Take a note',placeholder:'Take a note…',capture:true,sendButton:true,onSubmit:()=>safeRun(()=>submitCapture()),onResize:growCapture});
+captureEditor=imRichField.create({id:'capture-input',label:'Take a note',placeholder:'Take a note…',capture:true,sendButton:true,onSubmit:()=>safeRun(()=>submitCapture()),onResize:scheduleWindow});
 const originalCapture=$('capture-field');originalCapture.replaceWith(captureEditor.wrapper);
 $('capture-input').addEventListener('im-markdown-change',inputCapture);
 $('capture-input').addEventListener('compositionstart',()=>{if(active)active.composing=true;});

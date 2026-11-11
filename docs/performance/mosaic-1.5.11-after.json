@@ -1,0 +1,32 @@
+[
+  {
+    "width": 1100,
+    "opening_ms": [
+      136.69999998807907,
+      55,
+      52.80000001192093,
+      70
+    ],
+    "frame_p95_ms": 150,
+    "worst_frame_ms": 283.4000000000001,
+    "long_tasks": 15,
+    "longest_task_ms": 290,
+    "typing_layouts": 15,
+    "body_height_writes": 0
+  },
+  {
+    "width": 390,
+    "opening_ms": [
+      111.2999999821186,
+      75.2000000178814,
+      63.400000005960464,
+      51.79999998211861
+    ],
+    "frame_p95_ms": 150,
+    "worst_frame_ms": 366.70000000000005,
+    "long_tasks": 16,
+    "longest_task_ms": 358,
+    "typing_layouts": 15,
+    "body_height_writes": 0
+  }
+]

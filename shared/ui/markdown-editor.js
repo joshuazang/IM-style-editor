@@ -112,11 +112,17 @@ const imRichField=(()=>{
         }
       },
       nodeViews:{list_item:(initial,v,getPos)=>{
-        let node=initial;const li=document.createElement('li'),contentDOM=document.createElement('div'),check=document.createElement('button');contentDOM.className='im-md-item';check.type='button';check.className='im-md-check';check.contentEditable='false';check.setAttribute('role','checkbox');
-        const update=next=>{if(next.type!==schema.nodes.list_item)return false;node=next;check.hidden=node.attrs.checked===null;li.toggleAttribute('data-task',!check.hidden);if(check.hidden)delete li.dataset.checked;else li.dataset.checked=String(node.attrs.checked);check.disabled=disabled||readOnly;check.setAttribute('aria-checked',String(!!node.attrs.checked));check.setAttribute('aria-label',node.attrs.checked?'Mark item incomplete':'Mark item complete');check.textContent=node.attrs.checked?'✓':'';return true;};
+        let node=initial,check=null;const li=document.createElement('li'),contentDOM=document.createElement('div');contentDOM.className='im-md-item';
         const click=event=>{event.preventDefault();event.stopPropagation();const pos=getPos();if(!disabled&&!readOnly&&typeof pos==='number'){v.dispatch(v.state.tr.setNodeMarkup(pos,null,{checked:!node.attrs.checked}));v.focus();}};
-        check.addEventListener('pointerdown',e=>e.preventDefault());check.addEventListener('click',click);li.append(check,contentDOM);update(node);
-        return {dom:li,contentDOM,update,stopEvent:event=>check.contains(event.target),ignoreMutation:m=>check.contains(m.target),destroy:()=>check.removeEventListener('click',click)};
+        const update=next=>{
+          if(next.type!==schema.nodes.list_item)return false;node=next;
+          const task=node.attrs.checked!==null;li.toggleAttribute('data-task',task);
+          if(!task){delete li.dataset.checked;check?.remove();check=null;return true;}
+          if(!check){check=document.createElement('button');check.type='button';check.className='im-md-check';check.contentEditable='false';check.setAttribute('role','checkbox');check.addEventListener('pointerdown',event=>event.preventDefault());check.addEventListener('click',click);li.prepend(check);}
+          li.dataset.checked=String(node.attrs.checked);check.disabled=disabled||readOnly;check.setAttribute('aria-checked',String(node.attrs.checked));check.setAttribute('aria-label',node.attrs.checked?'Mark item incomplete':'Mark item complete');check.textContent=node.attrs.checked?'✓':'';return true;
+        };
+        li.append(contentDOM);update(node);
+        return {dom:li,contentDOM,update,stopEvent:event=>!!check?.contains(event.target),ignoreMutation:m=>!!check?.contains(m.target),destroy:()=>check?.removeEventListener('click',click)};
       }}
     });
     live++;
