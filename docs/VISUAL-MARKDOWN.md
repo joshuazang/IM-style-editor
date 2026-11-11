@@ -1,17 +1,18 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.12 / Mosaic 1.5.13.
+Status: implemented for IM 4.4.13 / Mosaic 1.5.14.
 
 ## Agreed behavior
 
 - Both IM and Mosaic support bold, quotation blocks, bullet lists, numbered
   lists, headings, interactive checklists, and strikethrough.
 - Editing is visual. The formatting toolbar is available in opened Mosaic
-  cards through Aa. Automatic selection popups are enabled in desktop editable
+  cards through the underlined-A formatting button. Automatic selection popups are enabled in desktop editable
   fields and disabled on phones, including IM capture/edit and Mosaic capture/
-  opened cards. The manual Card Aa toolbar remains available on phones. Capture inputs have no Aa button or reserved formatting-control
+  opened cards. The manual Card formatting toolbar remains available on phones.
+  Capture inputs have no formatting button or reserved formatting-control
   space. Read-only sent bubbles and Board cards never open this toolbar.
-- Card view highlights the current H1–H6 choice. Clicking that active level
+- Card view offers direct H1, H2, and Normal (Aa) style buttons. Clicking that active level
   again changes the selected heading to an ordinary paragraph in place; it
   preserves text and the caret rather than adding a new paragraph.
 - Heading applies to the whole current logical line (bounded by actual line
@@ -35,6 +36,12 @@ Status: implemented for IM 4.4.12 / Mosaic 1.5.13.
   ordinary save and acknowledgment path, including with a formatting popup open
   or focused.
   An IM formatting popup still dismisses locally on Escape.
+- The toolbar order is Bold, Quote, Strikethrough, Bullets, Numbers, Checklist,
+  then a gray divider followed by H1, H2, Normal (Aa), and Clear Formatting. The
+  main formatting button uses an underlined A icon. Clear Formatting removes
+  marks and block formatting from selected text without deleting its contents
+  or changing unselected text. Normal changes paragraph/heading style and keeps
+  inline marks. Empty selections disable Clear Formatting.
 - Ordinary paragraphs remain the default. A first line becomes a heading only
   through heading formatting or Markdown heading syntax.
 - Message bodies and capture drafts use one Markdown interpretation. The user

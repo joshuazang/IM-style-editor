@@ -65,11 +65,10 @@ try:
 
             # Escape clears highlighted text before closing; without a selection,
             # it closes even when a formatting panel owns focus.
-            for toolbar_mode in ['caret','manual','heading-menu','selection','backward-selection','toolbar-focus','title-input','readonly-title']:
+            for toolbar_mode in ['caret','manual','selection','backward-selection','toolbar-focus','title-input','readonly-title']:
                 open_card()
-                if toolbar_mode in ['manual','heading-menu']:
+                if toolbar_mode in ['manual']:
                     editor.get_by_role('button',name='Text formatting',exact=True).click()
-                    if toolbar_mode=='heading-menu':editor.get_by_role('button',name='Heading',exact=True).click()
                 elif toolbar_mode in ['selection','backward-selection','toolbar-focus']:
                     body.press('Control+a')
                     expect(editor.locator('.im-format-toolbar.is-selection-format')).to_be_visible()

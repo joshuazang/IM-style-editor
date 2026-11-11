@@ -23,11 +23,11 @@ const imRichField=(()=>{
         if(key==='strong'||key==='strike')active=K.markActive(state,key);
         else if(key==='quote')active=K.quoteActive(state);
         else if(['bullet','ordered','checklist'].includes(key))active=K.listKind(state)===key;
-        else if(key==='heading')active=headingLevel!==null;
+        else if(key==='normal')active=K.paragraphActive(state);
         button.setAttribute('aria-pressed',String(active));button.disabled=disabled||readOnly;
       }
       for(const [level,button] of headingLevels){button.setAttribute('aria-pressed',String(headingLevel===level));button.disabled=disabled||readOnly;}
-      const ordinary=toolbar.querySelector('.im-format-ordinary');if(ordinary)ordinary.disabled=disabled||readOnly||!state.selection.empty;
+      const clear=toolbar.querySelector('.im-format-clear');if(clear)clear.disabled=disabled||readOnly||state.selection.empty;
       toggle.disabled=disabled||readOnly;toggle.hidden=plain||!formatting;
       if(send)send.disabled=disabled||readOnly||!view.state.doc.textContent.trim();
       if(plain){toolbar.hidden=true;toggle.setAttribute('aria-expanded','false');}
@@ -148,16 +148,17 @@ const imRichField=(()=>{
     function icon(button,name){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.8');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.innerHTML=imUiIcons[name];button.replaceChildren(svg);return button;}
     function add(key,label,text,command){const b=icon(action(label,text,()=>execute(command)),{strong:'formatBold',strike:'formatStrike',quote:'formatQuote',bullet:'formatBullet',ordered:'formatNumber',checklist:'formatChecklist'}[key]);controls.set(key,b);toolbar.append(b);return b;}
     {
-      add('quote','Quotation block','❞',K.quote);
       add('strong','Bold','B',C.toggleMark(schema.marks.strong)).classList.add('im-format-bold');
+      add('quote','Quotation block','❞',K.quote);
       add('strike','Strikethrough','S',C.toggleMark(schema.marks.strike)).classList.add('im-format-strike');
       add('bullet','Bullet list','•',K.toggleList('bullet'));
       add('ordered','Numbered list','1.',K.toggleList('ordered'));
       add('checklist','Checklist','☑',K.toggleList('checklist'));
-      const levels=document.createElement('div');levels.className='im-heading-levels';levels.hidden=true;
-      const headingButton=action('Heading','H',()=>{levels.hidden=!levels.hidden;headingButton.setAttribute('aria-expanded',String(!levels.hidden));config.onResize?.();});icon(headingButton,'formatHeading');controls.set('heading',headingButton);toolbar.append(headingButton);headingButton.setAttribute('aria-expanded','false');
-      for(let level=1;level<=6;level++){const choice=action('Heading '+level,'H'+level,()=>{execute(K.heading(level));levels.hidden=true;headingButton.setAttribute('aria-expanded','false');config.onResize?.();});headingLevels.set(level,choice);levels.append(choice);}
-      const ordinary=icon(action('Start ordinary text','¶',()=>execute(K.exitFormat)),'formatParagraph');ordinary.classList.add('im-format-ordinary');toolbar.append(ordinary,levels);
+      const styles=document.createElement('div');styles.className='im-format-text-styles';
+      for(const level of [1,2]){const choice=action('Heading '+level,'H'+level,()=>execute(K.heading(level)));headingLevels.set(level,choice);styles.append(choice);}
+      const ordinary=action('Normal text','Aa',()=>execute(K.normal));controls.set('normal',ordinary);styles.append(ordinary);toolbar.append(styles);
+      const clear=icon(action('Clear Formatting','',()=>execute(K.clearFormatting)),'formatClear');clear.classList.add('im-format-clear');toolbar.append(clear);
+      icon(toggle,'formatText');
       if(formatting)main.append(toggle);
     }
     main.append(dom);

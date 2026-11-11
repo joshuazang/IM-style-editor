@@ -8,7 +8,7 @@ function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
     floating=false;toolbar.classList.remove('is-selection-format');toolbar.removeAttribute('style');
     if(marker?.parentNode)marker.replaceWith(toolbar);else toolbar.remove();marker=null;
   }
-  function close(){restore();if(!manualOpen){toolbar.querySelector('.im-heading-levels').hidden=true;toolbar.querySelector('[aria-label=Heading]').setAttribute('aria-expanded','false');}toolbar.hidden=!manualOpen;toggle.setAttribute('aria-expanded',String(manualOpen));}
+  function close(){restore();toolbar.hidden=!manualOpen;toggle.setAttribute('aria-expanded',String(manualOpen));}
   function render(){
     frame=0;if(destroyed)return;
     if(phone()){if(!canFormat()){manualOpen=false;}close();return;}
@@ -34,7 +34,7 @@ function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
       if(toolbar.parentNode){marker=doc.createComment('format toolbar');toolbar.before(marker);}
       (dom.closest('dialog')||doc.body).append(toolbar);floating=true;toolbar.classList.add('is-selection-format');
     }
-    toolbar.hidden=false;toolbar.classList.toggle('has-heading-levels',!toolbar.querySelector('.im-heading-levels').hidden);
+    toolbar.hidden=false;
     Object.assign(toolbar.style,{position:'fixed',bottom:'auto',right:'auto',margin:'0',maxWidth:Math.max(0,vWidth-16)+'px',left:vLeft+8+'px',top:vTop+8+'px'});
     const box=toolbar.getBoundingClientRect(),x=Math.max(vLeft+8,Math.min((anchor.left+anchor.right-box.width)/2,vLeft+vWidth-box.width-8));
     const above=anchor.top-box.height-8,y=above>=vTop+8?above:Math.min(anchor.bottom+8,vTop+vHeight-box.height-8);

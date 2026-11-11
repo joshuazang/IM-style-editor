@@ -1,6 +1,8 @@
 /* Shared original SVG vectors. Only this fixed dictionary becomes markup. */
 const imUiIcons = {
   formatQuote:'<path d="M4 4v16M9 6h3v3l-2 2m7-5h3v3l-2 2M9 15h11M9 19h7"/>',
+  formatText:'<path d="m6 16 6-13 6 13M8 12h8M4 21h16"/>',
+  formatClear:'<path d="m7 16 5-12 5 12M9 12h6M4 3l16 18M4 20h7"/>',
   formatBold:'<path d="M6 4h7a4 4 0 0 1 0 8H6Zm0 8h8a4 4 0 0 1 0 8H6Z" stroke-width="2.6"/>',
   formatStrike:'<path d="M18 7c-1-2-3-3-6-3-3 0-5 1.5-5 4 0 1.7 1 2.5 3 3M7 17c1 2 3 3 6 3 3 0 5-1.5 5-4 0-1.7-1-2.5-3-3M3 12h18"/>',
   formatBullet:'<circle cx="5" cy="6" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="18" r="1" fill="currentColor"/><path d="M10 6h11M10 12h11M10 18h11"/>',

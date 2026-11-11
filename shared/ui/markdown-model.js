@@ -19,24 +19,22 @@ const imMarkdown=(()=>{
     strike:{parseDOM:[{tag:'s'},{tag:'del'},{tag:'strike'},{style:'text-decoration',getAttrs:v=>v.includes('line-through')&&null}],toDOM:()=>['s',0]}
   }});
   const base=imRichDeps.serializer.defaultMarkdownSerializer;
+  function renderInline(s,n,preserve){
+    const text=s.text,total=n.textContent.length;let offset=0;
+    if(preserve)s.text=function(value,escape=true){
+      if(escape===false)return text.call(this,value,escape);
+      const start=offset===0?(/^[ \t]+/.exec(value)?.[0].length||0):0;
+      const end=offset+value.length===total?Math.max(start,value.length-(/[ \t]+$/.exec(value)?.[0].length||0)):value.length;
+      offset+=value.length;
+      for(const char of value.slice(0,start))this.write(char===' '?'&#32;':'&#9;');
+      text.call(this,value.slice(start,end),escape);
+      for(const char of value.slice(end))this.write(char===' '?'&#32;':'&#9;');
+    };
+    try{s.renderInline(n);}finally{s.text=text;}
+  }
   const serializer=new imRichDeps.serializer.MarkdownSerializer({
-    paragraph:(s,n)=>{
-      if(!n.content.size)s.write('');
-      // Splitting a highlight can leave spaces at list-item edges. Markdown's
-      // list lexer trims literal edge whitespace; numeric entities preserve
-      // those characters without changing the document or adding format flags.
-      const text=s.text,total=n.textContent.length;let offset=0;
-      if(s.options.imListDepth||/^[ \t]+$/.test(n.textContent))s.text=function(value,escape=true){
-        if(escape===false)return text.call(this,value,escape);
-        const start=offset===0?(/^[ \t]+/.exec(value)?.[0].length||0):0;
-        const end=offset+value.length===total?Math.max(start,value.length-(/[ \t]+$/.exec(value)?.[0].length||0)):value.length;
-        offset+=value.length;
-        for(const char of value.slice(0,start))this.write(char===' '?'&#32;':'&#9;');
-        text.call(this,value.slice(start,end),escape);
-        for(const char of value.slice(end))this.write(char===' '?'&#32;':'&#9;');
-      };
-      try{s.renderInline(n);}finally{s.text=text;}s.closeBlock(n);
-    },heading:base.nodes.heading,blockquote:base.nodes.blockquote,
+    paragraph:(s,n)=>{if(!n.content.size)s.write('');renderInline(s,n,s.options.imListDepth||/^[ \t]+$/.test(n.textContent));s.closeBlock(n);},
+    heading:(s,n)=>{s.write('#'.repeat(n.attrs.level)+' ');renderInline(s,n,true);s.closeBlock(n);},blockquote:base.nodes.blockquote,
     bullet_list:base.nodes.bullet_list,ordered_list:base.nodes.ordered_list,
     list_item:(s,n)=>{if(n.attrs.checked!==null)s.write(n.attrs.checked?'[x] ':'[ ] ');s.options.imListDepth=(s.options.imListDepth||0)+1;try{s.renderContent(n);}finally{s.options.imListDepth--;}},
     // Single newlines display as line breaks in both editors. Consecutive or

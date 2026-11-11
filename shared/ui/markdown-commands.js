@@ -281,6 +281,24 @@ const imMarkdownCommands=(()=>{
     else tr.setSelection(TextSelection.between(tr.doc.resolve(mapPosition(state.selection.anchor)),tr.doc.resolve(mapPosition(state.selection.head))));
     tr.setStoredMarks(state.storedMarks);dispatch(imRichDeps.history.closeHistory(tr).scrollIntoView());return true;
   };}
+  function paragraphActive(state){let count=0,active=true;selectedTextblocks(state,node=>{count++;if(node.type!==schema.nodes.paragraph)active=false;});return count>0&&active;}
+  function normal(state,dispatch){return lineBlocks(schema.nodes.paragraph,null)(state,dispatch);}
+  function clearFormatting(state,dispatch){
+    if(state.selection.empty)return false;
+    let formatted=false,structural=false;selectedTextblocks(state,(node,pos)=>{const current={selection:TextSelection.create(state.doc,pos+1)};if(node.type!==schema.nodes.paragraph||ancestor(current,schema.nodes.blockquote)||ancestor(current,schema.nodes.list_item))formatted=structural=true;});
+    state.doc.nodesBetween(state.selection.from,state.selection.to,node=>{if(node.marks.length)formatted=true;});
+    if(!formatted)return false;
+    if(!structural){if(dispatch)dispatch(imRichDeps.history.closeHistory(state.tr.removeMark(state.selection.from,state.selection.to).setStoredMarks([])).scrollIntoView());return true;}
+    return formatCommand((state,dispatch)=>{
+      const {selection,doc}=state,from=selection.$from.before(1),to=selection.$to.after(1),blocks=[];
+      if(doc.textBetween(from,selection.from)||doc.textBetween(selection.to,to))return false;
+      doc.nodesBetween(from,to,node=>{if(!node.isTextblock)return;const inline=[];node.forEach(child=>inline.push(child.mark([])));blocks.push(schema.nodes.paragraph.create(null,inline));return false;});
+      if(!blocks.length)return false;
+      if(dispatch){const replacement=imRichDeps.model.Fragment.fromArray(blocks),tr=state.tr.replaceWith(from,to,replacement),start=tr.doc.resolve(from),end=tr.doc.resolve(from+replacement.size),backward=selection.anchor>selection.head;
+        tr.setSelection(TextSelection.between(backward?end:start,backward?start:end)).setStoredMarks([]);dispatch(tr.scrollIntoView());}
+      return true;
+    })(state,dispatch);
+  }
   function markActive(state,name){const type=schema.marks[name],{$from,empty,from,to}=state.selection;return empty?!!type.isInSet(state.storedMarks||$from.marks()):state.doc.rangeHasMark(from,to,type);}
-  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,listKind,quote,quoteActive,quoteLine,headingLevel,heading,markActive};
+  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,listKind,quote,quoteActive,quoteLine,headingLevel,heading,normal,paragraphActive,clearFormatting,markActive};
 })();

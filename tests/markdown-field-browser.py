@@ -21,17 +21,24 @@ try:
    capture.evaluate('n=>{capture.setContext("task","- [ ] task");n.focus()}');capture.get_by_role('checkbox').click();assert '[x]' in capture.evaluate('n=>n.value')
    expect(page.locator('#capture .im-format-toggle,#capture .im-format-toolbar')).to_have_count(0)
    detail.evaluate('n=>{detail.setContext("toolbar","select me");n.select();n.focus()}');page.locator('#detail').get_by_role('button',name='Text formatting',exact=True).click();page.locator('#detail').get_by_role('button',name='Bold',exact=True).click();assert detail.locator('strong').inner_text()=='select me'
-   box=page.get_by_role('toolbar',name='Text formatting',exact=True);heading=box.get_by_role('button',name='Heading',exact=True)
+   box=page.get_by_role('toolbar',name='Text formatting',exact=True);heading=box.get_by_role('button',name='Normal text',exact=True)
    def choices():
-    if heading.get_attribute('aria-expanded')!='true':heading.click()
-   for level in range(1,7):
+    if not box.is_visible():page.locator('#detail').get_by_role('button',name='Text formatting',exact=True).click()
+   expected=['Bold','Quotation block','Strikethrough','Bullet list','Numbered list','Checklist','Heading 1','Heading 2','Normal text','Clear Formatting']
+   assert box.get_by_role('button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==expected
+   box.screenshot(path='/tmp/format-toolbar-'+str(width)+'.png')
+   expect(page.locator('#detail').get_by_role('button',name='Text formatting',exact=True).locator('svg')).to_have_count(1)
+   fill_field(detail,'**keep target after**');detail.evaluate('n=>{const v=n.imRich.view;let from;v.state.doc.descendants((node,pos)=>{if(node.isText&&node.text.includes("target"))from=pos+node.text.indexOf("target")});v.dispatch(v.state.tr.setSelection(imRichDeps.state.TextSelection.create(v.state.doc,from,from+6)));n.focus()}');choices();box.get_by_role('button',name='Clear Formatting',exact=True).click()
+   expect(detail.locator('p')).to_have_count(1);assert detail.inner_text()=='keep target after';assert [s.strip() for s in detail.locator('strong').all_text_contents()]==['keep','after']
+   fill_field(detail,'# Heading\n\n> **quote** ~~strike~~\n\n- [x] task');detail.press('Control+a');choices();box.get_by_role('button',name='Clear Formatting',exact=True).click();expect(detail.locator('h1,h2,blockquote,ul,ol,strong,s')).to_have_count(0);expect(detail.get_by_role('checkbox')).to_have_count(0);detail.press('Control+z');expect(detail.locator('h1')).to_have_text('Heading');expect(detail.get_by_role('checkbox')).to_have_count(1);detail.press('Control+Shift+z');expect(detail.locator('h1,h2,blockquote,ul,ol,strong,s')).to_have_count(0)
+   for level in range(1,3):
     fill_field(detail,'Heading candidate');detail.press('Control+a');choices();box.get_by_role('button',name='Heading '+str(level),exact=True).click();expect(detail.locator('h'+str(level))).to_have_text('Heading candidate');choices()
-    for choice in range(1,7):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
-    active=box.get_by_role('button',name='Heading '+str(level),exact=True);assert active.evaluate('n=>getComputedStyle(n).backgroundColor') not in ['rgba(0, 0, 0, 0)','transparent'];active.click();expect(detail.locator('h1,h2,h3,h4,h5,h6')).to_have_count(0);expect(detail.locator('p')).to_have_text('Heading candidate');expect(heading).to_have_attribute('aria-pressed','false');assert detail.evaluate('n=>n.value')=='Heading candidate'
+    for choice in range(1,3):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
+    active=box.get_by_role('button',name='Heading '+str(level),exact=True);assert active.evaluate('n=>getComputedStyle(n).backgroundColor') not in ['rgba(0, 0, 0, 0)','transparent'];active.click();expect(detail.locator('h1,h2,h3,h4,h5,h6')).to_have_count(0);expect(detail.locator('p')).to_have_text('Heading candidate');expect(heading).to_have_attribute('aria-pressed','true');assert detail.evaluate('n=>n.value')=='Heading candidate'
    fill_field(detail,'# First\n\n### Third\n\nOrdinary')
    for selector,level in [('h1',1),('h3',3),('p',0)]:
     detail.locator(selector).click();choices()
-    for choice in range(1,7):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
+    for choice in range(1,3):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
    # Repeated clicks must toggle every actual format, for a caret and a range.
    for selected in [False,True]:
     for label,selector in [('Bold','strong'),('Strikethrough','s'),('Quotation block','blockquote'),('Bullet list','ul'),('Numbered list','ol'),('Checklist','li[data-checked]')]:
@@ -52,6 +59,6 @@ try:
    fill_field(detail,'> - Nested item');detail.locator('li').click();quote=box.get_by_role('button',name='Quotation block',exact=True);expect(quote).to_have_attribute('aria-pressed','true');quote.click();expect(detail.locator('blockquote')).to_have_count(0);expect(detail.locator('ul')).to_have_count(1)
    before=capture.evaluate('n=>n.value');capture.dispatch_event('keydown',{'key':'Enter','keyCode':229,'isComposing':True,'bubbles':True});assert capture.evaluate('n=>n.value')==before
    assert not errors,errors
-   print(json.dumps({'PASS':width,'checks':'visual bold/checkboxes; capture Enter; list/quote/heading continuation; Ctrl/Meta+Enter ordinary text; Shift+Enter; undo; no capture toolbar; selection retained in Card toolbar; H1–H6 active states and removal'}),flush=True);context.close()
+   print(json.dumps({'PASS':width,'checks':'visual bold/checkboxes; capture Enter; list/quote/heading continuation; Ctrl/Meta+Enter ordinary text; Shift+Enter; undo; no capture toolbar; selection retained in Card toolbar; direct H1/H2/Normal, selected Clear Formatting, active states and removal'}),flush=True);context.close()
   browser.close()
 finally:server.shutdown()

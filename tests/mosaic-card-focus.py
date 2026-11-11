@@ -37,7 +37,7 @@ try:
    if mobile:body.tap()
    else:body.click()
    expect(body).to_be_focused()
-   e.get_by_role('button',name='Text formatting',exact=True).last.click();e.get_by_role('button',name='Heading',exact=True).last.click();expect(e.get_by_role('button',name='Heading 1',exact=True).last).to_be_visible()
+   e.get_by_role('button',name='Text formatting',exact=True).last.click();expect(e.get_by_role('button',name='Heading 1',exact=True).last).to_be_visible()
    e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();expect(capture).to_have_js_property('value',draft);assert page.evaluate('saves.length')==count
    assert not errors,errors
    print(f'PASS {name}: restored end caret except iPhone, typing appends, explicit title focus, preserved capture draft and zero no-op opening/closing writes',flush=True);context.close()
