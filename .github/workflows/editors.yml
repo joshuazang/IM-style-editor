@@ -23,6 +23,10 @@ jobs:
       - name: Build both from the same source
         run: python3 tools/package-editors.py
       - name: Reject stale generated apps
-        run: git diff --exit-code -- next/index.html next/assets mosaic/index.html mosaic/assets '*ext.json' editors-release.json
+        run: git diff --exit-code -- next/index.html next/assets mosaic/index.html mosaic/assets '*ext.json' editors-release.json releases
+      - name: Check release organization
+        run: python3 tools/organize-releases.py --check
+      - name: Verify archived files and original URLs
+        run: python3 tools/check-release-layout.py
       - name: Test both interfaces and their shared core
         run: python3 tools/check-editors.py

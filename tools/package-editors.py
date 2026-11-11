@@ -12,4 +12,5 @@ for script in ['package-next.py','package-mosaic.py']:
 release={**config,'shared_core_sha256':core_digest(),'shared_ui_sha256':ui_digest(),
          'im_manifest':'im-style-editor-next.ext.json','mosaic_manifest':'mosaic.ext.json'}
 (ROOT/'editors-release.json').write_text(json.dumps(release,indent=2)+'\n')
+subprocess.run([sys.executable,str(ROOT/'tools/organize-releases.py')],cwd=ROOT,check=True)
 print('Both editors built from one shared core.')
