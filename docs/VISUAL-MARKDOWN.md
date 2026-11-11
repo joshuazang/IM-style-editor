@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.4 / Mosaic 1.5.5.
+Status: implemented for IM 4.4.7 / Mosaic 1.5.7.
 
 ## Agreed behavior
 
@@ -167,3 +167,8 @@ Applying list formatting to selected plain-text lines creates one item per
 logical line. Shift+Enter within an existing item remains a continuation line.
 Empty `[ ]`/`[x]` items retain their task state through serialization. Checkbox
 targets stay separate from text and the first text line aligns with the box.
+
+Native Markdown shortcuts apply at the start of paragraphs and logical lines
+after soft breaks. A completed marker plus Space formats immediately while
+retaining preceding text. IM sizes visual inputs without an intermediate auto
+height, which prevents scroll clamping during Chinese composition confirmation.

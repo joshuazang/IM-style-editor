@@ -116,6 +116,9 @@ const imMarkdownCommands=(()=>{
       return false;
     });
   }
+  function quoteLine(state,dispatch){return transactionChain(state,dispatch,(get,apply)=>{
+    lineBlocks(schema.nodes.paragraph,null,true)(get(),apply);return C.wrapIn(schema.nodes.blockquote)(get(),apply);
+  });}
   function headingLevel(state){
     if(state.selection.empty){const node=state.selection.$from.parent;return node.type===schema.nodes.heading?node.attrs.level:null;}
     let level=null,mixed=false;
@@ -177,5 +180,5 @@ const imMarkdownCommands=(()=>{
     tr.setStoredMarks(state.storedMarks);dispatch(imRichDeps.history.closeHistory(tr).scrollIntoView());return true;
   };}
   function markActive(state,name){const type=schema.marks[name],{$from,empty,from,to}=state.selection;return empty?!!type.isInSet(state.storedMarks||$from.marks()):state.doc.rangeHasMark(from,to,type);}
-  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,listKind,quote,quoteActive,headingLevel,heading,markActive};
+  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,listKind,quote,quoteActive,quoteLine,headingLevel,heading,markActive};
 })();

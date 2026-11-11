@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.6](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.6.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.7](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.7.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -394,3 +394,6 @@ Undo restores checklist formatting in one step.
 
 Mosaic 1.5.6 moves the Board capture text start 2px left, retaining its box shape,
 font size, height and right inset.
+
+Mosaic 1.5.7 shares live list, quote and heading shortcuts after soft line breaks
+with IM. Typing a marker followed by Space formats the current line immediately.

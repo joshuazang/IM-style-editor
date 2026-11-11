@@ -1,3 +1,12 @@
+/* Size visual content directly: expanding to auto would clamp scrollTop during IME. */
+function imResizeVisualComposer(input){
+  if(!input)return;
+  const style=getComputedStyle(input),limit=parseFloat(style.lineHeight)*3.5+20;
+  const last=input.lastElementChild,natural=last?last.offsetTop+last.offsetHeight+parseFloat(style.paddingBottom):parseFloat(style.lineHeight)+20;
+  const height=Math.max(parseFloat(style.minHeight)||0,Math.min(natural,limit));
+  if(input.style.height!==`${height}px`)input.style.height=`${height}px`;
+  const overflow=natural>limit?'auto':'hidden';if(input.style.overflowY!==overflow)input.style.overflowY=overflow;
+}
 /* Created after the React prefix; props are shared with Mosaic's DOM fields. */
 const ImVisualField=dt.forwardRef((props,ref)=>{
   const host=dt.useRef(null),field=dt.useRef(null),latest=dt.useRef(props),pending=dt.useRef(new Set()),context=dt.useRef(null);latest.current=props;

@@ -6,8 +6,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.4.6](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.5.6](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.4.7](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.5.7](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -407,3 +407,8 @@ and the two input shapes remain unchanged.
 IM 4.4.6 restores native mouse/touch hit testing in the capture and message-edit
 fields. Edit initially places the caret at the end; subsequent clicks and native
 text selection control the caret normally. Mosaic is unchanged.
+
+IM 4.4.7 keeps a scrolled capture/edit input stable during Chinese composition
+by measuring content without temporarily expanding the input. IM and Mosaic
+1.5.7 format list, quote and heading shortcuts live after Shift+Enter breaks,
+preserving preceding text and visual formatting when reopening sent messages.

@@ -51,7 +51,21 @@ const imRichField=(()=>{
     };
     for(const modifier of ['Ctrl','Meta'])for(const [key,last] of [['Home',false],['End',true]]){shortcuts[modifier+'-'+key]=documentEdge(last);shortcuts['Shift-'+modifier+'-'+key]=documentEdge(last,true);}
     function typingRules(){
-      const R=imRichDeps.inputrules,rules=[
+      const R=imRichDeps.inputrules;
+      const logicalLine=(pattern,command)=>new R.InputRule(pattern,(state,match,start,end)=>{
+        if(state.selection.$from.parent.type!==schema.nodes.paragraph||K.ancestor(state,schema.nodes.list_item))return null;
+        // The match includes the preceding hard break; leave that boundary intact.
+        const tr=state.tr.delete(start+1,end),current=state.apply(tr);
+        if(!command(match)(current,next=>{for(const step of next.steps)tr.step(step);tr.setSelection(imRichDeps.state.Selection.fromJSON(tr.doc,next.selection.toJSON()));tr.setStoredMarks(next.storedMarks);}))return null;
+        return tr;
+      });
+      const rules=[
+        logicalLine(/\ufffc[ \t]*[-+*][ \t]$/,()=>K.toggleList('bullet')),
+        logicalLine(/\ufffc[ \t]*(\d+)\.[ \t]$/,match=>(state,dispatch)=>K.toggleList('ordered')(state,tr=>{
+          const list=K.ancestor({selection:tr.selection},schema.nodes.ordered_list);if(list)tr.setNodeMarkup(list.pos,null,{order:Math.max(1,Number(match[1]))});dispatch(tr);
+        })),
+        logicalLine(/\ufffc[ \t]*(#{1,6})[ \t]$/,match=>K.heading(match[1].length)),
+        logicalLine(/\ufffc[ \t]*>[ \t]$/,()=>K.quoteLine),
         R.wrappingInputRule(/^\s*>\s$/,schema.nodes.blockquote),
         R.wrappingInputRule(/^\s*([-+*])\s$/,schema.nodes.bullet_list),
         R.wrappingInputRule(/^(\d+)\.\s$/,schema.nodes.ordered_list,m=>({order:Number(m[1])})),
