@@ -1,5 +1,13 @@
 /* Shared original SVG vectors. Only this fixed dictionary becomes markup. */
 const imUiIcons = {
+  formatQuote:'<path d="M4 4v16M9 6h3v3l-2 2m7-5h3v3l-2 2M9 15h11M9 19h7"/>',
+  formatBold:'<path d="M6 4h7a4 4 0 0 1 0 8H6Zm0 8h8a4 4 0 0 1 0 8H6Z" stroke-width="2.6"/>',
+  formatStrike:'<path d="M18 7c-1-2-3-3-6-3-3 0-5 1.5-5 4 0 1.7 1 2.5 3 3M7 17c1 2 3 3 6 3 3 0 5-1.5 5-4 0-1.7-1-2.5-3-3M3 12h18"/>',
+  formatBullet:'<circle cx="5" cy="6" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="18" r="1" fill="currentColor"/><path d="M10 6h11M10 12h11M10 18h11"/>',
+  formatNumber:'<path d="m3 4 2-1v6M3 9h4M3 14c0-2 4-2 4 0 0 1-4 4-4 5h4M11 6h10M11 12h10M11 18h10"/>',
+  formatChecklist:'<rect x="3" y="4" width="17" height="17" rx="3"/><path d="m7 12 3 3 6-7"/>',
+  formatHeading:'<path d="M4 4v16M15 4v16M4 12h11M20 15v5"/>',
+  formatParagraph:'<path d="M14 4v16M19 4v16M19 4H9a5 5 0 0 0 0 10h5"/>',
   textSize:'<path d="M3 5h12M9 5v14M5 19h8M16 11h6M19 11v8m-2 0h4"/>',
   mosaic:'<rect x="3" y="3" width="7" height="11" rx="2"/><rect x="14" y="3" width="7" height="6" rx="2"/><rect x="3" y="18" width="7" height="3" rx="1.5"/><rect x="14" y="13" width="7" height="8" rx="2"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',

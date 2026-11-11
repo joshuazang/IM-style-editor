@@ -13,7 +13,7 @@ try:
   for width in [320,390,1100]:
    context=browser.new_context(viewport={'width':width,'height':700},has_touch=width<600,is_mobile=width<600);page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
    page.goto(f'http://127.0.0.1:{server.server_port}/tests/markdown-field-host.html');detail=page.get_by_role('textbox',name='Card body',exact=True);box=page.locator('#detail')
-   box.get_by_role('button',name='Text formatting',exact=True).click();toggle=box.get_by_role('button',name='Checklist',exact=True)
+   box.get_by_role('button',name='Text formatting',exact=True).click();box=page.get_by_role('toolbar',name='Text formatting',exact=True);toggle=box.get_by_role('button',name='Checklist',exact=True)
    # Native typing and native multi-line fill exercise DOM-created paragraphs,
    # unlike the separate Markdown paste path used by the fixtures below.
    for method in ['Enter','Shift+Enter','fill']:

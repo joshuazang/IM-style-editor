@@ -1,15 +1,15 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.7 / Mosaic 1.5.7.
+Status: implemented for IM 4.4.8 / Mosaic 1.5.8.
 
 ## Agreed behavior
 
 - Both IM and Mosaic support bold, quotation blocks, bullet lists, numbered
   lists, headings, interactive checklists, and strikethrough.
 - Editing is visual. The formatting toolbar is available in opened Mosaic
-  cards. IM and Mosaic Board capture inputs have no Aa button, toolbar, or
-  reserved formatting-control space. Existing formatted content and keyboard
-  behavior remain supported in capture fields.
+  cards through Aa, and beside selected text in all editable capture/body
+  fields. Capture inputs have no Aa button or reserved formatting-control
+  space. Read-only sent bubbles and Board cards never open this toolbar.
 - Card view highlights the current H1–H6 choice. Clicking that active level
   again changes the selected heading to an ordinary paragraph in place; it
   preserves text and the caret rather than adding a new paragraph.
@@ -172,3 +172,11 @@ Native Markdown shortcuts apply at the start of paragraphs and logical lines
 after soft breaks. A completed marker plus Space formats immediately while
 retaining preceding text. IM sizes visual inputs without an intermediate auto
 height, which prevents scroll clamping during Chinese composition confirmation.
+
+Aa and selection formatting use the same toolbar DOM and commands. Selection
+popups retain native ranges, fit the visible viewport, stay out of document
+layout and are removed on context changes. Alt+F10 focuses a visible toolbar;
+Left/Right navigate controls and Escape returns to the input. The paragraph
+continuation action remains in Aa for cursor use, not in the selection popup.
+Quotes display an accent bar, soft tint, rounded inset and decorative quote mark;
+formatting syntax and stored text are unchanged.

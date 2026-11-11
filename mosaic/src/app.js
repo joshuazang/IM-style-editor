@@ -1116,7 +1116,7 @@ $('capture-input').addEventListener('compositionend',()=>{
 });
 let outsideCapture=null;
 document.addEventListener('pointerdown',event=>{
-  outsideCapture=!active?.titleEntry&&document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu,.card-tag,#search-button,#change-filter,#search-tags-panel')?{session:active,tag:active?.view.tag,x:event.clientX,y:event.clientY}:null;
+  outsideCapture=!active?.titleEntry&&document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu,.im-format-toolbar,.card-tag,#search-button,#change-filter,#search-tags-panel')?{session:active,tag:active?.view.tag,x:event.clientX,y:event.clientY}:null;
 },true);
 document.addEventListener('pointercancel',()=>outsideCapture=null,true);
 document.addEventListener('pointermove',event=>{if(outsideCapture&&Math.hypot(event.clientX-outsideCapture.x,event.clientY-outsideCapture.y)>9)outsideCapture=null;},true);
@@ -1125,7 +1125,7 @@ document.addEventListener('click',event=>{
   const pending=outsideCapture;outsideCapture=null;
   if(active?.titleEntry||!menu.hidden||modal.open)return;
   if(pending?.session===active)safeRun(()=>submitCapture(pending.session,pending.tag));
-  else if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu,.card-tag,#search-button,#change-filter,#search-tags-panel'))safeRun(()=>submitCapture());
+  else if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu,.im-format-toolbar,.card-tag,#search-button,#change-filter,#search-tags-panel'))safeRun(()=>submitCapture());
 },true);
 $('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;searchOpen=false;renderAll();}});
 $('search').addEventListener('input',event=>{if(active){active.view.query=event.target.value;viewport.scrollTop=0;renderAll();}});

@@ -14,7 +14,8 @@
 .im-rich-input h6,.im-rich-display h6{font-size:1em}
 .im-rich-input :is(h1,h2,h3,h4,h5,h6),.im-rich-display :is(h1,h2,h3,h4,h5,h6){margin:.3em 0 .18em;font-weight:700;line-height:1.35;white-space:pre-wrap;min-height:1lh}
 .im-rich-input>:first-child,.im-rich-display>:first-child{margin-top:0}
-.im-rich-input blockquote,.im-rich-display blockquote{margin:4px 0;padding-left:11px;border-left:3px solid var(--accent,#28654f)}
+.im-rich-input blockquote,.im-rich-display blockquote{position:relative;width:fit-content;max-width:100%;margin:4px 0;padding:4px 28px 4px 10px;border-left:3px solid var(--accent,#28654f);border-radius:7px;background:var(--accent-soft,#e9f0eb);box-sizing:border-box}
+.im-rich-input blockquote:after,.im-rich-display blockquote:after{content:"\201D";position:absolute;top:3px;right:7px;color:var(--accent,#28654f);font:700 26px/1 Georgia,serif;pointer-events:none;user-select:none}
 .im-rich-input ul,.im-rich-input ol,.im-rich-display ul,.im-rich-display ol{margin:3px 0;padding-left:1.6em;white-space:normal}
 .im-rich-input :is(ul,ol):has(>li[data-task]),.im-rich-display :is(ul,ol):has(>li[data-checked]){padding-left:44px}
 .im-rich-input li,.im-rich-display li{position:relative;white-space:pre-wrap}
@@ -52,3 +53,13 @@
 .card-detail-tools .im-format-toggle{margin:0 auto 0 0;height:42px;width:42px}
 .card-detail-bottom>.im-format-toolbar{margin:4px 8px}
 .im-rich-display[data-selecting=true] .im-md-check{pointer-events:none}
+
+/* The selection popup reuses the Aa toolbar and its exact action buttons. */
+.im-format-action svg{width:24px;height:24px;pointer-events:none}
+.im-format-toolbar.is-selection-format{z-index:1000;display:flex;flex-wrap:nowrap;gap:4px;padding:6px;width:max-content;max-width:calc(100vw - 16px);border:1px solid #dfe4df;border-radius:16px;background:var(--surface,#fff);color:var(--ink,#202124);box-shadow:0 3px 12px #00000020;pointer-events:auto;box-sizing:border-box}
+.im-format-toolbar.is-selection-format>.im-format-action{flex:0 1 40px;min-width:32px;height:42px;padding:0;border-radius:10px}
+.im-format-toolbar.is-selection-format.has-heading-levels{flex-wrap:wrap;width:min(364px,calc(100vw - 16px))}
+.im-format-toolbar.is-selection-format .im-heading-levels{width:100%;justify-content:space-between}
+.im-format-toolbar.is-selection-format .im-heading-levels .im-format-action{min-width:32px;flex:1;height:40px}
+.im-format-toolbar.is-selection-format.has-heading-levels>.im-format-action{flex:0 0 calc((100% - 24px)/7);width:auto;min-width:0}
+ .im-format-toolbar.is-selection-format>.im-format-ordinary{display:none}

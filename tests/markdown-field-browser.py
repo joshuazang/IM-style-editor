@@ -21,7 +21,7 @@ try:
    capture.evaluate('n=>{capture.setContext("task","- [ ] task");n.focus()}');capture.get_by_role('checkbox').click();assert '[x]' in capture.evaluate('n=>n.value')
    expect(page.locator('#capture .im-format-toggle,#capture .im-format-toolbar')).to_have_count(0)
    detail.evaluate('n=>{detail.setContext("toolbar","select me");n.select();n.focus()}');page.locator('#detail').get_by_role('button',name='Text formatting',exact=True).click();page.locator('#detail').get_by_role('button',name='Bold',exact=True).click();assert detail.locator('strong').inner_text()=='select me'
-   box=page.locator('#detail');heading=box.get_by_role('button',name='Heading',exact=True)
+   box=page.get_by_role('toolbar',name='Text formatting',exact=True);heading=box.get_by_role('button',name='Heading',exact=True)
    def choices():
     if heading.get_attribute('aria-expanded')!='true':heading.click()
    for level in range(1,7):
