@@ -1,3 +1,6 @@
+Historical versions are grouped in [releases/](releases/README.md). See the
+[repository layout guide](docs/RELEASE-LAYOUT.md) for packaging and publishing.
+
 An IM-style editor for Standard Notes
 
 This repository now contains two separately installable interfaces built from
