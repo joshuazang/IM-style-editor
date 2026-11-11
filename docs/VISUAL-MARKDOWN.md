@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.13 / Mosaic 1.5.15.
+Status: implemented for IM 4.4.13 / Mosaic 1.5.16.
 
 ## Agreed behavior
 
@@ -79,8 +79,8 @@ retain current message windowing. Only active editing fields need editor views,
 with explicit lifecycle cleanup and selection preservation.
 
 Existing separate titles stay outside the Board body allowance. Headings inside
-the Markdown body are body content. Phone previews retain 8x and computer
-previews 11x of the existing baseline; tags/replies retain their additive height.
+the Markdown body are body content. Pinned previews use 6x on phones and 8x on computers. Unpinned previews use
+8x on phones and 14x on computers. Tags/replies retain their additive height.
 
 ## Integration points inspected
 
@@ -203,3 +203,7 @@ Left/Right navigate controls and Escape returns to the input. The paragraph
 continuation action remains in Aa for cursor use, not in the selection popup.
 Quotes display an accent bar, soft tint, rounded inset and decorative quote mark;
 formatting syntax and stored text are unchanged.
+
+Board preview caps: pinned phone cards use 6× and pinned computer cards 8×;
+unpinned phone cards use 8× and unpinned computer cards 14×. Titles, tags and
+replies add height beyond the body preview allowance.

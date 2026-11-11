@@ -28,7 +28,7 @@ try:
      byid={m['id']:m for m in measurements};baseline=byid[data['messages'][0]['id']]['height'];untitled=byid[data['messages'][1]['id']]
      for i,m in enumerate(data['messages'][1:],1):
       result={**byid[m['id']],'width':width,'font':font,'tags':tags,'reply':reply,'titleLines':0 if i==1 else [1,2,3,6,12][i-2]};result['differenceFromUntitled']=result['height']-untitled['height'];rows.append(result)
-      assert abs(result['maximum']-(8 if width<600 else 11)*baseline)<1,result
+      assert abs(result['maximum']-(8 if width<600 else 14)*baseline)<1,result
       key=(width,font);body_heights.setdefault(key,result['bodyVisible']);assert result['bodyVisible']==body_heights[key],result
       assert abs(result['height']-result['maximum']-result['extras'])<1,result
       assert result['truncated'],result

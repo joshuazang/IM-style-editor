@@ -86,15 +86,22 @@ console.log('PASS: compact internal Board tags, measured wrapped heights and ind
 
 const longPreview={id:f.newId(),text:'Body line\n'.repeat(1000),reactions:[]};
 for(const fontSize of Object.keys(m.fontSizes))for(const width of [170,280]){
-  for(const ratio of [8,11])assert.equal(m.boardBounds(width,fontSize,ratio).maximum,ratio*m.boardBounds(width,fontSize,ratio).minimum);
+  for(const ratio of [6,8,14])assert.equal(m.boardBounds(width,fontSize,ratio).maximum,ratio*m.boardBounds(width,fontSize,ratio).minimum);
 }
 const previewLayout=ratio=>m.layout([longPreview],{},350,'','',false,false,ratio).items[0];
 assert.equal(previewLayout(8).height,m.boardBounds(170,'large',8).maximum);
-assert.equal(previewLayout(11).height,m.boardBounds(170,'large',11).maximum);
+assert.equal(previewLayout(14).height,m.boardBounds(170,'large',14).maximum);
 m.measure(longPreview,170,false,false,123,'large',8);
 assert.equal(previewLayout(8).height,123);
-assert.equal(previewLayout(11).height,m.boardBounds(170,'large',11).maximum,'A desktop estimate must ignore a measured phone height');
-m.measure(longPreview,170,false,false,456,'large',11);
-assert.equal(previewLayout(11).height,456);
+assert.equal(previewLayout(14).height,m.boardBounds(170,'large',14).maximum,'A desktop estimate must ignore a measured phone height');
+m.measure(longPreview,170,false,false,456,'large',14);
+assert.equal(previewLayout(14).height,456);
 assert.equal(previewLayout(8).height,m.boardBounds(170,'large',8).maximum,'A phone estimate must ignore a measured desktop height');
-console.log('PASS: independent 8x/11x body bounds and measurement-cache separation');
+console.log('PASS: independent 6x/8x/14x body bounds and measurement-cache separation');
+
+for(const [ordinary,pinned] of [[8,6],[14,8]]){
+ const card={id:f.newId(),text:'Long line\n'.repeat(1000),reactions:[]},settings={pinnedMessageIds:[card.id]};
+ const before=m.layout([card],{},350,'','',false,false,ordinary,pinned).items[0];
+ const after=m.layout([card],settings,350,'','',false,false,ordinary,pinned).items[0];
+ assert.equal(before.height,m.boardBounds(before.width,'large',ordinary).maximum);assert.equal(after.height,m.boardBounds(after.width,'large',pinned).maximum);assert.equal(after.previewRatio,pinned);
+}

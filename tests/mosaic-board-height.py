@@ -1,4 +1,4 @@
-"""Proportional Board previews with phone 8x and computer 11x body preview budgets."""
+"""Proportional Board previews with phone 8x and computer 14x body preview budgets."""
 import functools,http.server,json,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
@@ -28,7 +28,7 @@ try:
   iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148'
   android='Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36'
   desktop='Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36'
-  for width,ua,ratio in [(320,iphone,8),(390,android,8),(1100,desktop,11),(390,desktop,11),(844,iphone,8)]:
+  for width,ua,ratio in [(320,iphone,8),(390,android,8),(1100,desktop,14),(390,desktop,14),(844,iphone,8)]:
    for font in ['small','medium','large','extra-large']:
     data['settings']['mosaicFontSize']=font
     data['note']['content']['text']=json.loads(subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(JSON.stringify(f.portable(d.messages,d.settings,'')));"],cwd=ROOT,input=json.dumps(data),text=True))

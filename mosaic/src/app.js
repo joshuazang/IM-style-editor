@@ -10,7 +10,8 @@ function button(label, icon, handler, className='icon-button') {
 }
 const cardTimestampFormat=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
 const isIPhone=/\biPhone\b/i.test(navigator.userAgent);
-const boardPreviewRatio=navigator.userAgentData?.mobile===true||/\biPhone\b|\biPod\b|Android.*\bMobile\b|Windows Phone/i.test(navigator.userAgent)?8:11;
+const phoneBoard=navigator.userAgentData?.mobile===true||/\biPhone\b|\biPod\b|Android.*\bMobile\b|Windows Phone/i.test(navigator.userAgent);
+const boardPreviewRatio=phoneBoard?8:14,boardPinnedRatio=phoneBoard?6:8;
 document.documentElement.classList.toggle('is-iphone',isIPhone);
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
 let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
@@ -351,7 +352,7 @@ function renderAppearance() {
 }
 function rebuildLayout(inserting=false) {
   const anchor=inserting?null:findAnchor();
-  layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned,active.view.selecting,boardPreviewRatio):{items:[],headings:[],height:0,count:0};
+  layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned,active.view.selecting,boardPreviewRatio,boardPinnedRatio):{items:[],headings:[],height:0,count:0};
   board.style.height=layout.height+'px';board.replaceChildren();mounted.clear();
   for(const heading of layout.headings){const node=el('div','section-heading',heading.label);node.style.top=heading.y+'px';board.append(node);}
   const filtered=active&&(active.view.query||active.view.tag||active.view.pinned);
@@ -361,7 +362,7 @@ function rebuildLayout(inserting=false) {
 }
 function reflowBoard() {
   const s=active;if(!s)return;
-  layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting,boardPreviewRatio);
+  layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting,boardPreviewRatio,boardPinnedRatio);
   board.style.height=layout.height+'px';
   for(const [i,node] of [...board.querySelectorAll('.section-heading')].entries())if(layout.headings[i])node.style.top=layout.headings[i].y+'px';
   renderWindow();
@@ -381,7 +382,7 @@ function renderWindow() {
     if(!node){node=cardNode(item.message,item.width);mounted.set(item.message.id,node);board.append(node);}
     node.classList.toggle('is-drag-placeholder',!!boardDrag.placeholder(item.message.id));
     node.classList.toggle('is-compact',item.width<230);
-    const geometry=item.width+':'+fontSize+':'+boardPreviewRatio;
+    const geometry=item.width+':'+fontSize+':'+item.previewRatio;
     Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
     if(node.dataset.geometry!==geometry){
       node.dataset.geometry=geometry;node.style.removeProperty('--board-title-lines');node.style.removeProperty('--board-body-lines');
@@ -393,7 +394,7 @@ function renderWindow() {
   // add height outside it; they never change the body's visible line count.
   const previewLimit=({node,item})=>{
     const title=node.querySelector('.card-title'),body=node.querySelector('.card-body');
-    const bounds=MosaicModel.boardBounds(item.width,fontSize,boardPreviewRatio),available=bounds.maximum-bounds.padding;
+    const bounds=MosaicModel.boardBounds(item.width,fontSize,item.previewRatio),available=bounds.maximum-bounds.padding;
     const bodyStyle=body&&getComputedStyle(body),titleStyle=title&&getComputedStyle(title);
     const bodyLine=bodyStyle?parseFloat(bodyStyle.lineHeight):0,titleLine=titleStyle?parseFloat(titleStyle.lineHeight):0;
     const titleLines=title?Math.max(1,Math.floor(available/titleLine)):0;
@@ -408,18 +409,18 @@ function renderWindow() {
   const sizes=measurements.map(({node,item})=>{
     const truncated=[...node.querySelectorAll('.card-title,.card-body')].some(field=>field.scrollHeight>field.clientHeight+1);
     const body=node.querySelector('.card-body'),bodyTruncated=body&&body.scrollHeight>body.clientHeight+1;
-    const bounds=MosaicModel.boardBounds(item.width,fontSize,boardPreviewRatio),filler=bodyTruncated?Math.max(0,bounds.maximum-bounds.padding-body.clientHeight):0;
+    const bounds=MosaicModel.boardBounds(item.width,fontSize,item.previewRatio),filler=bodyTruncated?Math.max(0,bounds.maximum-bounds.padding-body.clientHeight):0;
     return {node,item,truncated,height:Math.ceil(node.getBoundingClientRect().height+filler)};
   });
   for(const {node,item,truncated,height} of sizes){
     node.classList.toggle('is-truncated',truncated);
     if(truncated)node.style.height=height+'px';
-    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize,boardPreviewRatio);
+    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize,item.previewRatio);
     if(measured&&(height!==item.height))changed=true;
   }
   if(changed){
     const anchor=findAnchor(),s=active,locatedY=s.locatedId?layout.byId.get(s.locatedId)?.y:null,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
-    layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting,boardPreviewRatio);
+    layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting,boardPreviewRatio,boardPinnedRatio);
     board.style.height=layout.height+'px';
     for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
     for(const [id,node] of mounted){const item=layout.byId.get(id);if(item)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}

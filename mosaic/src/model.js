@@ -173,7 +173,7 @@ const MosaicModel = (() => {
     const next=order.filter(value=>value!==id);next.splice(next.indexOf(targetId)+(after?1:0),0,id);
     return next.every((value,i)=>value===order[i])?settings:{...settings,mosaicCardOrder:next};
   }
-  function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false,previewRatio=8) {
+  function layout(messages, settings, width, query='', tag='', pinnedOnly=false,selecting=false,previewRatio=8,pinnedPreviewRatio=6) {
     const gap=width<600?10:16, columns=width<600?2:Math.max(2,Math.floor((width+gap)/276)), cardWidth=(width-gap*(columns-1))/columns;
     const pinIds=new Set(pins(settings)),fontSize=appearance(settings).fontSize;
     const allowed=new Set(filtered(messages,settings,query,tag,pinnedOnly).map(m=>m.id));
@@ -185,9 +185,10 @@ const MosaicModel = (() => {
       if(name==='Pinned'||headings.length){headings.push({label:name,y:base});base+=36;}
       const heights=Array(columns).fill(base);
       for(const message of group){
-        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize,previewRatio);
+        const ratio=pinIds.has(message.id)?pinnedPreviewRatio:previewRatio;
+        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize,ratio);
         const column=heights.indexOf(Math.min(...heights));
-        const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,order:items.length};
+        const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,previewRatio:ratio,order:items.length};
         items.push(item);columnItems[column].push(item);byId.set(message.id,item);
         heights[column]+=height+gap;
       }
