@@ -22,6 +22,14 @@ try:
     else:
      detail.press(method);detail.type('Second line');detail.press(method);detail.type('Third line')
     detail.press('Control+a');toggle.click();expect(detail.get_by_role('checkbox')).to_have_count(3);assert detail.locator('li p').all_text_contents()==['First line','Second line','Third line']
+   # Blank lines are spacing, never extra bullet/task/number markers.
+   for label in ['Bullet list','Checklist','Numbered list']:
+    fill_field(detail,'sd\nfasdf\nas\ndf\n\n\ndsfaasdf');detail.press('Control+a');command=box.get_by_role('button',name=label,exact=True);command.click()
+    expect(detail.locator('li')).to_have_count(5);assert detail.locator('li').all_text_contents()==['sd','fasdf','as','df','dsfaasdf']
+    expect(command).to_have_attribute('aria-pressed','true')
+    saved=detail.evaluate('n=>n.value');detail.evaluate('(n,value)=>n.imRich.setContext("blank-reopen",value)',saved);expect(detail.locator('li')).to_have_count(5)
+    assert detail.locator('li').nth(3).bounding_box()['height']>detail.locator('li').nth(2).bounding_box()['height']+5,'Blank spacing remains visible without markers'
+    detail.press('Control+a');command.click();expect(detail.locator('li')).to_have_count(0);detail.press('Control+z');expect(detail.locator('li')).to_have_count(5)
    fill_field(detail,'First task\nSecond task');detail.press('Control+a');toggle.click();expect(detail.get_by_role('checkbox')).to_have_count(2);expect(detail.locator('li')).to_have_count(2);expect(detail.locator('br')).to_have_count(0)
    # Hit targets end before the text; tapping the first character must not check it.
    for item in detail.locator('li').all():

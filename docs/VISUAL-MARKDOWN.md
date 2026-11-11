@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.10 / Mosaic 1.5.11.
+Status: implemented for IM 4.4.11 / Mosaic 1.5.12.
 
 ## Agreed behavior
 
@@ -25,6 +25,10 @@ Status: implemented for IM 4.4.10 / Mosaic 1.5.11.
   operate on the current block. Each toggle is one undo step. If a deeply nested
   boundary cannot be split safely, the command leaves it unchanged instead of
   extending formatting into unselected text.
+- Converting highlighted lines to bullets, numbers or tasks gives markers only
+  to nonblank lines. Blank lines retain their spacing inside the preceding item;
+  leading blank lines remain outside the list. A caret/Enter can still create a
+  new empty item for typing.
 - Escape in Mosaic Card View first collapses highlighted text, retaining the
   caret and open card. With no selection, Escape returns to Board through the
   ordinary save and acknowledgment path, including with a formatting popup open

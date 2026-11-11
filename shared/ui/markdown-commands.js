@@ -107,14 +107,42 @@ const imMarkdownCommands=(()=>{
     let kind=null,mixed=false;
     selectedTextblocks(state,(node,pos)=>{
       const selection=TextSelection.create(state.doc,pos+1),current={selection},item=ancestor(current,schema.nodes.list_item),list=nearestList(current);
+      if(!state.selection.empty&&!node.textContent.trim()&&!list)return;
       const value=!item||!list?null:item.node.attrs.checked!==null?'checklist':list.node.type===schema.nodes.ordered_list?'ordered':'bullet';
       if(value===null||kind!==null&&kind!==value)mixed=true;else kind=value;
     });return mixed?null:kind;
   }
   function quoteActive(state){let count=0,active=true;selectedTextblocks(state,(node,pos)=>{count++;if(!ancestor({selection:TextSelection.create(state.doc,pos+1)},schema.nodes.blockquote))active=false;});return count>0&&active;}
+  function preserveListGaps(tr){
+    const list=nearestList({selection:tr.selection});if(!list)return null;
+    const items=[],leading=[];let changed=false,invalid=false;
+    list.node.forEach(item=>{
+      const paragraph=item.firstChild;
+      if(item.childCount!==1||paragraph.type!==schema.nodes.paragraph||paragraph.textContent.trim()) {items.push(item);return;}
+      changed=true;
+      if(!items.length){leading.push(paragraph);return;}
+      const previous=items.pop(),body=previous.lastChild;
+      if(!body.isTextblock){invalid=true;return;}
+      const content=body.content.append(imRichDeps.model.Fragment.from(schema.nodes.hard_break.create())).append(paragraph.content);
+      const children=[];previous.forEach((child,offset,index)=>children.push(index===previous.childCount-1?body.copy(content):child));
+      items.push(previous.copy(imRichDeps.model.Fragment.fromArray(children)));
+    });
+    if(invalid)return null;
+    if(!changed)return tr;
+    // A highlighted blank area does not become an empty list. A caret still
+    // starts a new item through the normal wrapping/Enter commands.
+    if(!items.length)return null;
+    const replacement=imRichDeps.model.Fragment.fromArray([...leading,list.node.copy(imRichDeps.model.Fragment.fromArray(items))]);
+    const $pos=tr.doc.resolve(list.pos),index=$pos.index();if(!$pos.parent.canReplace(index,index+1,replacement))return null;
+    const backward=tr.selection.anchor>tr.selection.head;
+    tr.replaceWith(list.pos,list.pos+list.node.nodeSize,replacement);
+    const start=tr.doc.resolve(list.pos),end=tr.doc.resolve(list.pos+replacement.size);
+    tr.setSelection(TextSelection.between(backward?end:start,backward?start:end));return tr;
+  }
   function listCommand(kind){return (state,dispatch)=>textSelection(state,dispatch?tr=>dispatch(imRichDeps.history.closeHistory(tr)):undefined,(state,dispatch)=>{
     const type=kind==='ordered'?schema.nodes.ordered_list:schema.nodes.bullet_list;
-    const list=nearestList(state);
+    let list=nearestList(state);
+    if(!list&&listKind(state)!==null)selectedTextblocks(state,(node,pos)=>{if(!list)list=nearestList({selection:TextSelection.create(state.doc,pos+1)});});
     if(list){
       if(!state.selection.empty&&listKind(state)===kind&&state.selection.to<=list.pos+list.node.nodeSize&&!state.doc.textBetween(list.pos,state.selection.from)&&!state.doc.textBetween(state.selection.to,list.pos+list.node.nodeSize)){
         const unwrap=node=>{
@@ -124,7 +152,7 @@ const imMarkdownCommands=(()=>{
         };
         const replacement=imRichDeps.model.Fragment.fromArray(unwrap(list.node)),$pos=state.doc.resolve(list.pos),index=$pos.index();
         if(!$pos.parent.canReplace(index,index+1,replacement))return false;
-        if(dispatch){const tr=state.tr.replaceWith(list.pos,list.pos+list.node.nodeSize,replacement),start=tr.doc.resolve(list.pos),end=tr.doc.resolve(list.pos+replacement.size);
+        if(dispatch){const tr=state.tr.replaceWith(list.pos,list.pos+list.node.nodeSize,replacement),start=tr.doc.resolve(Math.min(state.selection.from,list.pos)),end=tr.doc.resolve(state.selection.to>list.pos+list.node.nodeSize?tr.mapping.map(state.selection.to):list.pos+replacement.size);
           tr.setSelection(TextSelection.between(state.selection.anchor<=state.selection.head?start:end,state.selection.anchor<=state.selection.head?end:start));dispatch(tr.scrollIntoView());}
         return true;
       }
@@ -147,7 +175,9 @@ const imMarkdownCommands=(()=>{
     return transactionChain(state,dispatch,(get,apply)=>{
       lineBlocks(schema.nodes.paragraph,null,true)(get(),apply);
       C.setBlockType(schema.nodes.paragraph)(get(),apply);
-      return L.wrapInList(type)(get(),tr=>{if(kind==='checklist')selectedItems(tr,false);apply(tr);});
+      let wrapped=null;
+      if(!L.wrapInList(type)(get(),tr=>{if(kind==='checklist')selectedItems(tr,false);wrapped=get().selection.empty?tr:preserveListGaps(tr);} )||!wrapped)return false;
+      apply(wrapped);return true;
     });
   });}
   function quoteCommand(state,dispatch){
