@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.13 / Mosaic 1.5.16.
+Status: implemented for IM 4.4.14 / Mosaic 1.5.17.
 
 ## Agreed behavior
 
@@ -56,6 +56,13 @@ Status: implemented for IM 4.4.13 / Mosaic 1.5.16.
   compatibility is independent of literal-body compatibility.
 - Modest additional CPU/RAM is acceptable. Noticeable additional lag in typing,
   scrolling, selection, or transitions blocks release.
+- Enter is handled once per keyboard action, including iOS beforeinput and its
+  delayed fallback. Modifier keys, rapid repeated presses and IME confirmation
+  retain their existing behavior.
+- On phones, a swipe inside an opened card or a tap outside its editable fields
+  dismisses the keyboard without closing the card or discarding its draft.
+  Formatting controls retain editing focus. Caret-driven scrolling does not
+  dismiss the keyboard.
 
 ## Shared implementation boundary
 

@@ -833,6 +833,7 @@ function editorDialog(id=null) {
   const stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
   const restored=stashed?.id===id&&stashed.original===message.text&&(stashed.originalTitle??imFormat.title(message))===imFormat.title(message)?stashed:null;
   const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
+  const originalNormalized=MosaicModel.normalized(original),titleNormalized=MosaicModel.normalized(currentTitle),originalNewline=(/\r\n|\n|\r/.exec(original)||['\n'])[0];
   const sourceRect=cardTransitionRect(mounted.get(id));
   const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
   const scroller=el('div','card-detail-scroll');d.scroll=scroller;d.root.append(scroller);
@@ -876,8 +877,20 @@ function editorDialog(id=null) {
   footer.append(bodyEditor.toggle,pin,palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');if(isIPhone)d.bottom.append(d.tagBadges);d.bottom.append(bodyEditor.toolbar,footer);d.root.append(d.bottom);
   d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
   scroller.addEventListener('scroll',d.updateScroll,{passive:true});
+  if(phoneBoard){
+    let touch=null;
+    scroller.addEventListener('touchstart',event=>{const point=event.touches[0];touch=event.touches.length===1?{x:point.clientX,y:point.clientY}:null;},{passive:true});
+    scroller.addEventListener('touchmove',event=>{const point=event.touches[0];if(touch&&point&&Math.hypot(point.clientX-touch.x,point.clientY-touch.y)>10){touch=null;if(modalState===d)dismissCardKeyboard();}},{passive:true});
+    scroller.addEventListener('touchend',()=>{touch=null;},{passive:true});scroller.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
+  }
   d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
-  const change=event=>{d.fieldRevision++;if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}if(d.bodyReady)d.currentText=MosaicModel.normalized(body.value)===MosaicModel.normalized(original)?original:MosaicModel.normalized(body.value).replace(/\n/g,(/\r\n|\n|\r/.exec(original)||['\n'])[0]);d.titleValue=MosaicModel.normalized(title.value)===MosaicModel.normalized(currentTitle)?currentTitle:title.value;if(event.target===title&&!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}};
+  const change=event=>{
+    d.fieldRevision++;
+    if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}
+    if(d.bodyReady){const value=MosaicModel.normalized(body.value);d.currentText=value===originalNormalized?original:value.replace(/\n/g,originalNewline);}
+    d.titleValue=MosaicModel.normalized(title.value)===titleNormalized?currentTitle:title.value;
+    if(event.target===title&&!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}
+  };
   title.addEventListener('input',change);body.addEventListener('im-markdown-change',change);
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
@@ -1193,9 +1206,15 @@ modal.addEventListener('keydown',event=>{
   }
 },true);
 modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});
+function dismissCardKeyboard(){
+  if(!phoneBoard||modalState?.kind!=='edit')return false;
+  const field=document.activeElement;
+  if(modal.contains(field)&&field.matches('.editor-body,.editor-title')){field.blur();return true;}return false;
+}
 function isOutsideModal(event){const box=modal.getBoundingClientRect();return event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom;}
 modal.addEventListener('pointerdown',event=>{
   if(modalState)modalState.outsidePress=event.isPrimary&&event.button===0&&event.target===modal&&isOutsideModal(event)?{pointerId:event.pointerId}:null;
+  if(!event.target.closest('.editor-body,.editor-title,.im-format-toolbar,.im-format-toggle')&&dismissCardKeyboard())modalState.outsidePress=null;
 },true);
 modal.addEventListener('pointercancel',()=>{if(modalState)modalState.outsidePress=null;},true);
 modal.addEventListener('click',event=>{

@@ -171,6 +171,9 @@ try:
         # Tap well inside the backdrop, outside touch hit-adjustment near edges.
         assert r['y'] > 40
         page.touchscreen.tap(195, r['y'] / 2)
+        expect(dialog).to_be_visible()
+        expect(editor.get_by_role('textbox',name='Card body',exact=True)).not_to_be_focused()
+        page.touchscreen.tap(195,r['y']/2)
         expect(dialog).not_to_be_visible()
         assert page.evaluate('saves.length') == 0
         print('PASS Android: ordinary touch backdrop dismissal remains functional', flush=True)

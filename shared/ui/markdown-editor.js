@@ -7,7 +7,8 @@ const imRichField=(()=>{
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
-    const formatting=!options.capture,controls=new Map(),headingLevels=new Map();let send,floating;
+    const formatting=!options.capture,controls=new Map(),headingLevels=new Map();let send,floating,enterKeyActive=false,enterKeyHandled=false,enterModifiers=null,enterPairTimer=0;
+    function markEnterHandled(){enterKeyHandled=enterKeyActive;clearTimeout(enterPairTimer);enterPairTimer=setTimeout(()=>{enterKeyHandled=false;},0);}
     function action(label,content,command){
       const b=document.createElement('button');b.type='button';b.className='im-format-action';b.title=label;b.setAttribute('aria-label',label);b.textContent=content;
       b.addEventListener('pointerdown',event=>{if(event.button===0)event.preventDefault();});
@@ -96,7 +97,7 @@ const imRichField=(()=>{
       handleKeyDown:(v,event)=>{
         if(event.key==='Escape'&&!dom.closest('dialog')&&floating?.dismiss()){event.preventDefault();event.stopPropagation();return true;}
         if((event.key==='End'||event.key==='Home')&&v.state.selection instanceof imRichDeps.state.AllSelection){v.dispatch(v.state.tr.setSelection(event.key==='End'?TextSelection.atEnd(v.state.doc):TextSelection.atStart(v.state.doc)).scrollIntoView());return true;}
-        if(event.key!=='Enter'){config.onKeyDown?.(event);if(event.defaultPrevented)return true;}return enter(event);
+        if(event.key!=='Enter'){config.onKeyDown?.(event);if(event.defaultPrevented)return true;}const handled=enter(event);if(handled)markEnterHandled();return handled;
       },
       handlePaste:(v,event)=>{
         if(plain||disabled||readOnly||event.clipboardData?.getData('text/html'))return false;
@@ -104,11 +105,21 @@ const imRichField=(()=>{
         const doc=imMarkdown.parse(text),whole=v.state.selection.from<=TextSelection.atStart(v.state.doc).from&&v.state.selection.to>=TextSelection.atEnd(v.state.doc).to,tr=whole?v.state.tr.replaceWith(0,v.state.doc.content.size,doc.content):v.state.tr.replaceSelection(new imRichDeps.model.Slice(doc.content,0,0));if(tr.doc.eq(doc))tr.setMeta('im-paste-source',text.replace(/\r\n?/g,'\n'));v.dispatch(tr.scrollIntoView());return true;
       },
       handleDOMEvents:{
-        compositionstart:()=>{ime=true;floating?.update();return false;},compositionend:()=>{ime=false;lastIME=performance.now();return false;},
+        keydown:(v,event)=>{if(event.key==='Enter'){enterKeyActive=true;enterKeyHandled=false;enterModifiers={key:'Enter',shiftKey:event.shiftKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,repeat:event.repeat};}else{enterKeyActive=false;enterKeyHandled=false;}return false;},
+        keyup:(v,event)=>{if(event.key==='Enter'){enterKeyActive=false;enterKeyHandled=false;}return false;},
+        blur:()=>{enterKeyActive=false;enterKeyHandled=false;return false;},
+        compositionstart:()=>{ime=true;enterKeyActive=false;enterKeyHandled=false;floating?.update();return false;},compositionend:()=>{ime=false;lastIME=performance.now();return false;},
         beforeinput:(v,event)=>{
           if(!['insertParagraph','insertLineBreak'].includes(event.inputType)||event.isComposing||ime||view.composing||performance.now()-lastIME<40)return false;
           if(disabled||readOnly)return false;
-          event.preventDefault();if(config.capture&&!K.structural(view.state))config.onSubmit?.();else execute(K.enter);return true;
+          event.preventDefault();
+          // The pinned ProseMirror view schedules an iOS Enter fallback on
+          // keydown. We handle beforeinput ourselves, so cancel that fallback
+          // before it can run the same command again 200ms later.
+          view.input.lastIOSEnter=0;clearTimeout(view.input.lastIOSEnterFallbackTimeout);
+          if(enterKeyActive&&enterKeyHandled)return true;
+          markEnterHandled();
+          enter(enterKeyActive?enterModifiers:{key:'Enter'});return true;
         }
       },
       nodeViews:{list_item:(initial,v,getPos)=>{
@@ -165,12 +176,12 @@ const imRichField=(()=>{
     if(options.sendButton){send=action('Send','↑',()=>config.onSubmit?.());send.classList.add('im-rich-send');main.append(send);}
     wrapper.append(main);if(formatting)wrapper.append(toolbar);floating=imSelectionFormatting({dom,toolbar,toggle,view,manual:formatting,canFormat:()=>!plain&&!disabled&&!readOnly&&!ime&&!view.composing});refresh();
     const controller={dom,wrapper,toggle,toolbar,view,
-      setContext:(key,value,plainMode=false)=>{const reset=key!==context||plain!==plainMode;if(reset)floating?.reset();context=key;plain=plainMode;setValue(value,reset);},
+      setContext:(key,value,plainMode=false)=>{const reset=key!==context||plain!==plainMode;if(reset){enterKeyActive=false;enterKeyHandled=false;floating?.reset();}context=key;plain=plainMode;setValue(value,reset);},
       configure:next=>{const before=JSON.stringify(attrs());config={...config,...next};if(next.disabled!==undefined)disabled=!!next.disabled;if(next.readOnly!==undefined)readOnly=!!next.readOnly;if(JSON.stringify(attrs())!==before)editableChanged();else refresh();},
       insertText:text=>{view.dispatch(view.state.tr.insertText(text).scrollIntoView());view.focus();},
       appendText:text=>{const selection=TextSelection.atEnd(view.state.doc),marks=view.state.storedMarks||selection.$from.marks();view.dispatch(view.state.tr.setSelection(selection).setStoredMarks(marks).insertText(text).scrollIntoView());view.focus();},
       backspaceAtEnd:()=>{view.dispatch(view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)));const state=view.state,from=state.selection.from,before=state.selection.$from.nodeBefore;if(state.selection.$from.parentOffset){const last=before?.isText?Array.from(before.text).at(-1):'';view.dispatch(state.tr.delete(from-(last?.length||1),from).scrollIntoView());}else C.joinBackward(state,view.dispatch,view);view.focus();},
-      destroy:()=>{if(destroyed)return;destroyed=true;floating?.destroy();view.destroy();live--;wrapper.remove();toolbar.remove();toggle.remove();},
+      destroy:()=>{if(destroyed)return;destroyed=true;clearTimeout(enterPairTimer);floating?.destroy();view.destroy();live--;wrapper.remove();toolbar.remove();toggle.remove();},
       value:()=>source,
       get plain(){return plain;}
     };dom.imRich=controller;return controller;
