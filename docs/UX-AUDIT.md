@@ -92,3 +92,17 @@ with 4x CPU throttling, then verifies exact saved drafts. Enter and Shift+Enter
 transactions in the large paragraph fixture measured approximately 9–16 ms;
 the structured fixture measured 5–8 ms. These are controlled Chromium results,
 not measurements from the user's physical Mac/Standard Notes installation.
+
+## Phone native text selection (Mosaic 1.5.25)
+
+Card long-press/context-menu handlers now leave editable fields to the native
+text selection menu. Swipe-to-dismiss checks both the DOM selection and the
+editor selection before blurring; long-held caret drags are also exempt.
+Selection-owned gestures and DOM-first selection updates suppress caret scrolling
+while the keyboard/viewport changes. Ordinary swipes still dismiss the keyboard.
+
+The regression models long presses, native DOM selection before editor-state
+synchronization, handle gestures targeting the scroller, viewport resizing and
+held caret drags. Keyboard dismissal, exact draft saving, Board touch menus and
+selection-first Escape also passed. The test browser cannot reproduce the actual
+iOS blue-handle UI; physical-device verification remains outstanding.

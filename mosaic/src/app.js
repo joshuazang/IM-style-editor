@@ -79,7 +79,7 @@ function bindContextMenu(node,open,canHold=()=>true) {
   let gesture=null,timer=0,suppressUntil=0;
   const cancel=()=>{clearTimeout(timer);timer=0;gesture=null;};
   node.addEventListener('pointerdown',event=>{
-    if(event.pointerType!=='touch'||event.isPrimary===false||event.target.closest('button,input,textarea,select,#menu')||!canHold())return;
+    if(event.pointerType!=='touch'||event.isPrimary===false||event.target.closest('button,input,textarea,select,[contenteditable],#menu')||!canHold())return;
     cancel();gesture={id:event.pointerId,x:event.clientX,y:event.clientY,scroll:viewport.scrollTop,ready:false};const current=gesture;
     timer=setTimeout(()=>{
       if(gesture!==current||!node.isConnected||!canHold()){cancel();return;}
@@ -99,7 +99,7 @@ function bindContextMenu(node,open,canHold=()=>true) {
   node.addEventListener('contextmenu',event=>{
     if(event.target.closest('#menu'))return;
     const touch=!!gesture||event.pointerType==='touch'||(matchMedia('(pointer:coarse) and (hover:none)').matches&&event.pointerType!=='mouse');
-    if(touch&&event.target.closest('input,textarea,select'))return;
+    if(touch&&event.target.closest('input,textarea,select,[contenteditable]'))return;
     event.preventDefault();if(!touch)open(event);
   });
 }
@@ -881,9 +881,19 @@ function editorDialog(id=null) {
   scroller.addEventListener('scroll',d.updateScroll,{passive:true});
   if(phoneBoard){
     let touch=null;
-    scroller.addEventListener('touchstart',event=>{const point=event.touches[0];touch=event.touches.length===1?{x:point.clientX,y:point.clientY}:null;},{passive:true});
-    scroller.addEventListener('touchmove',event=>{const point=event.touches[0];if(touch&&point&&Math.hypot(point.clientX-touch.x,point.clientY-touch.y)>10){touch=null;if(modalState===d)dismissCardKeyboard();}},{passive:true});
-    scroller.addEventListener('touchend',()=>{touch=null;},{passive:true});scroller.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
+    scroller.addEventListener('touchstart',event=>{
+      const point=event.touches[0];d.selectingText=cardHasTextSelection(d);cancelAnimationFrame(d.caretFrame);
+      touch=event.touches.length===1?{x:point.clientX,y:point.clientY,at:performance.now(),editable:!!event.target.closest('.editor-body,.editor-title')}:null;
+    },{passive:true});
+    scroller.addEventListener('touchmove',event=>{
+      const point=event.touches[0];if(!touch||!point)return;
+      // Blue handles and long-press caret/selection drags belong to the OS.
+      // Native selection may update before ProseMirror's selection state does.
+      if(d.selectingText||cardHasTextSelection(d)||(touch.editable&&performance.now()-touch.at>300)){d.selectingText=true;touch=null;return;}
+      if(Math.hypot(point.clientX-touch.x,point.clientY-touch.y)>10){touch=null;if(modalState===d)dismissCardKeyboard();}
+    },{passive:true});
+    const endTouch=()=>{touch=null;d.selectingText=false;};
+    scroller.addEventListener('touchend',endTouch,{passive:true});scroller.addEventListener('touchcancel',endTouch,{passive:true});
   }
   d.scrollObserver=new ResizeObserver(()=>{d.updateScroll();d.revealCaret?.();});for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
   const change=event=>{
@@ -940,7 +950,7 @@ function editorDialog(id=null) {
         // Extend only the scrollable overflow, without changing the card's
         // intrinsic height when its floating formatting panel is opened.
         caretSpace.hidden=!panel;caretSpace.style.top=(body.offsetTop+body.offsetHeight+(panel?.height||0)+18)+'px';
-        if(document.activeElement!==body||!view.state.selection.empty)return;
+        if(document.activeElement!==body||d.selectingText||cardHasTextSelection(d))return;
         const caret=view.coordsAtPos(view.state.selection.head),box=scroller.getBoundingClientRect(),visual=window.visualViewport;
         const top=Math.max(box.top,visual?.offsetTop||0)+12,bottom=Math.min(box.bottom,panel?.top??Infinity,(visual?.offsetTop||0)+(visual?.height||innerHeight))-12;
         if(bottom<=top)return;
@@ -1231,6 +1241,13 @@ modal.addEventListener('keydown',event=>{
   }
 },true);
 modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});
+function cardHasTextSelection(d){
+  if(d?.kind!=='edit')return false;
+  const selection=window.getSelection(),field=document.activeElement;
+  return !!(selection&&!selection.isCollapsed&&(d.body?.contains(selection.anchorNode)||d.body?.contains(selection.focusNode)))||
+    !!(field?.matches('.editor-title')&&modal.contains(field)&&field.selectionStart!==field.selectionEnd)||
+    !!(d.body?.imRich&&!d.body.imRich.view.state.selection.empty);
+}
 function dismissCardKeyboard(){
   if(!phoneBoard||modalState?.kind!=='edit')return false;
   const field=document.activeElement;
@@ -1239,7 +1256,8 @@ function dismissCardKeyboard(){
 function isOutsideModal(event){const box=modal.getBoundingClientRect();return event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom;}
 modal.addEventListener('pointerdown',event=>{
   if(modalState)modalState.outsidePress=event.isPrimary&&event.button===0&&event.target===modal&&isOutsideModal(event)?{pointerId:event.pointerId}:null;
-  if(!event.target.closest('.editor-body,.editor-title,.im-format-toolbar,.im-format-toggle')&&dismissCardKeyboard())modalState.outsidePress=null;
+  const selecting=event.pointerType==='touch'&&cardHasTextSelection(modalState)&&(modalState?.scroll?.contains(event.target)||(event.target===modal&&!isOutsideModal(event)));
+  if(!selecting&&!event.target.closest('.editor-body,.editor-title,.im-format-toolbar,.im-format-toggle')&&dismissCardKeyboard())modalState.outsidePress=null;
 },true);
 modal.addEventListener('pointercancel',()=>{if(modalState)modalState.outsidePress=null;},true);
 modal.addEventListener('click',event=>{

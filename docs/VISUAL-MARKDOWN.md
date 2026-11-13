@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.19 / Mosaic 1.5.24.
+Status: implemented for IM 4.4.19 / Mosaic 1.5.25.
 
 ## Agreed behavior
 
@@ -72,6 +72,9 @@ Status: implemented for IM 4.4.19 / Mosaic 1.5.24.
   Formatting controls retain editing focus. Caret-driven scrolling does not
   dismiss the keyboard. Keyboard resize/pan and caret changes reveal the focused
   body caret inside the Card scroller, with space above the keyboard and toolbar.
+  Native text selection owns long presses and selection-handle drags: these
+  gestures do not dismiss the keyboard, open the card menu or trigger caret
+  scrolling. Ordinary swipes without a text selection still dismiss typing.
 
 ## Shared implementation boundary
 

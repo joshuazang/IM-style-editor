@@ -26,6 +26,6 @@ try:
     cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});expect(body).not_to_be_focused();expect(dialog).to_be_visible();assert body.evaluate('n=>n.imRich.view.state.doc.textContent.endsWith("keyboard sample")'),body.evaluate('n=>n.imRich.view.state.doc.textContent.slice(-100)');assert page.evaluate('saves.length')==0
    else:
     pane.evaluate('n=>n.scrollTop=0');expect(body).to_be_focused()
-   e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text'].endswith('keyboard sample');assert not errors,errors;print('PASS '+name+': single Enter, keyboard focus during typing/formatting, scroll/outside dismissal, retained draft and save',flush=True);context.close()
+   expected=body.evaluate('n=>n.value');assert body.evaluate('n=>n.imRich.view.state.doc.textContent.endsWith("keyboard sample")'),(name,body.evaluate('n=>n.imRich.view.state.doc.textContent.slice(-100)'));e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();actual=scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text'];assert actual==expected,(name,expected[-100:],actual[-100:]);assert not errors,errors;print('PASS '+name+': single Enter, keyboard focus during typing/formatting, scroll/outside dismissal, retained draft and save',flush=True);context.close()
   browser.close()
 finally:server.shutdown()
