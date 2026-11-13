@@ -15,7 +15,7 @@ const boardPreviewRatio=phoneBoard?8:14,boardPinnedRatio=phoneBoard?6:8;
 document.documentElement.classList.toggle('is-iphone',isIPhone);
 document.documentElement.classList.toggle('is-phone',phoneBoard);
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
-let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
+let active=null, modalState=null, cardBackSwipe=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null), searchPanelFit=null;
 let dragPreview=null;
 let captureEditor;
@@ -727,6 +727,7 @@ function dialogError(record,text) {
   if(modalState!==record)return;if(!record.error){record.error=el('p','dialog-error');record.error.setAttribute('role','alert');if(record.bottom)record.bottom.insertBefore(record.error,record.footer);else record.root.append(record.error);}record.error.textContent=text;
 }
 function closeModal(force=false) {
+  cardBackSwipe=null;
   if(!force&&modalState?.busy)return;
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
@@ -845,7 +846,7 @@ function editorDialog(id=null) {
   }
   const title=el('textarea','editor-title');title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
   const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
-  const startBody=cardBodyStart(d.currentText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,onResize:()=>d.updateScroll?.()}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
+  const startBody=cardBodyStart(d.currentText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,focusOnCheck:!phoneBoard,onResize:()=>d.updateScroll?.()}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
   // One scroller owns title, full-height body and trailing metadata. The toolbar
   // stays outside it; the editor itself never reserves a second scrollbar.
   // The visual editor is a normal contenteditable block, so CSS owns its
@@ -1241,6 +1242,28 @@ modal.addEventListener('keydown',event=>{
   }
 },true);
 modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});
+// Handle only gestures delivered inside Mosaic. The enclosing Standard Notes
+// app owns gestures that begin outside this iframe; its navigation is not ours.
+modal.addEventListener('touchstart',event=>{
+  cardBackSwipe=null;const d=modalState,point=event.touches[0];
+  if(!isIPhone||d?.kind!=='edit'||d.busy||d.motionClosing||event.touches.length!==1||!point||point.clientX>24||cardHasTextSelection(d)||event.target.closest('.editor-body,.editor-title,button'))return;
+  cardBackSwipe={dialog:d,x:point.clientX,y:point.clientY,dx:0,dy:0,claimed:false};
+},{capture:true,passive:true});
+modal.addEventListener('touchmove',event=>{
+  const gesture=cardBackSwipe,point=event.touches[0];if(!gesture)return;
+  if(event.touches.length!==1||!point||modalState!==gesture.dialog||cardHasTextSelection(gesture.dialog)){cardBackSwipe=null;return;}
+  gesture.dx=point.clientX-gesture.x;gesture.dy=point.clientY-gesture.y;
+  if(gesture.dx< -12||(Math.abs(gesture.dy)>12&&Math.abs(gesture.dy)>Math.abs(gesture.dx))){cardBackSwipe=null;return;}
+  if(gesture.dx>20&&Math.abs(gesture.dy)<gesture.dx*.6)gesture.claimed=true;
+  if(gesture.claimed){if(event.cancelable)event.preventDefault();event.stopPropagation();}
+},{capture:true,passive:false});
+modal.addEventListener('touchend',event=>{
+  const gesture=cardBackSwipe;cardBackSwipe=null;
+  if(!gesture?.claimed||modalState!==gesture.dialog)return;
+  if(event.cancelable)event.preventDefault();event.stopPropagation();
+  if(gesture.dx>=Math.max(60,Math.min(120,innerWidth*.25))&&Math.abs(gesture.dy)<gesture.dx*.6)closeModal();
+},{capture:true,passive:false});
+modal.addEventListener('touchcancel',()=>{cardBackSwipe=null;},{capture:true,passive:true});
 function cardHasTextSelection(d){
   if(d?.kind!=='edit')return false;
   const selection=window.getSelection(),field=document.activeElement;

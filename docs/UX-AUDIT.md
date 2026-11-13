@@ -106,3 +106,23 @@ synchronization, handle gestures targeting the scroller, viewport resizing and
 held caret drags. Keyboard dismissal, exact draft saving, Board touch menus and
 selection-first Escape also passed. The test browser cannot reproduce the actual
 iOS blue-handle UI; physical-device verification remains outstanding.
+
+## Phone checkboxes and local Card back (IM 4.4.20 / Mosaic 1.5.26)
+
+Mosaic phone Cards pass an explicit checkbox focus policy: toggling a task does
+not focus an idle editor, and an editor already focused retains its caret.
+Desktop behavior and IM's default checkbox focus policy remain as before.
+
+On iPhone, a rightward gesture beginning in the Card's left edge gutter closes
+through the existing save/acknowledgment flow. Short/vertical/multi-touch gestures,
+text selection, editable text and other dialogs are excluded. No Board gesture
+is consumed. Actual Chromium touch swipes, failure/retry, and checked draft saves
+passed at 320 and 390 pixels; checkbox focus also passed on Android and desktop.
+
+This is not a host-navigation override. Standard Notes' public
+[EditorPane](https://github.com/standardnotes/app/blob/main/packages/web/src/javascripts/Components/NoteGroupView/EditorPane.tsx)
+and [pane gesture hook](https://github.com/standardnotes/app/blob/main/packages/web/src/javascripts/Components/Panes/usePaneGesture.ts)
+own enclosing pane navigation. Events captured outside the cross-origin plugin
+iframe cannot be canceled by Mosaic. No supported Card-back coordination API was
+found in the inspected component protocol. The whole-screen native/host gesture
+therefore remains unverified and may still require a Standard Notes change.

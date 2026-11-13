@@ -133,7 +133,7 @@ const imRichField=(()=>{
       },
       nodeViews:{list_item:(initial,v,getPos)=>{
         let node=initial,check=null;const li=document.createElement('li'),contentDOM=document.createElement('div');contentDOM.className='im-md-item';
-        const click=event=>{event.preventDefault();event.stopPropagation();const pos=getPos();if(!disabled&&!readOnly&&typeof pos==='number'){v.dispatch(v.state.tr.setNodeMarkup(pos,null,{checked:!node.attrs.checked}));v.focus();}};
+        const click=event=>{event.preventDefault();event.stopPropagation();const pos=getPos();if(!disabled&&!readOnly&&typeof pos==='number'){const focused=v.hasFocus();v.dispatch(v.state.tr.setNodeMarkup(pos,null,{checked:!node.attrs.checked}));if(focused||config.focusOnCheck!==false)v.focus();}};
         const update=next=>{
           if(next.type!==schema.nodes.list_item)return false;node=next;
           const task=node.attrs.checked!==null;li.toggleAttribute('data-task',task);
