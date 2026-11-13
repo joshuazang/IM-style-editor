@@ -10,6 +10,8 @@ class H(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
  def end_headers(self):self.send_header('Access-Control-Allow-Origin','*');super().end_headers()
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(H,directory=str(ROOT)));threading.Thread(target=server.serve_forever,daemon=True).start()
+def nonzero_top_safe_area(route):
+ response=route.fetch();route.fulfill(response=response,body=response.text().replace('env(safe-area-inset-top)','44px'))
 try:
  with sync_playwright() as p:
   browser=p.chromium.launch(**chromium_options())
@@ -18,7 +20,10 @@ try:
     if titled:data['messages'][0]['title']='Optional title'
     else:data['messages'][0].pop('title',None)
     data['note']['content']['text']=json.loads(subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(JSON.stringify(f.portable(d.messages,d.settings,d.draft)));"],cwd=ROOT,input=json.dumps(data),text=True))
-    context=browser.new_context(viewport={'width':width,'height':height},is_mobile=width<600,has_touch=width<600);page=context.new_page();errors=[];page.on('pageerror',lambda error:errors.append(str(error)));page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('(note)=>{notes.a=note;openEditor("a","/mosaic/index.html",true)}',data['note'])
+    context=browser.new_context(viewport={'width':width,'height':height},is_mobile=width<600,has_touch=width<600,**({'user_agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148'} if width<600 else {}));page=context.new_page();
+    # Model a nonzero iPhone top safe area; default Chromium emulation reports zero.
+    if width<600:page.route('**/*.css',nonzero_top_safe_area)
+    errors=[];page.on('pageerror',lambda error:errors.append(str(error)));page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('(note)=>{notes.a=note;openEditor("a","/mosaic/index.html",true)}',data['note'])
     e=page.frame_locator('#editor');e.locator('.card').first.click();body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_visible();e.locator('dialog').evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');expect(body).to_have_js_property('value',text);expect(body).to_be_editable()
     pane=e.locator('.card-detail-scroll');bottom=e.locator('.card-detail-bottom');meta=e.locator('.card-detail-meta');close=e.get_by_role('button',name='Close',exact=True)
     assert pane.evaluate('n=>n.scrollTop')<2
