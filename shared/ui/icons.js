@@ -6,7 +6,7 @@ const imUiIcons = {
   formatBold:'<path d="M6 4h7a4 4 0 0 1 0 8H6Zm0 8h8a4 4 0 0 1 0 8H6Z" stroke-width="2.6"/>',
   formatStrike:'<path d="M18 7c-1-2-3-3-6-3-3 0-5 1.5-5 4 0 1.7 1 2.5 3 3M7 17c1 2 3 3 6 3 3 0 5-1.5 5-4 0-1.7-1-2.5-3-3M3 12h18"/>',
   formatBullet:'<circle cx="5" cy="6" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="18" r="1" fill="currentColor"/><path d="M10 6h11M10 12h11M10 18h11"/>',
-  formatNumber:'<path d="m3 4 2-1v6M3 9h4M3 14c0-2 4-2 4 0 0 1-4 4-4 5h4M11 6h10M11 12h10M11 18h10"/>',
+  formatNumber:'<path d="m3 3 1.5-1v5M2.5 7H6M2.5 10.5c0-2 3.5-2 3.5 0 0 1-3.5 2.5-3.5 3.5H6M2.5 17h2a1.25 1.25 0 0 1 0 2.5h-1m1 0a1.25 1.25 0 0 1 0 2.5h-2" stroke-width="1.4"/><path d="M10 5h11M10 12h11M10 19h11"/>',
   formatChecklist:'<rect x="3" y="4" width="17" height="17" rx="3"/><path d="m7 12 3 3 6-7"/>',
   formatHeading:'<path d="M4 4v16M15 4v16M4 12h11M20 15v5"/>',
   formatParagraph:'<path d="M14 4v16M19 4v16M19 4H9a5 5 0 0 0 0 10h5"/>',

@@ -55,6 +55,24 @@ try:
     for move in range(1,7):
      cdp.send('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':x,'y':y-move*12}]});page.wait_for_timeout(25)
     cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});page.wait_for_timeout(180);assert detail.evaluate('n=>n.scrollTop')>10;expect(detail.locator('[role=checkbox][aria-checked=true]')).to_have_count(0);cdp.detach()
+   # Completion styling follows the checkbox without rewriting inline marks
+   # or dimming/striking unchecked nested tasks. The display path matches edit.
+   fill_field(detail,'- [ ] **Parent**\n  - [ ] Child\n- [ ] Next')
+   parent=detail.locator('li').first.locator(':scope>.im-md-item>p').first
+   normal=parent.evaluate('n=>getComputedStyle(n).color');height=detail.bounding_box()['height']
+   detail.get_by_role('checkbox').first.click()
+   styled=parent.evaluate('n=>{const s=getComputedStyle(n);return {color:s.color,strike:s.textDecorationLine,line:s.textDecorationColor}}')
+   assert styled['strike']=='line-through' and styled['color']!=normal and styled['line']==styled['color'],styled
+   child=detail.locator('li').nth(1).locator(':scope>.im-md-item>p').first
+   assert child.evaluate('n=>getComputedStyle(n).textDecorationLine')=='none'
+   assert child.evaluate('n=>getComputedStyle(n).color')==normal
+   assert detail.bounding_box()['height']==height
+   assert '~~' not in detail.evaluate('n=>n.value') and '**Parent**' in detail.evaluate('n=>n.value')
+   detail.evaluate('n=>{document.getElementById("completed-preview")?.remove();const out=document.createElement("div");out.id="completed-preview";document.body.append(out);imMarkdown.render(out,imMarkdown.parse(n.value));}')
+   preview=page.locator('#completed-preview li').first.locator(':scope>p').first
+   assert preview.evaluate('n=>getComputedStyle(n).textDecorationLine')=='line-through'
+   assert preview.evaluate('n=>getComputedStyle(n).color')==styled['color']
+   detail.get_by_role('checkbox').first.click();assert parent.evaluate('n=>getComputedStyle(n).textDecorationLine')=='none';assert parent.evaluate('n=>getComputedStyle(n).color')==normal
    assert not errors,errors
    print(f'PASS {width}px: multiline conversion, distinct checkbox/text taps, caret retention, empty task save/reopen, Enter/Shift+Enter/Backspace, on/off/Undo/Redo and capture no-send',flush=True);context.close()
   browser.close()

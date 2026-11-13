@@ -21,6 +21,9 @@
 .im-rich-input li,.im-rich-display li{position:relative;white-space:pre-wrap}
 .im-rich-input li[data-task],.im-rich-display li[data-checked]{list-style:none;min-height:44px}
 .im-rich-input li[data-task]>.im-md-item,.im-rich-display li[data-checked]>p:first-of-type{padding-top:max(0px,calc((44px - 1lh)/2))}
+/* Completion is presentation only; toggling it never adds Markdown strike marks. */
+.im-rich-input li[data-checked=true]>.im-md-item>:not(ul):not(ol),
+.im-rich-display li[data-checked=true]>:not(button):not(ul):not(ol){color:color-mix(in srgb,currentColor 80%,var(--surface,#fff));text-decoration-line:line-through;text-decoration-color:currentColor}
 .im-md-check{position:absolute;left:-44px;top:0;display:inline-flex;align-items:center;justify-content:center;width:44px!important;height:44px!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:6px!important;background:transparent!important;font:700 15px/1 system-ui!important;color:var(--ink,#202124);cursor:pointer;isolation:isolate}
 .im-md-check:before{content:'';position:absolute;z-index:-1;inset:12px;border:1.5px solid var(--muted,#66706b);border-radius:4px;background:var(--surface,#fff)}
 .im-md-check[aria-checked=true]{color:#fff}
