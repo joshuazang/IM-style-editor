@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.16 / Mosaic 1.5.21.
+Status: implemented for IM 4.4.17 / Mosaic 1.5.22.
 
 ## Agreed behavior
 
@@ -10,6 +10,10 @@ Status: implemented for IM 4.4.16 / Mosaic 1.5.21.
   cards through the underlined-A formatting button. Automatic selection popups are enabled in desktop editable
   fields and disabled on phones, including IM capture/edit and Mosaic capture/
   opened cards. The manual Card formatting toolbar remains available on phones.
+  Formatting actions retain the floating toolbar position while text indents
+  or reflows; new selections, wheel scrolling and resizing can reposition it.
+  In Mosaic Card View, the formatting button sits immediately before Pin/Unpin
+  in the right-aligned footer group, with rounded-square icon highlights.
   Capture inputs have no formatting button or reserved formatting-control
   space. Read-only sent bubbles and Board cards never open this toolbar.
 - Card view offers direct H1, H2, and Normal (Aa) style buttons. Clicking that active level

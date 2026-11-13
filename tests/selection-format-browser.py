@@ -44,6 +44,18 @@ try:
     for label in ['Quotation block','Bold','Strikethrough','Bullet list','Numbered list','Checklist','Clear Formatting']:expect(popup.get_by_role('button',name=label,exact=True).locator('svg')).to_have_count(1)
     if manual:assert manual.evaluate('(n)=>n.classList.contains("is-selection-format")')
     assert field.evaluate('()=>getSelection().toString()')=='beta'
+    # Formatting may indent/reflow the selection; its popup stays under the
+    # user's pointer through on/off actions in every desktop editable scope.
+    for label in ['Bullet list','Numbered list','Checklist']:
+     position=popup.bounding_box();command=popup.get_by_role('button',name=label,exact=True)
+     for _ in range(2):
+      command.click();popup.evaluate('n=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');next_position=popup.bounding_box()
+      assert abs(position['x']-next_position['x'])<1 and abs(position['y']-next_position['y'])<1,(mode,label,position,next_position)
+      assert field.evaluate('()=>getSelection().toString()')=='beta'
+    # A deliberate new keyboard selection can anchor a fresh popup normally.
+    field.press('ArrowRight');field.press(select_all);expect(popup).to_be_visible()
+    field.evaluate('n=>{const text=[...n.querySelectorAll("p")].flatMap(p=>[...p.childNodes]).find(n=>n.nodeType===3&&n.textContent.includes("beta"));const r=document.createRange();const start=text.textContent.indexOf("beta");r.setStart(text,start);r.setEnd(text,start+4);const s=getSelection();s.removeAllRanges();s.addRange(r);}')
+    expect(popup).to_be_visible()
     bold=popup.get_by_role('button',name='Bold',exact=True);bold.click();expect(field.locator('strong')).to_have_text('beta');expect(bold).to_have_attribute('aria-pressed','true');bold.click();expect(field.locator('strong')).to_have_count(0);assert field.evaluate('()=>getSelection().toString()')=='beta'
     quote=popup.get_by_role('button',name='Quotation block',exact=True);quote.click();expect(field.locator('blockquote')).to_have_count(1);expect(field.locator('blockquote')).to_have_text('beta')
     style=field.locator('blockquote').evaluate('n=>({bg:getComputedStyle(n).backgroundColor,radius:getComputedStyle(n).borderRadius,mark:getComputedStyle(n,"::after").content})');assert style['bg'] not in ['transparent','rgba(0, 0, 0, 0)'] and style['radius']=='7px' and '”' in style['mark'],style

@@ -12,7 +12,7 @@ const imRichField=(()=>{
     function action(label,content,command){
       const b=document.createElement('button');b.type='button';b.className='im-format-action';b.title=label;b.setAttribute('aria-label',label);b.textContent=content;
       b.addEventListener('pointerdown',event=>{if(event.button===0)event.preventDefault();});
-      b.addEventListener('click',event=>{event.stopPropagation();if(!disabled&&!readOnly){command();view.focus();floating?.update();}});return b;
+      b.addEventListener('click',event=>{event.stopPropagation();if(!disabled&&!readOnly){floating?.preservePosition();command();view.focus();floating?.update();}});return b;
     }
     const toggle=action('Text formatting','Aa',()=>{floating?.toggle();});toggle.classList.add('im-format-toggle');toggle.setAttribute('aria-expanded','false');
     const execute=command=>command(view.state,view.dispatch,view);

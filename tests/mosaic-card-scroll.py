@@ -35,9 +35,10 @@ try:
     assert rect['y']-card['y']<=2 and pane.evaluate('n=>getComputedStyle(n).paddingTop')=='0px'
     pin=e.get_by_role('button',name='Pin card',exact=True);expect(pin).to_be_in_viewport()
     assert e.locator('.card-detail-tools').evaluate('n=>[...n.children].map(b=>b.getAttribute("aria-label"))')==['Text formatting','Pin card','Background options','Card options','Close']
-    controls=e.locator('.card-detail-tools>button:not(.im-format-toggle)').all()
+    controls=e.locator('.card-detail-tools>button').all()
+    for control in [pin,e.get_by_role('button',name='Background options',exact=True),e.get_by_role('button',name='Card options',exact=True)]:assert control.evaluate('n=>getComputedStyle(n).borderRadius')=='9px'
     for left,right in zip(controls,controls[1:]):
-     a=left.bounding_box();b=right.bounding_box();assert abs(b['x']-a['x']-a['width']-8)<=1
+     a=left.bounding_box();b=right.bounding_box();assert abs(b['x']-a['x']-a['width']-8)<=1,(width,titled,left.get_attribute('aria-label'),a,b)
     for control in [pin,close,e.get_by_role('button',name='Background options',exact=True),e.get_by_role('button',name='Card options',exact=True)]:
      bounds=control.bounding_box();assert card['y']+card['height']-(bounds['y']+bounds['height'])<=2,(width,card,bounds)
     expect(meta).not_to_be_in_viewport();expect(close).to_be_in_viewport();position=close.bounding_box()

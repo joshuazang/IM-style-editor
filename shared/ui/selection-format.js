@@ -1,9 +1,10 @@
 /* One toolbar, shared between manual Aa use and selected editable text. */
 function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
-  const doc=dom.ownerDocument,win=doc.defaultView;let frame=0,floating=false,manualOpen=false,marker=null,dismissed='',destroyed=false,selecting=false;
+  const doc=dom.ownerDocument,win=doc.defaultView;let frame=0,floating=false,manualOpen=false,marker=null,dismissed='',destroyed=false,selecting=false,fixedPosition=null;
   const phone=()=>/\b(?:iPhone|iPod)\b|Android.*Mobile/i.test(win.navigator.userAgent)||(win.matchMedia('(pointer:coarse) and (hover:none)').matches&&Math.min(win.screen.width,win.screen.height)<=600);
   const key=()=>`${view.state.selection.from}:${view.state.selection.to}`;
   function restore(){
+    fixedPosition=null;
     if(!floating)return;
     floating=false;toolbar.classList.remove('is-selection-format');toolbar.removeAttribute('style');
     if(marker?.parentNode)marker.replaceWith(toolbar);else toolbar.remove();marker=null;
@@ -36,9 +37,9 @@ function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
     }
     toolbar.hidden=false;
     Object.assign(toolbar.style,{position:'fixed',bottom:'auto',right:'auto',margin:'0',maxWidth:Math.max(0,vWidth-16)+'px',left:vLeft+8+'px',top:vTop+8+'px'});
-    const box=toolbar.getBoundingClientRect(),x=Math.max(vLeft+8,Math.min((anchor.left+anchor.right-box.width)/2,vLeft+vWidth-box.width-8));
+    const box=toolbar.getBoundingClientRect(),x=Math.max(vLeft+8,Math.min(fixedPosition?.left??(anchor.left+anchor.right-box.width)/2,vLeft+vWidth-box.width-8));
     const above=anchor.top-box.height-8,y=above>=vTop+8?above:Math.min(anchor.bottom+8,vTop+vHeight-box.height-8);
-    toolbar.style.left=x+'px';toolbar.style.top=Math.max(vTop+8,y)+'px';toggle.setAttribute('aria-expanded','true');
+    toolbar.style.left=x+'px';toolbar.style.top=Math.max(vTop+8,Math.min(fixedPosition?.top??y,vTop+vHeight-box.height-8))+'px';toggle.setAttribute('aria-expanded','true');
   }
   function update(){
     if(destroyed||frame)return;
@@ -46,8 +47,9 @@ function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
     frame=win.requestAnimationFrame(render);
   }
   function dismiss(){if(toolbar.hidden)return false;dismissed=key();manualOpen=false;close();return true;}
-  const outside=event=>{if(dom.contains(event.target)){dismissed='';selecting=true;update();return;}if(floating&&!dom.contains(event.target)&&!toolbar.contains(event.target)&&event.target!==toggle){dismissed=key();close();}};
-  const selectionIntent=event=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)||((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='a')){dismissed='';update();}};
+  const outside=event=>{if(dom.contains(event.target)){fixedPosition=null;dismissed='';selecting=true;update();return;}if(floating&&!dom.contains(event.target)&&!toolbar.contains(event.target)&&event.target!==toggle){dismissed=key();close();}};
+  const selectionIntent=event=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key)||((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='a')){fixedPosition=null;dismissed='';update();}};
+  const reposition=()=>{fixedPosition=null;update();};
   const released=()=>{selecting=false;update();};
   const keys=event=>{
     if(event.key==='Escape'){if(dom.closest('dialog'))return;event.preventDefault();event.stopPropagation();dismiss();view.focus();}
@@ -56,11 +58,13 @@ function imSelectionFormatting({dom,toolbar,toggle,view,manual,canFormat}){
       if(index<0)return;event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowLeft'?-1:1)+buttons.length)%buttons.length]?.focus();
     }
   };
-  doc.addEventListener('selectionchange',update);doc.addEventListener('scroll',update,{capture:true,passive:true});doc.addEventListener('pointerdown',outside,true);doc.addEventListener('pointerup',released,true);doc.addEventListener('pointercancel',released,true);win.addEventListener('resize',update);win.visualViewport?.addEventListener('resize',update);win.visualViewport?.addEventListener('scroll',update);dom.addEventListener('blur',update);dom.addEventListener('keydown',selectionIntent);toolbar.addEventListener('keydown',keys);
+  doc.addEventListener('wheel',reposition,{capture:true,passive:true});
+  doc.addEventListener('selectionchange',update);doc.addEventListener('scroll',update,{capture:true,passive:true});doc.addEventListener('pointerdown',outside,true);doc.addEventListener('pointerup',released,true);doc.addEventListener('pointercancel',released,true);win.addEventListener('resize',reposition);win.visualViewport?.addEventListener('resize',update);win.visualViewport?.addEventListener('scroll',update);dom.addEventListener('blur',update);dom.addEventListener('keydown',selectionIntent);toolbar.addEventListener('keydown',keys);
   return {
+    preservePosition(){if(floating&&!toolbar.hidden){const box=toolbar.getBoundingClientRect();fixedPosition={left:box.left,top:box.top};}},
     update,dismiss,reset(){dismissed='';manualOpen=false;close();},
     toggle(){manualOpen=manual&&!manualOpen;dismissed=key();close();},
     focus(){if(toolbar.hidden)return false;toolbar.querySelector('button:not(:disabled)')?.focus();return true;},
-    destroy(){destroyed=true;if(frame)win.cancelAnimationFrame(frame);doc.removeEventListener('selectionchange',update);doc.removeEventListener('scroll',update,true);doc.removeEventListener('pointerdown',outside,true);doc.removeEventListener('pointerup',released,true);doc.removeEventListener('pointercancel',released,true);win.removeEventListener('resize',update);win.visualViewport?.removeEventListener('resize',update);win.visualViewport?.removeEventListener('scroll',update);dom.removeEventListener('blur',update);dom.removeEventListener('keydown',selectionIntent);toolbar.removeEventListener('keydown',keys);marker?.remove();toolbar.remove();}
+    destroy(){destroyed=true;if(frame)win.cancelAnimationFrame(frame);doc.removeEventListener('wheel',reposition,true);doc.removeEventListener('selectionchange',update);doc.removeEventListener('scroll',update,true);doc.removeEventListener('pointerdown',outside,true);doc.removeEventListener('pointerup',released,true);doc.removeEventListener('pointercancel',released,true);win.removeEventListener('resize',reposition);win.visualViewport?.removeEventListener('resize',update);win.visualViewport?.removeEventListener('scroll',update);dom.removeEventListener('blur',update);dom.removeEventListener('keydown',selectionIntent);toolbar.removeEventListener('keydown',keys);marker?.remove();toolbar.remove();}
   };
 }
