@@ -21,9 +21,9 @@ try:
    card=e.locator('.card').first;source=card.bounding_box();card.click();dialog=e.locator('dialog');expect(dialog).to_be_visible()
    dialog.evaluate('n=>{modalState.cardAnimation.pause();modalState.cardAnimation.currentTime=0}')
    same(dialog.bounding_box(),source)
-   initial_height=e.locator('.editor-body').evaluate('n=>n.style.height');assert initial_height and initial_height!='0px'
+   initial_height=e.locator('.editor-body').evaluate('n=>n.offsetHeight');assert initial_height>0;assert e.locator('.editor-body').evaluate('n=>n.style.height')==''
    dialog.evaluate('n=>modalState.cardAnimation.finish()');page.wait_for_timeout(30)
-   assert e.locator('.editor-body').evaluate('n=>n.style.height')==initial_height,'Body must be measured before the morph, without a late resize'
+   assert e.locator('.editor-body').evaluate('n=>n.offsetHeight')==initial_height,'Natural body height must remain stable through the morph';assert e.locator('.editor-body').evaluate('n=>n.style.height')=='','No textarea-style height rewriting'
    end=dialog.bounding_box()
    if name=='iPhone':
     page.screenshot(path='/tmp/mosaic-1.4.12-iphone.png')

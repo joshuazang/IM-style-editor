@@ -388,3 +388,6 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 
 .card-detail-scroll:has(.editor-body[aria-busy=true]){scrollbar-color:transparent transparent}
 .card-detail-scroll:has(.editor-body[aria-busy=true])::-webkit-scrollbar-thumb{background:transparent}
+/* Center Android cards within the visible keyboard viewport, not the covered window. */
+.is-phone:not(.is-iphone) .card-edit-dialog[open]{position:fixed;top:var(--card-view-top,0px);bottom:calc(100% - var(--card-view-top,0px) - var(--card-view-height,100dvh))}
+.card-caret-space{position:absolute;left:0;width:1px;height:1px;pointer-events:none}

@@ -23,7 +23,7 @@ try:
     body.focus();expect(body).to_be_focused();e.get_by_role('button',name='Text formatting',exact=True).click();expect(body).to_be_focused();expect(e.get_by_role('toolbar',name='Text formatting',exact=True)).to_be_visible();e.get_by_role('button',name='Text formatting',exact=True).click()
     rect=pane.bounding_box();x=rect['x']+rect['width']/2;y=rect['y']+100;cdp=context.new_cdp_session(page);cdp.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':x,'y':y}]})
     for distance in [15,35,65]:cdp.send('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':x,'y':y+distance}]})
-    cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});expect(body).not_to_be_focused();expect(dialog).to_be_visible();assert body.evaluate('n=>n.imRich.view.state.doc.textContent.endsWith("keyboard sample")');assert page.evaluate('saves.length')==0
+    cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});expect(body).not_to_be_focused();expect(dialog).to_be_visible();assert body.evaluate('n=>n.imRich.view.state.doc.textContent.endsWith("keyboard sample")'),body.evaluate('n=>n.imRich.view.state.doc.textContent.slice(-100)');assert page.evaluate('saves.length')==0
    else:
     pane.evaluate('n=>n.scrollTop=0');expect(body).to_be_focused()
    e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text'].endswith('keyboard sample');assert not errors,errors;print('PASS '+name+': single Enter, keyboard focus during typing/formatting, scroll/outside dismissal, retained draft and save',flush=True);context.close()

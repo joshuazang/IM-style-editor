@@ -13,6 +13,7 @@ const isIPhone=/\biPhone\b/i.test(navigator.userAgent);
 const phoneBoard=navigator.userAgentData?.mobile===true||/\biPhone\b|\biPod\b|Android.*\bMobile\b|Windows Phone/i.test(navigator.userAgent);
 const boardPreviewRatio=phoneBoard?8:14,boardPinnedRatio=phoneBoard?6:8;
 document.documentElement.classList.toggle('is-iphone',isIPhone);
+document.documentElement.classList.toggle('is-phone',phoneBoard);
 const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
 let active=null, modalState=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
 let mounted=new Map(), selectionPreferences=Object.create(null), searchPanelFit=null;
@@ -884,7 +885,7 @@ function editorDialog(id=null) {
     scroller.addEventListener('touchmove',event=>{const point=event.touches[0];if(touch&&point&&Math.hypot(point.clientX-touch.x,point.clientY-touch.y)>10){touch=null;if(modalState===d)dismissCardKeyboard();}},{passive:true});
     scroller.addEventListener('touchend',()=>{touch=null;},{passive:true});scroller.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
   }
-  d.scrollObserver=new ResizeObserver(d.updateScroll);for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
+  d.scrollObserver=new ResizeObserver(()=>{d.updateScroll();d.revealCaret?.();});for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
   const change=event=>{
     d.fieldRevision++;
     if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}
@@ -926,15 +927,22 @@ function editorDialog(id=null) {
     }
   }
   if(phoneBoard){
+    const caretSpace=el('div','card-caret-space');caretSpace.hidden=true;caretSpace.setAttribute('aria-hidden','true');scroller.append(caretSpace);
+    d.scrollObserver.observe(bodyEditor.toolbar);
     // Keyboard resizing does not necessarily move a contenteditable's caret
     // into its nested scroller. Measure after layout, without refocusing or
     // changing selection, and never scroll the Board/host document.
     d.revealCaret=()=>{
       cancelAnimationFrame(d.caretFrame);d.caretFrame=requestAnimationFrame(()=>{
-        if(modalState!==d||document.activeElement!==body||!d.bodyReady)return;
-        const view=body.imRich.view;if(!view.state.selection.empty)return;
+        if(modalState!==d||!d.bodyReady)return;
+        const view=body.imRich.view;
+        const panel=bodyEditor.toolbar.hidden?null:bodyEditor.toolbar.getBoundingClientRect();
+        // Extend only the scrollable overflow, without changing the card's
+        // intrinsic height when its floating formatting panel is opened.
+        caretSpace.hidden=!panel;caretSpace.style.top=(body.offsetTop+body.offsetHeight+(panel?.height||0)+18)+'px';
+        if(document.activeElement!==body||!view.state.selection.empty)return;
         const caret=view.coordsAtPos(view.state.selection.head),box=scroller.getBoundingClientRect(),visual=window.visualViewport;
-        const top=Math.max(box.top,visual?.offsetTop||0)+12,bottom=Math.min(box.bottom,(visual?.offsetTop||0)+(visual?.height||innerHeight))-12;
+        const top=Math.max(box.top,visual?.offsetTop||0)+12,bottom=Math.min(box.bottom,panel?.top??Infinity,(visual?.offsetTop||0)+(visual?.height||innerHeight))-12;
         if(bottom<=top)return;
         if(caret.bottom>bottom)scroller.scrollTop+=caret.bottom-bottom;
         else if(caret.top<top)scroller.scrollTop+=caret.top-top;

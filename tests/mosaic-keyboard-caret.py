@@ -5,17 +5,17 @@ globals().update(scope)
 try:
  with sync_playwright() as p:
   browser=p.chromium.launch(**chromium_options())
-  for width in [320,390,430]:
-   context=browser.new_context(viewport={'width':width,'height':900},user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',is_mobile=True,has_touch=True)
+  for phone,width in [(phone,width) for phone in ["iPhone","Android"] for width in [320,390,430]]:
+   context=browser.new_context(viewport={'width':width,'height':900},user_agent=('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' if phone=='iPhone' else 'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36'),is_mobile=True,has_touch=True)
    context.add_init_script("""Object.defineProperty(navigator,'vendor',{get:()=> 'Apple Computer, Inc.'});
      window.keyboardViewport=new EventTarget();Object.assign(keyboardViewport,{height:900,width:innerWidth,offsetTop:0,offsetLeft:0});
      Object.defineProperty(window,'visualViewport',{get:()=>keyboardViewport});""")
-   page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('note=>{notes.a=note;openEditor("a","/mosaic/index.html",true)}',data['note']);e=page.frame_locator('#editor');e.locator('.card').first.click();dialog=e.locator('dialog');dialog.evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_editable();expect(body).not_to_be_focused()
+   page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('note=>{notes.a=note;openEditor("a","/mosaic/index.html",true)}',data['note']);e=page.frame_locator('#editor');e.locator('.card').first.click();dialog=e.locator('dialog');dialog.evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_editable();expect(body).not_to_be_focused() if phone=="iPhone" else expect(body).to_be_focused()
    def settle():body.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
    def viewport(height,offset=0):
     body.evaluate('(n,v)=>{Object.assign(keyboardViewport,v);keyboardViewport.dispatchEvent(new Event("resize"));}',{'height':height,'offsetTop':offset});settle()
    def visible():
-    result=body.evaluate('n=>{const v=n.imRich.view,c=v.coordsAtPos(v.state.selection.head),s=n.closest(".card-detail-scroll").getBoundingClientRect(),b=keyboardViewport.offsetTop+keyboardViewport.height;return {caret:c,bounds:s.toJSON(),bottom:b,ok:c.top>=s.top+10&&c.bottom<=Math.min(s.bottom,b)-10}}');assert result['ok'],result
+    result=body.evaluate('n=>{const v=n.imRich.view,c=v.coordsAtPos(v.state.selection.head),s=n.closest(".card-detail-scroll").getBoundingClientRect(),b=keyboardViewport.offsetTop+keyboardViewport.height;return {caret:c,bounds:s.toJSON(),bottom:b,ok:c.top>=s.top+10&&c.bottom<=Math.min(s.bottom,b,document.querySelector(".im-format-toolbar:not([hidden])")?.getBoundingClientRect().top??Infinity)-10}}');assert result['ok'],result
    body.focus();body.press('Control+End');settle();body.evaluate('n=>n.blur()');settle()
    point=body.evaluate('n=>{const v=n.imRich.view,c=v.coordsAtPos(v.state.selection.head);return {x:c.left+1,y:(c.top+c.bottom)/2}}')
    framebox=page.locator('#editor').bounding_box();page.touchscreen.tap(framebox['x']+point['x'],framebox['y']+point['y']);expect(body).to_be_focused();settle()
@@ -24,13 +24,19 @@ try:
    for height,offset in [(650,0),(420,0),(360,35)]:viewport(height,offset);visible();expect(body).to_be_focused()
    before=body.evaluate('n=>n.imRich.view.state.doc.textContent');body.type(' visible typing');settle();visible();body.press('Enter');body.type('next line');settle();visible()
    assert body.evaluate('n=>n.imRich.view.state.doc.textContent').startswith(before)
+   # Opening the floating formatting panel must reveal the caret without
+   # resizing the card itself or dismissing the keyboard.
+   size=dialog.bounding_box();e.get_by_role('button',name='Text formatting',exact=True).click();settle();visible();expect(body).to_be_focused();assert abs(dialog.bounding_box()['height']-size['height'])<1
+   body.type(' formatted typing');settle();visible();e.get_by_role('button',name='Text formatting',exact=True).click();settle()
+   # Closing with a selection must also remove the extra scroll overflow.
+   body.press('Control+a');e.get_by_role('button',name='Text formatting',exact=True).click();settle();e.get_by_role('button',name='Text formatting',exact=True).click();settle();assert body.evaluate('n=>n.closest(".card-detail-scroll").querySelector(".card-caret-space").hidden');body.press('ArrowRight')
    # Tap an earlier low line with the keyboard closed, then reopen it.
    viewport(900);body.evaluate('n=>{const v=n.imRich.view;v.dispatch(v.state.tr.setSelection(v.state.selection.constructor.create(v.state.doc,Math.floor(v.state.doc.content.size*.6))).scrollIntoView());}');settle();viewport(380);visible()
    # Programmatic caret scrolling must not trigger swipe-to-dismiss.
    expect(body).to_be_focused();assert page.evaluate('saves.length')==0
    # Close/reopen cancels listeners and queued work; keyboard changes with no
    # focused body do not move the newly opened card.
-   e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();e.locator('.card').first.click();expect(dialog).to_be_visible();viewport(400);expect(body).not_to_be_focused();assert not errors,errors
-   print(f'PASS {width}px: keyboard resize/pan, long-note caret and typing visible, focus/draft retained, reopen cleanup',flush=True);context.close()
+   e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();e.locator('.card').first.click();expect(dialog).to_be_visible();viewport(400);expect(body).not_to_be_focused() if phone=="iPhone" else expect(body).to_be_focused();assert not errors,errors
+   print(f'PASS {phone} {width}px: keyboard resize/pan, long-note caret and typing visible, focus/draft retained, reopen cleanup',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

@@ -7,7 +7,7 @@ This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
 - **[IM-style-editor 4.4.14](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.5.18](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[Mosaic 1.5.19](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -413,7 +413,7 @@ by measuring content without temporarily expanding the input. IM and Mosaic
 1.5.7 format list, quote and heading shortcuts live after Shift+Enter breaks,
 preserving preceding text and visual formatting when reopening sent messages.
 
-IM 4.4.14 / Mosaic 1.5.18 share one SVG formatting toolbar. Selecting editable
+IM 4.4.14 / Mosaic 1.5.19 share one SVG formatting toolbar. Selecting editable
 text opens it beside the selection; Card view Aa opens the same controls
 manually. It floats without reserving layout space, retains the text range,
 and closes with Escape or a note switch. Read-only bubbles/cards do not open it.
