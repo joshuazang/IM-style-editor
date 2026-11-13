@@ -321,8 +321,8 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .card .card-tags{position:static;display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:6px;margin:8px 0 0;padding:0;min-height:0;overflow:visible}
 .card-detail-tags .card-tag{border-radius:999px;background:var(--surface);color:var(--ink);border-color:color-mix(in srgb,var(--ink) 20%,transparent);box-shadow:0 1px 3px #00000014;max-width:100%;overflow-wrap:anywhere}
 .card-detail-tags{position:absolute;top:calc(100% - 13px);left:20px;right:20px;margin:0;justify-content:flex-start;align-items:flex-start;z-index:2}
-.card-edit-dialog[open]{overflow:visible;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
-.card-edit-dialog #modal-content{border-radius:inherit;max-height:calc(100dvh - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
+.card-edit-dialog[open]{overflow:visible;max-height:calc(var(--card-view-height,100dvh) - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
+.card-edit-dialog #modal-content{border-radius:inherit;max-height:calc(var(--card-view-height,100dvh) - 24px - var(--tag-overhang,0px) - var(--tag-overhang,0px))}
 
 /* Opened cards: one edge-aligned content scroller and a fixed action row. */
 .card-edit-dialog{width:min(720px,calc(100vw - 16px));max-width:calc(100vw - 16px)}

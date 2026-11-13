@@ -730,6 +730,7 @@ function closeModal(force=false) {
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
   if(modalState?.viewportResize){window.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('scroll',modalState.viewportResize);modal.style.removeProperty('--card-view-height');modal.style.removeProperty('--card-view-top');}
+  cancelAnimationFrame(modalState?.caretFrame);if(modalState?.revealCaret)document.removeEventListener('selectionchange',modalState.revealCaret);
   cancelAnimationFrame(modalState?.bodyFrame);
   clearCardMotion(modalState);if(modalState?.transitionSource)modalState.transitionSource.style.removeProperty('visibility');$('modal-content').inert=false;
   modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
@@ -924,8 +925,24 @@ function editorDialog(id=null) {
       dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
     }
   }
-  if(isIPhone){
-    d.viewportResize=()=>{if(modalState!==d)return;const view=window.visualViewport;modal.style.setProperty('--card-view-height',(view?.height||innerHeight)+'px');modal.style.setProperty('--card-view-top',(view?.offsetTop||0)+'px');};
+  if(phoneBoard){
+    // Keyboard resizing does not necessarily move a contenteditable's caret
+    // into its nested scroller. Measure after layout, without refocusing or
+    // changing selection, and never scroll the Board/host document.
+    d.revealCaret=()=>{
+      cancelAnimationFrame(d.caretFrame);d.caretFrame=requestAnimationFrame(()=>{
+        if(modalState!==d||document.activeElement!==body||!d.bodyReady)return;
+        const view=body.imRich.view;if(!view.state.selection.empty)return;
+        const caret=view.coordsAtPos(view.state.selection.head),box=scroller.getBoundingClientRect(),visual=window.visualViewport;
+        const top=Math.max(box.top,visual?.offsetTop||0)+12,bottom=Math.min(box.bottom,(visual?.offsetTop||0)+(visual?.height||innerHeight))-12;
+        if(bottom<=top)return;
+        if(caret.bottom>bottom)scroller.scrollTop+=caret.bottom-bottom;
+        else if(caret.top<top)scroller.scrollTop+=caret.top-top;
+      });
+    };
+    document.addEventListener('selectionchange',d.revealCaret);
+    for(const event of ['focus','im-markdown-change','keyup','pointerup'])body.addEventListener(event,d.revealCaret);
+    d.viewportResize=()=>{if(modalState!==d)return;const view=window.visualViewport;modal.style.setProperty('--card-view-height',(view?.height||innerHeight)+'px');modal.style.setProperty('--card-view-top',(view?.offsetTop||0)+'px');d.revealCaret();};
     window.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('scroll',d.viewportResize);d.viewportResize();
   }
   refreshEditorMetadata();

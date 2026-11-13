@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.14 / Mosaic 1.5.17.
+Status: implemented for IM 4.4.14 / Mosaic 1.5.18.
 
 ## Agreed behavior
 
@@ -62,7 +62,8 @@ Status: implemented for IM 4.4.14 / Mosaic 1.5.17.
 - On phones, a swipe inside an opened card or a tap outside its editable fields
   dismisses the keyboard without closing the card or discarding its draft.
   Formatting controls retain editing focus. Caret-driven scrolling does not
-  dismiss the keyboard.
+  dismiss the keyboard. Keyboard resize/pan and caret changes reveal the focused
+  body caret inside the Card scroller, with space above the keyboard and toolbar.
 
 ## Shared implementation boundary
 
