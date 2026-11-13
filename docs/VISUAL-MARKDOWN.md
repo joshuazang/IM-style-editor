@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.18 / Mosaic 1.5.23.
+Status: implemented for IM 4.4.19 / Mosaic 1.5.24.
 
 ## Agreed behavior
 
@@ -16,6 +16,10 @@ Status: implemented for IM 4.4.18 / Mosaic 1.5.23.
   in the right-aligned footer group, with rounded-square icon highlights.
   Capture inputs have no formatting button or reserved formatting-control
   space. Read-only sent bubbles and Board cards never open this toolbar.
+- Toolbars offer H1, H2, and Normal (Aa) by default. When the current line or
+  uniform selection is H3–H6, its single matching level appears as an active
+  contextual button. Moving to ordinary or mixed text hides it again. Clicking
+  that contextual button removes the heading style.
 - Card view offers direct H1, H2, and Normal (Aa) style buttons. Clicking that active level
   again changes the selected heading to an ordinary paragraph in place; it
   preserves text and the caret rather than adding a new paragraph.

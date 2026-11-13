@@ -35,6 +35,15 @@ try:
     fill_field(detail,'Heading candidate');detail.press('Control+a');choices();box.get_by_role('button',name='Heading '+str(level),exact=True).click();expect(detail.locator('h'+str(level))).to_have_text('Heading candidate');choices()
     for choice in range(1,3):expect(box.get_by_role('button',name='Heading '+str(choice),exact=True)).to_have_attribute('aria-pressed',str(choice==level).lower())
     active=box.get_by_role('button',name='Heading '+str(level),exact=True);assert active.evaluate('n=>getComputedStyle(n).backgroundColor') not in ['rgba(0, 0, 0, 0)','transparent'];active.click();expect(detail.locator('h1,h2,h3,h4,h5,h6')).to_have_count(0);expect(detail.locator('p')).to_have_text('Heading candidate');expect(heading).to_have_attribute('aria-pressed','true');assert detail.evaluate('n=>n.value')=='Heading candidate'
+   for level in range(3,7):
+    fill_field(detail,'#'*level+' Existing heading');detail.press('Control+End');choices()
+    active=box.get_by_role('button',name='Heading '+str(level),exact=True);expect(active).to_be_visible();expect(active).to_have_attribute('aria-pressed','true');expect(active).to_have_text('H'+str(level))
+    assert box.get_by_role('button').evaluate_all('nodes=>nodes.filter(n=>/^Heading [3-6]$/.test(n.getAttribute("aria-label"))).length')==1
+    detail.type('!');expect(active).to_be_visible();expect(active).to_have_attribute('aria-pressed','true')
+    active.click();expect(detail.locator('h'+str(level))).to_have_count(0);expect(heading).to_have_attribute('aria-pressed','true');assert box.get_by_role('button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==expected
+    detail.press('Control+z');expect(detail.locator('h'+str(level))).to_have_count(1);choices();expect(box.get_by_role('button',name='Heading '+str(level),exact=True)).to_have_attribute('aria-pressed','true')
+   fill_field(detail,'###### Sixth\n\n### Third\n\nOrdinary');detail.press('Control+a');choices()
+   assert box.get_by_role('button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==expected,'Mixed styles must not claim a single active heading level'
    fill_field(detail,'# First\n\n### Third\n\nOrdinary')
    for selector,level in [('h1',1),('h3',3),('p',0)]:
     detail.locator(selector).click();choices()

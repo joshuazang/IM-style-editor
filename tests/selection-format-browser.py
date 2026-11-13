@@ -32,7 +32,10 @@ try:
      if mode=='mosaic-card':
       toggle=e.get_by_role('button',name='Text formatting',exact=True);toggle.click();tools=e.get_by_role('toolbar',name='Text formatting',exact=True);expect(tools).to_be_visible();expect(popup).to_have_count(0)
       tools.get_by_role('button',name='Bold',exact=True).click();expect(field.locator('strong')).to_have_text('beta');assert field.evaluate('()=>getSelection().toString()')=='beta'
-      tools.get_by_role('button',name='Bold',exact=True).click();expect(field.locator('strong')).to_have_count(0);toggle.click()
+      tools.get_by_role('button',name='Bold',exact=True).click();expect(field.locator('strong')).to_have_count(0)
+      for level in [3,6]:
+       fill_field(field,'#'*level+' Imported heading');field.press('Control+End');expect(tools.get_by_role('button',name='Heading '+str(level),exact=True)).to_have_attribute('aria-pressed','true');tools.get_by_role('button',name='Heading '+str(level),exact=True).click();expect(field.locator('h'+str(level))).to_have_count(0)
+      toggle.click()
      else:expect(e.locator('.im-format-toggle')).to_have_count(0)
      field.press(select_all);expect(popup).to_have_count(0);page.set_viewport_size({'width':width,'height':430});expect(popup).to_have_count(0)
      if mode=='mosaic-card':
@@ -72,6 +75,10 @@ try:
      readonly=e.locator('.message-body' if im else '.card-body').first
      field.evaluate('n=>n.blur()');readonly.evaluate('n=>{const r=document.createRange();r.selectNodeContents(n);const s=getSelection();s.removeAllRanges();s.addRange(r);}');expect(popup).to_have_count(0)
      field.click();field.press(select_all);expect(popup).to_be_visible()
+    for level in range(3,7):
+     fill_field(field,'#'*level+' Imported heading');field.press(select_all);expect(popup).to_be_visible();active=popup.get_by_role('button',name='Heading '+str(level),exact=True);expect(active).to_have_attribute('aria-pressed','true')
+     assert popup.get_by_role('button').evaluate_all('nodes=>nodes.filter(n=>/^Heading [3-6]$/.test(n.getAttribute("aria-label"))).length')==1
+     active.click();expect(field.locator('h'+str(level))).to_have_count(0);expect(popup.get_by_role('button',name='Normal text',exact=True)).to_have_attribute('aria-pressed','true')
     if mode=='mosaic-card':
      field.press('Alt+F10');page.keyboard.press('Escape');expect(e.locator('dialog')).to_be_visible();assert field.evaluate('n=>n.imRich.view.state.selection.empty&&getSelection().isCollapsed');expect(popup).to_have_count(0);page.keyboard.press('Escape');expect(e.locator('dialog')).not_to_be_visible()
     # Context switches destroy the old popup; an ordinary caret never reserves space.

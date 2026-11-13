@@ -7,7 +7,7 @@ const imRichField=(()=>{
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
-    const formatting=!options.capture,controls=new Map(),headingLevels=new Map();let send,floating,enterKeyActive=false,enterKeyHandled=false,enterModifiers=null,enterPairTimer=0;
+    const formatting=!options.capture,controls=new Map(),headingLevels=new Map();let send,floating,currentHeading,currentHeadingLevel=0,enterKeyActive=false,enterKeyHandled=false,enterModifiers=null,enterPairTimer=0;
     function markEnterHandled(){enterKeyHandled=enterKeyActive;clearTimeout(enterPairTimer);enterPairTimer=setTimeout(()=>{enterKeyHandled=false;},0);}
     function action(label,content,command){
       const b=document.createElement('button');b.type='button';b.className='im-format-action';b.title=label;b.setAttribute('aria-label',label);b.textContent=content;
@@ -28,6 +28,15 @@ const imRichField=(()=>{
         button.setAttribute('aria-pressed',String(active));button.disabled=disabled||readOnly;
       }
       for(const [level,button] of headingLevels){button.setAttribute('aria-pressed',String(headingLevel===level));button.disabled=disabled||readOnly;}
+      if(currentHeading){
+        const nextLevel=headingLevel>2?headingLevel:0;
+        if(nextLevel!==currentHeadingLevel){
+          currentHeadingLevel=nextLevel;currentHeading.hidden=!nextLevel;currentHeading.textContent=nextLevel?'H'+nextLevel:'';
+          currentHeading.title=nextLevel?'Heading '+nextLevel:'Current heading';currentHeading.setAttribute('aria-label',currentHeading.title);
+          currentHeading.setAttribute('aria-pressed',String(!!nextLevel));
+        }
+        currentHeading.disabled=disabled||readOnly;
+      }
       const clear=toolbar.querySelector('.im-format-clear');if(clear)clear.disabled=disabled||readOnly||state.selection.empty;
       toggle.disabled=disabled||readOnly;toggle.hidden=plain||!formatting;
       if(send)send.disabled=disabled||readOnly||!view.state.doc.textContent.trim();
@@ -167,6 +176,7 @@ const imRichField=(()=>{
       add('checklist','Checklist','☑',K.toggleList('checklist'));
       const styles=document.createElement('div');styles.className='im-format-text-styles';
       for(const level of [1,2]){const choice=action('Heading '+level,'H'+level,()=>execute(K.heading(level)));headingLevels.set(level,choice);styles.append(choice);}
+      currentHeading=action('Current heading','',()=>{if(currentHeadingLevel)execute(K.heading(currentHeadingLevel));});currentHeading.hidden=true;currentHeading.setAttribute('aria-pressed','false');styles.append(currentHeading);
       const ordinary=action('Normal text','Aa',()=>execute(K.normal));controls.set('normal',ordinary);styles.append(ordinary);toolbar.append(styles);
       const clear=icon(action('Clear Formatting','',()=>execute(K.clearFormatting)),'formatClear');clear.classList.add('im-format-clear');toolbar.append(clear);
       icon(toggle,'formatText');
