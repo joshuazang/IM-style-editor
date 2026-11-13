@@ -32,6 +32,10 @@ const imMarkdown=(()=>{
     };
     try{s.renderInline(n);}finally{s.text=text;}
   }
+  // ProseMirror nodes are immutable: untouched top-level paragraphs can reuse
+  // their escaped text across edits. Paragraph-only notes are joined in chunks;
+  // structural documents retain the contextual serializer path.
+  const paragraphSource=new WeakMap();
   const serializer=new imRichDeps.serializer.MarkdownSerializer({
     paragraph:(s,n)=>{if(!n.content.size)s.write('');renderInline(s,n,s.options.imListDepth||/^[ \t]+$/.test(n.textContent));s.closeBlock(n);},
     heading:(s,n)=>{s.write('#'.repeat(n.attrs.level)+' ');renderInline(s,n,true);s.closeBlock(n);},blockquote:base.nodes.blockquote,
@@ -100,7 +104,32 @@ const imMarkdown=(()=>{
     if(text.length<=262144){cache.set(text,doc);cachedCharacters+=text.length;while(cache.size>128||cachedCharacters>1048576){const key=cache.keys().next().value;cachedCharacters-=key.length;cache.delete(key);}}
     return doc;
   }
-  function serialize(doc){return serializer.serialize(doc,{imLastBlock:doc.lastChild});}
+  function serialize(doc){
+    if(doc.content.content.every(n=>n.type===schema.nodes.paragraph)){
+      const parts=[];let blank=true;
+      doc.forEach((node,offset,index)=>{
+        // Match the serializer's flushClose exactly, including empty blocks
+        // and trailing soft breaks, without rescanning the growing prefix.
+        if(index){parts.push(blank?'\n':'\n\n');blank=true;}
+        let saved=paragraphSource.get(node);if(!saved){saved=[];paragraphSource.set(node,saved);}
+        const last=node===doc.lastChild?1:0;
+        if(saved[last]===undefined)saved[last]=serializer.serialize(schema.nodes.doc.create(null,node),{imLastBlock:last?node:null});
+        const value=saved[last];parts.push(value);if(value)blank=value.endsWith('\n');
+      });
+      return parts.join('');
+    }
+    const state=new imRichDeps.serializer.MarkdownSerializerState(serializer.nodes,serializer.marks,{...serializer.options,imLastBlock:doc.lastChild});
+    const parts=[];let suffix='';
+    doc.forEach((node,offset,index)=>{
+      // Retain list/quote closing state, but let the writer inspect only a
+      // block-sized string. Previous blocks contribute only their newline
+      // state, avoiding repeated scans/copies of the full growing document.
+      state.out=suffix;state.render(node,doc,index);
+      const value=state.out.slice(suffix.length);parts.push(value);
+      if(value)suffix=value.endsWith('\n')?'\n':'x';
+    });
+    return parts.join('');
+  }
   function clip(doc,lines,limit){
     let end=0,stop=false,count=0;
     doc.descendants((node,pos)=>{

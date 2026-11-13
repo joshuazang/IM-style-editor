@@ -11,6 +11,7 @@ file contents: their original bytes are retained.
 
 ## IM
 
+- [4.4.17](im/4.4.17/)
 - [4.4.16](im/4.4.16/)
 - [4.4.15](im/4.4.15/)
 - [4.4.14](im/4.4.14/)
@@ -69,6 +70,7 @@ file contents: their original bytes are retained.
 
 ## Mosaic
 
+- [1.5.22](mosaic/1.5.22/)
 - [1.5.21](mosaic/1.5.21/)
 - [1.5.20](mosaic/1.5.20/)
 - [1.5.19](mosaic/1.5.19/)

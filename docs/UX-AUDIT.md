@@ -74,3 +74,21 @@ The idle timer and touch listeners are removed on unmount.
 asserts continued movement after release and zero programmatic scroll writes
 while the fling is active, and checks bounded correction and unchanged notes.
 Native iOS WebView physics still require physical-device verification.
+
+## Desktop newline follow-up (IM 4.4.18 / Mosaic 1.5.23)
+
+Enter and Shift+Enter synchronously serialize the updated visual document. The
+previous writer repeatedly inspected its growing output prefix when closing
+blocks, making long notes disproportionately expensive. Serialization now joins
+block-sized output chunks while retaining list/quote writer state. Paragraph-only
+documents also reuse escaped output for unchanged immutable paragraphs, with
+separate last-block handling for soft breaks. Values and change notifications
+remain synchronous; saving does not depend on a delayed task.
+
+The new exact-output data regression compares against the original contextual
+serializer across mixed blocks, marks, whitespace, Unicode, reused nodes and
+edits. The desktop browser regression edits inside notes up to about 800 KB,
+with 4x CPU throttling, then verifies exact saved drafts. Enter and Shift+Enter
+transactions in the large paragraph fixture measured approximately 9–16 ms;
+the structured fixture measured 5–8 ms. These are controlled Chromium results,
+not measurements from the user's physical Mac/Standard Notes installation.
