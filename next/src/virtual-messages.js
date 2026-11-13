@@ -12,6 +12,7 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1,selecting=
     return {id:current.messages[visible]?.id,offset:node.scrollTop-top-current.offsets[visible],bottom,appended};
   };
   const frame=dt.useRef(0),observer=dt.useRef(null),renderRef=dt.useRef(render);
+  const scrollingUntil=dt.useRef(0),settleTimer=dt.useRef(0),pendingMeasure=dt.useRef(false),touchScrolling=dt.useRef(false);
   renderRef.current=render;
   const [view,setView]=dt.useState({top:0,height:800,width:390}),[measured,setMeasured]=dt.useState(0);
   const layout=`${view.width}:${scale}`;
@@ -59,22 +60,41 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1,selecting=
       const height=entry.borderBoxSize?.[0]?.blockSize??entry.target.getBoundingClientRect().height;
       const saved=measurements.current.get(id);
       if(height>0 && (!saved||Math.abs(saved.height-height)>.5||saved.message!==current.messages[index]||saved.previous!==current.messages[index-1]||saved.layout!==current.layout)){
-        if(!anchor.current){
-          anchor.current=capture(current,node,node.imScroll?.following||node.scrollHeight-node.clientHeight-node.scrollTop<=imBottomThreshold(node));
-        }
         measurements.current.set(id,{message:current.messages[index],previous:current.messages[index-1],layout:current.layout,height});changed=true;
       }
     }
-    if(changed)setMeasured(value=>value+1);
+    if(changed){
+      pendingMeasure.current=true;
+      if(performance.now()>=scrollingUntil.current)flushMeasurements();
+    }
+  };
+  const flushMeasurements=()=>{
+    if(!pendingMeasure.current)return;
+    const node=scroller.current,current=modelRef.current;if(!node||!current)return;
+    pendingMeasure.current=false;
+    // Capture the current reading position after inertia, not the position
+    // where a newly mounted row was first measured during the swipe.
+    if(!anchor.current)anchor.current=capture(current,node,node.imScroll?.following||node.scrollHeight-node.clientHeight-node.scrollTop<=imBottomThreshold(node));
+    setMeasured(value=>value+1);
   };
   dt.useLayoutEffect(()=>{
     const node=scroller.current;if(!node)return;
     const schedule=()=>{cancelAnimationFrame(frame.current);frame.current=requestAnimationFrame(update)};
+    const scrolling=()=>{
+      if(touchScrolling.current){
+        scrollingUntil.current=performance.now()+180;
+        clearTimeout(settleTimer.current);
+        settleTimer.current=setTimeout(()=>{touchScrolling.current=false;scrollingUntil.current=0;flushMeasurements();},180);
+      }
+      schedule();
+    };
     const sizes=new ResizeObserver(schedule);sizes.observe(node);
     observer.current=new ResizeObserver(measure);
     node.querySelectorAll('[data-virtual-message]').forEach(row=>observer.current.observe(row));
-    node.addEventListener('scroll',schedule,{passive:true});update();
-    return()=>{cancelAnimationFrame(frame.current);sizes.disconnect();observer.current.disconnect();node.removeEventListener('scroll',schedule);delete node.imVirtual;};
+    const touch=()=>{touchScrolling.current=true;},endTouch=()=>{if(performance.now()>=scrollingUntil.current)touchScrolling.current=false;};
+    node.addEventListener('touchstart',touch,{passive:true});node.addEventListener('touchmove',touch,{passive:true});node.addEventListener('touchend',endTouch,{passive:true});node.addEventListener('touchcancel',endTouch,{passive:true});
+    node.addEventListener('scroll',scrolling,{passive:true});update();
+    return()=>{cancelAnimationFrame(frame.current);clearTimeout(settleTimer.current);sizes.disconnect();observer.current.disconnect();node.removeEventListener('scroll',scrolling);node.removeEventListener('touchstart',touch);node.removeEventListener('touchmove',touch);node.removeEventListener('touchend',endTouch);node.removeEventListener('touchcancel',endTouch);delete node.imVirtual;};
   },[]);
   dt.useLayoutEffect(()=>{
     const node=scroller.current;if(!node)return;

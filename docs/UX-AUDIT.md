@@ -60,3 +60,17 @@ and runs with 4x CPU throttling. It recorded about 133 ms frame intervals at the
 95th percentile and 349–378 ms longest tasks. Typing used 15 layout passes and no
 inline body-height rewrites. Functional checks pass, but these frame stalls remain
 a performance limitation; this release does not claim to eliminate them.
+
+## IM momentum follow-up (4.4.15)
+
+Reverse touch flings through unmeasured older rows triggered repeated measured
+anchor scrollTop assignments, including during post-release inertia. IM now
+collects row measurements during native touch scrolling and applies their offset
+correction after 180 ms without scrolling, using the reading position at that
+time. Keyboard resizing and non-touch navigation retain immediate measurements.
+The idle timer and touch listeners are removed on unmount.
+
+`tests/im-momentum.py` uses actual Chromium touch flings at 320 and 390 pixels,
+asserts continued movement after release and zero programmatic scroll writes
+while the fling is active, and checks bounded correction and unchanged notes.
+Native iOS WebView physics still require physical-device verification.
