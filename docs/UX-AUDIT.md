@@ -147,3 +147,7 @@ character likewise produced one settled autosave. Capture and session regression
 verify immediate Send, latest drafts after switches/late acknowledgments and
 failed-save retention. Host account bandwidth limits are external to the plugin;
 this change cannot clear an already-active account rate limit.
+
+Draft timing update (IM 4.4.22 / Mosaic 1.5.28): the requested pause is now
+700 ms, and continuous-typing checkpoints are bounded at 6 seconds. Exact timer,
+regular-typing, Send and note-switch regressions passed.

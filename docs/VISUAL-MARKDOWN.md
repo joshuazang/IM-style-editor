@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.21 / Mosaic 1.5.27.
+Status: implemented for IM 4.4.22 / Mosaic 1.5.28.
 
 ## Agreed behavior
 
@@ -62,7 +62,7 @@ Status: implemented for IM 4.4.21 / Mosaic 1.5.27.
 - New title-like content uses a heading in the body. Existing separate titles
   remain readable and preserved, including multiline titles. Their parser
   compatibility is independent of literal-body compatibility.
-- Capture drafts checkpoint after 1.2 seconds without typing, with a 10-second
+- Capture drafts checkpoint after 0.7 seconds without typing, with a 6-second
   maximum interval during continuous typing. Send, explicit saves, leaving the
   capture field, note switches and backgrounding flush the latest queued draft.
   Pending text remains in the existing RAM session until host acknowledgment.
