@@ -151,3 +151,20 @@ this change cannot clear an already-active account rate limit.
 Draft timing update (IM 4.4.22 / Mosaic 1.5.28): the requested pause is now
 700 ms, and continuous-typing checkpoints are bounded at 6 seconds. Exact timer,
 regular-typing, Send and note-switch regressions passed.
+
+## Repeated desktop Enter (IM 4.4.23 / Mosaic 1.5.29)
+
+A 1,800-item checklist reproduced 0.8–1.9 second key-to-frame stalls during
+consecutive Enter presses with the actual isolated editor renderer slowed 4x.
+The previous chunked writer split only top-level blocks; a list remained one
+large growing prefix. Output now flushes at nested block boundaries while keeping
+the writer's indentation, mark and closing-block state. The same stress test's
+worst key-to-frame delay measured about 219 ms after the change; small notes
+measured below 46 ms. Physical macOS performance remains unverified.
+
+`mosaic-double-enter-latency.py` exercises six double-Enter bursts, intervening
+typing, frame delays and exact saved drafts. The existing single-Enter test now
+applies CPU throttling to the editor iframe too. Earlier tests throttled the host
+page, which did not reliably throttle an isolated editor renderer; their earlier
+reported timings should not be interpreted as verified 4x editor measurements.
+Exact-output comparisons now also cover many nested task/list/quote combinations.

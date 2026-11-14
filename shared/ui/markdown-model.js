@@ -120,14 +120,20 @@ const imMarkdown=(()=>{
     }
     const state=new imRichDeps.serializer.MarkdownSerializerState(serializer.nodes,serializer.marks,{...serializer.options,imLastBlock:doc.lastChild});
     const parts=[];let suffix='';
-    doc.forEach((node,offset,index)=>{
-      // Retain list/quote closing state, but let the writer inspect only a
-      // block-sized string. Previous blocks contribute only their newline
-      // state, avoiding repeated scans/copies of the full growing document.
-      state.out=suffix;state.render(node,doc,index);
+    const flush=()=>{
       const value=state.out.slice(suffix.length);parts.push(value);
       if(value)suffix=value.endsWith('\n')?'\n':'x';
-    });
+      state.out=suffix;
+    };
+    const render=state.render;
+    state.render=function(node,parent,index){
+      // Flush at nested block boundaries too: a single long list must not
+      // rebuild/scan its entire prefix on every item. Keep the writer's
+      // delimiter, closing-block and mark state; only output is chunked.
+      if(node.isBlock)flush();
+      render.call(this,node,parent,index);
+    };
+    state.renderContent(doc);flush();
     return parts.join('');
   }
   function clip(doc,lines,limit){

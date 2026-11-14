@@ -18,4 +18,13 @@ const doc=fast.parse(Array.from({length:500},(_,i)=>`Paragraph ${i} **bold** 中
 for(const at of [1,Math.floor(doc.content.size/2),doc.content.size-1]){
  const state=vm.runInNewContext(vendor+';imRichDeps').state.EditorState.create({doc});same(state.tr.insertText('edited',at).doc);
 }
+// Nested lists keep contextual indentation/closing state across streamed blocks.
+const p=text=>s.node('paragraph',null,text?[s.text(text)]:[]);
+for(let seed=0;seed<80;seed++){
+ const items=Array.from({length:8},(_,i)=>s.node('list_item',{checked:(seed+i)%3===0?true:null},[
+  s.node('paragraph',null,[s.text(' item '+seed+' 中文 ',[s.mark(i%2?'strong':'strike')]),s.node('hard_break'),s.text('continued! [literal]')]),
+  ...(i%2?[s.node('blockquote',null,[p('quote'),s.node('bullet_list',null,[s.node('list_item',{checked:false},[p('nested task'),p()])])])]:[p()])
+ ]));
+ same(s.node('doc',null,[p('prefix'),s.node(seed%2?'ordered_list':'bullet_list',seed%2?{order:3}:null,items),p('suffix')]));
+}
 console.log('PASS: cached serialization exactly matches contextual reference output across edits, marks, whitespace, Unicode, lists and changing last-block soft breaks');
