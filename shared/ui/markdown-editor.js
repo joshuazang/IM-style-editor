@@ -116,7 +116,7 @@ const imRichField=(()=>{
       handleDOMEvents:{
         keydown:(v,event)=>{if(event.key==='Enter'){enterKeyActive=true;enterKeyHandled=false;enterModifiers={key:'Enter',shiftKey:event.shiftKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,repeat:event.repeat};}else{enterKeyActive=false;enterKeyHandled=false;}return false;},
         keyup:(v,event)=>{if(event.key==='Enter'){enterKeyActive=false;enterKeyHandled=false;}return false;},
-        blur:()=>{enterKeyActive=false;enterKeyHandled=false;return false;},
+        blur:()=>{enterKeyActive=false;enterKeyHandled=false;if(config.capture&&typeof imFlushDraftSaves==='function')imFlushDraftSaves();return false;},
         compositionstart:()=>{ime=true;enterKeyActive=false;enterKeyHandled=false;floating?.update();return false;},compositionend:()=>{ime=false;lastIME=performance.now();return false;},
         beforeinput:(v,event)=>{
           if(!['insertParagraph','insertLineBreak'].includes(event.inputType)||event.isComposing||ime||view.composing||performance.now()-lastIME<40)return false;

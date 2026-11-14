@@ -126,3 +126,24 @@ own enclosing pane navigation. Events captured outside the cross-origin plugin
 iframe cannot be canceled by Mosaic. No supported Card-back coordination API was
 found in the inspected component protocol. The whole-screen native/host gesture
 therefore remains unverified and may still require a Standard Notes change.
+
+## Draft sync bandwidth (IM 4.4.21 / Mosaic 1.5.27)
+
+Typing previously persisted the complete note after every draft change whenever
+host acknowledgments arrived quickly. Draft-only writes now wait for 1.2 seconds
+of typing inactivity, bounded by a 10-second dirty-typing checkpoint. A newer
+queued snapshot replaces older waiting drafts. Send and other explicit writes
+are immediate. Leaving capture, changing notes, window blur and backgrounding
+flush through the acknowledged queue; pagehide retains its last-submit behavior.
+Conflicting host updates cancel obsolete waiting drafts and their timers.
+
+Drafts remain in the existing RAM session until acknowledged. No browser storage,
+new remote service, note format, or optimistic Saved state is introduced.
+
+The deterministic queue regression coalesces 60 draft changes on a 200 KB note
+into one write and checks continuous checkpoints, departures, immediate actions,
+rejection/retry and conflict cancellation. Actual IM/Mosaic typing at 250 ms per
+character likewise produced one settled autosave. Capture and session regressions
+verify immediate Send, latest drafts after switches/late acknowledgments and
+failed-save retention. Host account bandwidth limits are external to the plugin;
+this change cannot clear an already-active account rate limit.

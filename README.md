@@ -6,8 +6,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.4.20](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.5.26](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.4.21](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.5.27](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -26,6 +26,8 @@ and [security boundaries](docs/editor-security.md).
 - **IM-style-editor 4** is a separate plugin with format-3 notes and an independent install manifest: [im-style-editor-next.ext.json](im-style-editor-next.ext.json). Both can be installed together.
 
 The two note formats are intentionally incompatible. Keep existing notes in Archive. To move messages, clear filters in Archive, select all the intended messages, choose **Export**, then open a **new note** in the new editor and choose **Import from clipboard**. This transfers bubbles with their timestamps, tags and message metadata; it does not transfer the unsent draft, pins, or the source note's appearance/settings. Imported messages use the destination's appearance and show **Imported**. Keep the source note until you have checked the import.
+
+Draft autosaves now batch after a 1.2-second typing pause, with checkpoints every 10 seconds of continuous typing; explicit actions and departures flush pending drafts. This reduces repeated whole-note sync uploads.
 
 The new editor saves one complete plain-text representation, reuses decoded messages while saving drafts, and renders a measured window of nearby bubbles. See [format 3](docs/note-format-3.md) for storage details and validation.
 
@@ -413,7 +415,7 @@ by measuring content without temporarily expanding the input. IM and Mosaic
 1.5.7 format list, quote and heading shortcuts live after Shift+Enter breaks,
 preserving preceding text and visual formatting when reopening sent messages.
 
-IM 4.4.20 / Mosaic 1.5.26 share one SVG formatting toolbar. Selecting editable
+IM 4.4.21 / Mosaic 1.5.27 share one SVG formatting toolbar. Selecting editable
 text opens it beside the selection; Card view Aa opens the same controls
 manually. It floats without reserving layout space, retains the text range,
 and closes with Escape or a note switch. Read-only bubbles/cards do not open it.

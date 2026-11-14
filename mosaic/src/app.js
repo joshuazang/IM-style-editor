@@ -200,11 +200,11 @@ function receive(note, force=false) {
   safeRun(()=>applyTransferMarks(s));
 }
 function writable(s=active) {return !!s&&s===active&&!s.discarded&&!s.damaged&&!s.deleted&&!s.plain&&!s.remote;}
-function persist(s) {
+function persist(s,options) {
   if(!writable(s))return Promise.reject(new Error('Saving is paused. The original note has been kept.'));
   const revision=++s.revision,submitted={text:s.note.content.text,native:imNoteNativeSignature(s.note)};
   s.pending++;s.dirty=true;s.error='';retainedSessions.set(s.note.uuid,s);renderStatus();renderNotice();
-  const promise=s.demo?Promise.resolve():imPersistNote(s.note);
+  const promise=s.demo?Promise.resolve():imPersistNote(s.note,options);
   return promise.then(()=>{
     if(s.discarded)return;
     const confirmed=imConfirmedNote?.note===s.note?imConfirmedNote.snapshot:null;
@@ -229,7 +229,7 @@ function update(s, change, redraw=true) {
   const draft=Object.hasOwn(change,'draft')?change.draft:s.draft,reply=Object.hasOwn(change,'reply')?change.reply:s.reply;
   imFormat.write(s.note,messages,settings,draft,reply);
   Object.assign(s,{messages:messages===s.messages?s.messages:imFormat.readMessages(s.note),settings:imFormat.readSettings(s.note),draft:imFormat.readDraft(s.note),reply:imFormat.readReply(s.note)});
-  const promise=persist(s);
+  const promise=persist(s,{draft:Object.keys(change).length===1&&Object.hasOwn(change,'draft')});
   if(s===active){if(redraw){renderAll(!!before);if(before)boardMotion.move(before,mounted);}else renderCapture();}
   return promise;
 }
@@ -1111,7 +1111,7 @@ function aboutDialog() {
   const d=openModal('about','Mosaic · '+MOSAIC_VERSION);
   d.root.append(el('p','about-copy','Each card is the same message your IM-style editor reads. All text is body text unless you explicitly add a title from its context menu. There is no separate copy of your notes.'));
   d.root.append(el('p','about-copy','Your note content is saved through Standard Notes. Mosaic has no analytics, independent cloud service, or browser-storage copy. Saving still submits a complete note; very large active notes can reach Standard Notes’ sync limits.'));
-  d.root.append(el('p','about-copy','New-card drafts save as you type. Click a card to edit. Enter adds a line; Close saves. Use Close before switching editors. Unfinished edits remain available while this editor stays open.'));
+  d.root.append(el('p','about-copy','New-card drafts autosave after a short typing pause. Click a card to edit. Enter adds a line; Close saves. Use Close before switching editors. Unfinished edits remain available while this editor stays open.'));
   d.root.append(el('p','about-copy','Drag Board cards to arrange them. On a phone, hold still, then drag; release without moving to open the menu. With a card focused, Alt+Up/Down also changes its position. Pinned cards stay in their section. The arrangement affects Mosaic only and saves once on drop. Reset card order restores newest-first order.'));
   const p=el('p','about-copy'),a=el('a','','Source, installation & privacy details');a.href='https://github.com/joshuazang/IM-style-editor/tree/main/mosaic';a.target='_blank';a.rel='noopener noreferrer';p.append(a);d.root.append(p);
 }

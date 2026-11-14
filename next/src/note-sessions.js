@@ -53,14 +53,14 @@ class ImNoteSessions {
   cancelTitle(uuid){this.titles.delete(uuid);const s=this.record(uuid);if(s)this.keep(s);this.notify();}
   submitTitle(uuid,text){const edit=this.titles.get(uuid);if(edit)edit.submittedText=text;}
   holdDraft(note){const s=this.record(note.uuid);if(s){s.dirty=true;this.keep(s);}}
-  persist(note){
+  persist(note,options){
     const s=this.record(note.uuid);
     if(!s||s.note!==note||s.remote||note.deleted){const p=Promise.reject(new Error('Saving is paused. Your local changes are retained.'));p.catch(()=>{});return p;}
     const version=++s.revision,submitted={text:note.content.text,native:imNoteNativeSignature(note)};
     const edit=this.edits.get(note.uuid),savedEdit=edit&&imFormat.readMessages(note).find(m=>m.id===edit.id&&m.text===edit.submittedText);
     const heading=this.titles.get(note.uuid),submittedTitleText=heading?.submittedText,savedTitle=heading&&submittedTitleText!==null&&imFormat.readMessages(note).find(m=>m.id===heading.id&&imFormat.title(m)===(submittedTitleText.trim()?submittedTitleText:''));
     s.pending++;s.dirty=true;s.error='';this.keep(s);this.notify();
-    const promise=imPersistNote(note).then(()=>{
+    const promise=imPersistNote(note,options).then(()=>{
       s.lastAck=imConfirmedNote?.note===note&&imConfirmedNote.snapshot?imConfirmedNote.snapshot:submitted;
       if(s.remote||note.deleted)return;
       if(version===s.revision){s.error='';s.dirty=false;s.nativeRepair=false;s.comparison=null;}

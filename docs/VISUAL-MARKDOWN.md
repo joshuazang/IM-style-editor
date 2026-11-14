@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.20 / Mosaic 1.5.26.
+Status: implemented for IM 4.4.21 / Mosaic 1.5.27.
 
 ## Agreed behavior
 
@@ -62,6 +62,10 @@ Status: implemented for IM 4.4.20 / Mosaic 1.5.26.
 - New title-like content uses a heading in the body. Existing separate titles
   remain readable and preserved, including multiline titles. Their parser
   compatibility is independent of literal-body compatibility.
+- Capture drafts checkpoint after 1.2 seconds without typing, with a 10-second
+  maximum interval during continuous typing. Send, explicit saves, leaving the
+  capture field, note switches and backgrounding flush the latest queued draft.
+  Pending text remains in the existing RAM session until host acknowledgment.
 - Modest additional CPU/RAM is acceptable. Noticeable additional lag in typing,
   scrolling, selection, or transitions blocks release.
 - Enter is handled once per keyboard action, including iOS beforeinput and its

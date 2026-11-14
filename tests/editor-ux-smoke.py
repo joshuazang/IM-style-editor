@@ -119,17 +119,17 @@ try:
     page.evaluate('(path)=>{holdAck=false;rejectSaves=false;openEditor("a",path,true)}',path)
     e=page.frame_locator('#editor');field=e.get_by_role('textbox',name='Message' if path.startswith('/next') else 'Take a note',exact=True);expect(field).to_be_visible()
     status=e.locator('.ui-save-feedback');page.evaluate('holdAck=true');fill_field(field,'Slow draft '+path)
-    page.wait_for_function('acks.length===1');expect(status).not_to_be_visible();page.wait_for_timeout(350);expect(status).to_have_text('Saving…')
+    page.wait_for_function('acks.length===1');expect(status).to_have_text('Saving…')
     page.evaluate('holdAck=false;releaseAcks()');expect(status).to_have_text('Saved');expect(status).not_to_be_visible(timeout=2000)
-    fill_field(field,'Fast draft '+path);page.wait_for_function('(path)=>notes.a.content.text.includes("Fast draft "+path)',arg=path);page.wait_for_timeout(350);expect(status).not_to_be_visible()
+    fill_field(field,'Fast draft '+path);page.wait_for_function('(path)=>notes.a.content.text.includes("Fast draft "+path)',arg=path);expect(status).to_have_text('Saved');expect(status).not_to_be_visible(timeout=2000)
     count=page.evaluate('saves.length');page.wait_for_timeout(500);assert page.evaluate('saves.length')==count
-    page.evaluate('rejectSaves=true');fill_field(field,'Retain rejected draft '+path);page.wait_for_timeout(400);expect(status).not_to_be_visible();expect(field).to_have_js_property('value','Retain rejected draft '+path)
+    page.evaluate('rejectSaves=true');fill_field(field,'Retain rejected draft '+path);expect(e.get_by_role('button',name='Retry save',exact=True).last).to_be_visible();expect(status).not_to_be_visible();expect(field).to_have_js_property('value','Retain rejected draft '+path)
     retry=e.get_by_role('button',name='Retry save',exact=True).last;expect(retry).to_be_visible();page.evaluate('rejectSaves=false');retry.click();page.wait_for_function('(path)=>notes.a.content.text.includes("Retain rejected draft "+path)',arg=path)
     page.evaluate('holdAck=true');fill_field(field,'Pending across note switch '+path);page.wait_for_function('acks.length===1');page.evaluate('switchNote("b")');expect(field).to_have_js_property('value','');page.wait_for_timeout(350)
     expect(status).not_to_be_visible()
     page.evaluate('holdAck=false;releaseAcks();switchNote("a")');expect(field).to_have_js_property('value','Pending across note switch '+path)
     assert e.locator('body').evaluate('()=>__storageWrites.length')==0
-   print(f'PASS {width}px: both editors save immediately, quiet fast/idle states, delayed saving label, acknowledged success, retained failed draft/retry and isolated note switches',flush=True)
+   print(f'PASS {width}px: both editors checkpoint drafts, honest pending/acknowledged states, delayed saving label, acknowledged success, retained failed draft/retry and isolated note switches',flush=True)
 
    e=page.frame_locator('#editor');fill_field(e.locator('#capture-input'),'');page.wait_for_timeout(80)
    # Cmd/Ctrl+F uses whole-note search, while an open card keeps its normal editing keys.

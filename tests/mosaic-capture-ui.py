@@ -90,7 +90,7 @@ try:
    fill_field(e.locator('#capture-input'),'Touch outside still sends')
    card.click(button='right')
    expect(e.get_by_role('menuitem',name='Copy',exact=True)).to_be_visible();page.keyboard.press('Escape')
-   assert parse(page.evaluate('notes.a.content.text'))['draft']=='Touch outside still sends'
+   page.wait_for_function('notes.a.content.text.includes("Touch outside still sends")');assert parse(page.evaluate('notes.a.content.text'))['draft']=='Touch outside still sends'
    fill_search(e,'Changed title');card.click();e.locator('dialog').get_by_role('button',name='Background options',exact=True).click()
    e.get_by_role('group',name='Card background colors',exact=True).get_by_role('button',name='Default',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
    page.wait_for_function('!notes.a.content.text.includes("cardColor")')
