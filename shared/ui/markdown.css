@@ -6,6 +6,10 @@
 .im-rich-input[aria-disabled=true]{cursor:default;opacity:.65}
 .im-rich-input[data-empty=true]:not(:focus):before{content:attr(data-placeholder);position:absolute;top:10px;left:0;color:var(--muted,#737b77);pointer-events:none}
 .im-rich-input p,.im-rich-display p{margin:0;min-height:1lh;white-space:pre-wrap}
+.im-rich-input p+p,.im-rich-display p+p{margin-top:var(--paragraph-gap,1em)}
+.im-rich-input hr,.im-rich-display hr{border:0;border-top:1px solid color-mix(in srgb,currentColor 16%,transparent);margin:1.25em 0;height:0}
+.im-paragraph-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;font:inherit}
+.im-paragraph-setting select{font:inherit;color:inherit;border:1px solid var(--line,#cbd0cd);border-radius:8px;background:var(--surface,#fff);padding:7px 10px}
 .im-rich-input h1,.im-rich-display h1{font-size:1.45em}
 .im-rich-input h2,.im-rich-display h2{font-size:1.3em}
 .im-rich-input h3,.im-rich-display h3{font-size:1.18em}

@@ -34,6 +34,20 @@ const imMarkdownCommands=(()=>{
     return C.splitBlockAs(()=>({type:schema.nodes.paragraph}))(state,apply);
   }
   function structural(state){return state.selection.$from.parent.type===schema.nodes.heading||!!ancestor(state,schema.nodes.list_item)||!!ancestor(state,schema.nodes.blockquote);}
+  function divider(state,dispatch){
+    return transactionChain(state,dispatch,(get,apply)=>{
+      if(get().selection.$from.depth>1&&!exitFormat(get(),apply))return false;
+      apply(get().tr.replaceSelectionWith(schema.nodes.horizontal_rule.create(),false));
+      C.createParagraphNear(get(),apply);apply(get().tr.setStoredMarks([]));return true;
+    });
+  }
+  function dividerLine(state,dispatch){
+    const {$from,empty}=state.selection;
+    if(!empty||$from.parent.type!==schema.nodes.paragraph||$from.parent.content.size!==3||$from.parentOffset!==3||!/^(?:---|\*\*\*|___)$/.test($from.parent.textContent))return false;
+    return transactionChain(state,dispatch,(get,apply)=>{
+      apply(get().tr.delete($from.start(),$from.end()));return divider(get(),apply);
+    });
+  }
   function selectedItems(tr,checked){
     const items=new Set();selectedTextblocks({doc:tr.doc,selection:tr.selection},(node,pos)=>{
       const item=ancestor({selection:TextSelection.create(tr.doc,pos+1)},schema.nodes.list_item);if(item)items.add(item.pos);
@@ -300,5 +314,5 @@ const imMarkdownCommands=(()=>{
     })(state,dispatch);
   }
   function markActive(state,name){const type=schema.marks[name],{$from,empty,from,to}=state.selection;return empty?!!type.isInSet(state.storedMarks||$from.marks()):state.doc.rangeHasMark(from,to,type);}
-  return {ancestor,exitFormat,lineBreak,enter,structural,toggleList,listKind,quote,quoteActive,quoteLine,headingLevel,heading,normal,paragraphActive,clearFormatting,markActive};
+  return {ancestor,exitFormat,lineBreak,enter,structural,divider,dividerLine,toggleList,listKind,quote,quoteActive,quoteLine,headingLevel,heading,normal,paragraphActive,clearFormatting,markActive};
 })();

@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.26 / Mosaic 1.5.32.
+Status: implemented for IM 4.4.27 / Mosaic 1.5.33.
 
 ## Agreed behavior
 
@@ -234,3 +234,18 @@ formatting syntax and stored text are unchanged.
 Board preview caps: pinned phone cards use 6× and pinned computer cards 8×;
 unpinned phone cards use 8× and unpinned computer cards 14×. Titles, tags and
 replies add height beyond the body preview allowance.
+
+## Paragraph spacing and dividers
+
+Paragraph spacing is one shared preference saved with the note: None (0), Small
+(0.5em), Medium (1em, the default), or Large (1.5em). IM exposes it under More
+options → Appearance; Mosaic exposes Paragraph spacing beside Font size in More
+options. It affects consecutive paragraphs in display and editing. Soft line
+breaks and separate list items stay compact. Changing spacing never rewrites
+message text.
+
+Use Insert divider in the shared formatting toolbar, paste a Markdown/HTML
+divider, or type `---` on its own line followed by Space or Enter. The separator
+is saved as ordinary Markdown and opens in either editor. On phones the existing
+policy remains: capture fields have no automatic formatting popup, while Mosaic
+Card View retains the manual formatting button.

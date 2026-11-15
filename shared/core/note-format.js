@@ -31,7 +31,7 @@ const imFormat = (() => {
   }
   function validateSettings(settings) {
     if (!object(settings)) throw new Error('Settings must be an object');
-    for (const key of ['bubbleTheme','backgroundTheme','artwork']) if (key in settings && typeof settings[key] !== 'string') throw new Error('Invalid setting ' + key);
+    for (const key of ['bubbleTheme','backgroundTheme','artwork','paragraphSpacing']) if (key in settings && typeof settings[key] !== 'string') throw new Error('Invalid setting ' + key);
     if ('wallpaper' in settings && typeof settings.wallpaper !== 'boolean') throw new Error('Wallpaper must be boolean');
     if ('scale' in settings && (typeof settings.scale !== 'number' || !Number.isFinite(settings.scale) || settings.scale <= 0)) throw new Error('Scale must be positive');
     for (const key of ['reactionOrder','deletedEmojis']) if (key in settings && (!Array.isArray(settings[key]) || !settings[key].every(tag => typeof tag === 'string'))) throw new Error('Invalid emoji settings');

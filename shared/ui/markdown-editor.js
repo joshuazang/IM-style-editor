@@ -51,6 +51,7 @@ const imRichField=(()=>{
       if(disabled||readOnly)return false;
       if(event.metaKey||event.ctrlKey){execute(K.exitFormat);return true;}
       if(event.shiftKey){execute(K.lineBreak);return true;}
+      if(!plain&&execute(K.dividerLine))return true;
       if(config.capture&&!K.structural(view.state)){if(!event.repeat)config.onSubmit?.();return true;}
       execute(K.enter);return true;
     }
@@ -75,6 +76,11 @@ const imRichField=(()=>{
         return tr;
       });
       const rules=[
+        new R.InputRule(/^(?:---|\*\*\*|___)\s$/,(state,match,start,end)=>{
+          const tr=state.tr.delete(start,end),current=state.apply(tr);
+          if(!K.divider(current,next=>{for(const step of next.steps)tr.step(step);tr.setSelection(imRichDeps.state.Selection.fromJSON(tr.doc,next.selection.toJSON()));tr.setStoredMarks([]);}))return null;
+          return tr;
+        }),
         logicalLine(/\ufffc[ \t]*[-+*][ \t]$/,()=>K.toggleList('bullet')),
         logicalLine(/\ufffc[ \t]*(\d+)\.[ \t]$/,match=>(state,dispatch)=>K.toggleList('ordered')(state,tr=>{
           const list=K.ancestor({selection:tr.selection},schema.nodes.ordered_list);if(list)tr.setNodeMarkup(list.pos,null,{order:Math.max(1,Number(match[1]))});dispatch(tr);
@@ -195,6 +201,7 @@ const imRichField=(()=>{
       currentHeading=action('Current heading','',()=>{if(currentHeadingLevel)execute(K.heading(currentHeadingLevel));});currentHeading.hidden=true;currentHeading.setAttribute('aria-pressed','false');styles.append(currentHeading);
       const ordinary=action('Normal text','Aa',()=>execute(K.normal));controls.set('normal',ordinary);styles.append(ordinary);toolbar.append(styles);
       const clear=icon(action('Clear Formatting','',()=>execute(K.clearFormatting)),'formatClear');clear.classList.add('im-format-clear');toolbar.append(clear);
+      toolbar.append(icon(action('Insert divider','',()=>execute(K.divider)),'formatDivider'));
       icon(toggle,'formatText');
       if(formatting)main.append(toggle);
     }

@@ -131,20 +131,20 @@ const MosaicModel = (() => {
     }
     return lines;
   }
-  const heightKey=(width,pinned,selecting,fontSize,previewRatio)=>width+':'+pinned+':'+fontSize+':'+previewRatio;
+  const heightKey=(width,pinned,selecting,fontSize,previewRatio,paragraphSpacing)=>width+':'+pinned+':'+fontSize+':'+previewRatio+':'+paragraphSpacing;
   function boardBounds(width,fontSize='large',previewRatio=8) {
     const compact=width<230,font=fontSizes[fontSize],padding=compact?22:28;
     const bodyLine=compact?font.compactBodyLine:font.bodyLine;
     return {minimum:padding+bodyLine,maximum:previewRatio*(padding+bodyLine),bodyLine,padding};
   }
   const boardTagCount=message=>Math.min(boardTagLimit,message.reactions.length);
-  function measure(message,width,pinned,selecting,height,fontSize='large',previewRatio=8) {
-    const key=heightKey(width,pinned,selecting,fontSize,previewRatio),previous=measured.get(message);
+  function measure(message,width,pinned,selecting,height,fontSize='large',previewRatio=8,paragraphSpacing='medium') {
+    const key=heightKey(width,pinned,selecting,fontSize,previewRatio,paragraphSpacing),previous=measured.get(message);
     if(previous?.key===key&&previous.height===height)return false;
     measured.set(message,{key,height});return true;
   }
-  function cardHeight(message,width,pinned,selecting,fontSize,previewRatio) {
-    const compact=width<230,font=fontSizes[fontSize],key=heightKey(width,pinned,selecting,fontSize,previewRatio),actual=measured.get(message),cached=heights.get(message);
+  function cardHeight(message,width,pinned,selecting,fontSize,previewRatio,paragraphSpacing) {
+    const compact=width<230,font=fontSizes[fontSize],key=heightKey(width,pinned,selecting,fontSize,previewRatio,paragraphSpacing),actual=measured.get(message),cached=heights.get(message);
     if(actual?.key===key)return actual.height;
     if(cached?.key===key)return cached.height;
     const padding=compact?22:28,columns=Math.max(8,Math.floor((width-padding)/(font.body*.53)));
@@ -186,7 +186,7 @@ const MosaicModel = (() => {
       const heights=Array(columns).fill(base);
       for(const message of group){
         const ratio=pinIds.has(message.id)?pinnedPreviewRatio:previewRatio;
-        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize,ratio);
+        const height=cardHeight(message,cardWidth,pinIds.has(message.id),selecting,fontSize,ratio,settings.paragraphSpacing??'medium');
         const column=heights.indexOf(Math.min(...heights));
         const item={message,x:column*(cardWidth+gap),y:heights[column],width:cardWidth,height,previewRatio:ratio,order:items.length};
         items.push(item);columnItems[column].push(item);byId.set(message.id,item);

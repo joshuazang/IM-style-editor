@@ -1,5 +1,5 @@
 /* Draw a measured window of immutable message records. All records stay in the note. */
-function ImVirtualMessages({messages,scroller,render,revision,scale=1,selecting=false}) {
+function ImVirtualMessages({messages,scroller,render,revision,scale=1,paragraphSpacing='medium',selecting=false}) {
   const indexAt=(offsets,y)=>{
     let low=0,high=offsets.length-1;
     while(low<high){const middle=(low+high+1)>>1;if(offsets[middle]<=y)low=middle;else high=middle-1;}
@@ -15,7 +15,7 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1,selecting=
   const scrollingUntil=dt.useRef(0),settleTimer=dt.useRef(0),pendingMeasure=dt.useRef(false),touchScrolling=dt.useRef(false);
   renderRef.current=render;
   const [view,setView]=dt.useState({top:0,height:800,width:390}),[measured,setMeasured]=dt.useState(0);
-  const layout=`${view.width}:${scale}`;
+  const layout=`${view.width}:${scale}:${paragraphSpacing}`;
   const model=dt.useMemo(()=>{
     const offsets=[0],indices=new Map();
     const chars=Math.max(12,Math.floor((view.width*.82-32)/(8.5*scale)));

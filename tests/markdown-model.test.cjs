@@ -4,9 +4,9 @@ const m=vm.runInNewContext(source+';imMarkdown'),s=m.schema;
 const manifest=JSON.parse(fs.readFileSync('shared/vendor/markdown-sources.json'));
 assert.equal(crypto.createHash('sha256').update(fs.readFileSync('shared/vendor/markdown-editor.js')).digest('hex'),manifest.bundle_sha256);
 assert.deepEqual(Object.keys(s.marks),['strong','strike']);
-assert.deepEqual(Object.keys(s.nodes),['doc','paragraph','heading','blockquote','bullet_list','ordered_list','list_item','text','hard_break']);
+assert.deepEqual(Object.keys(s.nodes),['doc','paragraph','heading','blockquote','horizontal_rule','bullet_list','ordered_list','list_item','text','hard_break']);
 const examples=[
- 'ordinary text','**bold** and ~~struck~~','# Heading\n\nBody',
+ '---','***','___','before\n\n---\n\nafter','> ---','ordinary text','**bold** and ~~struck~~','# Heading\n\nBody',
  '> Quote\n>\n> Another paragraph','- first\n- second\n  - nested',
  '3. third\n4. fourth','- [ ] waiting\n- [x] complete\n  - [ ] nested',
  '**bold ~~and struck~~ text**','Unicode 中文 🧪🙂\nnext line',

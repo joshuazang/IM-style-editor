@@ -1,6 +1,13 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const context=vm.createContext({});for(const p of ['shared/vendor/markdown-editor.js','shared/ui/markdown-model.js','shared/ui/markdown-commands.js'])vm.runInContext(fs.readFileSync(p,'utf8'),context);
 const {m,c,d}=vm.runInContext('({m:imMarkdown,c:imMarkdownCommands,d:imRichDeps})',context),s=m.schema;
+for(const text of ['', 'Body', '> Quotation', '- Item']){
+ const doc=m.parse(text),start=d.state.EditorState.create({doc,selection:d.state.TextSelection.atEnd(doc)});
+ let next=start;assert.ok(c.divider(start,tr=>next=start.apply(tr)));
+ let rules=0;next.doc.descendants(n=>{if(n.type.name==='horizontal_rule')rules++;});
+ assert.equal(rules,1);assert.equal(next.selection.$from.parent.type.name,'paragraph');
+ assert.equal(next.doc.textContent,start.doc.textContent);assert.ok(m.parse(m.serialize(next.doc)).eq(next.doc),text);
+}
 function state(text,needle){const doc=m.parse(text);let pos=d.state.TextSelection.atEnd(doc).from;if(needle){doc.descendants((node,p)=>{if(node.isText&&node.text.includes(needle))pos=p+node.text.indexOf(needle)+needle.length;});}return d.state.EditorState.create({doc,selection:d.state.TextSelection.create(doc,pos)});}
 function run(start,command){let next=start;assert.ok(command(start,tr=>next=start.apply(tr)));return next;}
 for(const text of ['ordinary','**bold**','~~struck~~','# Heading','> quote','- one\n- two','- [x] task','> - nested','- first\n  - deeply nested']){

@@ -7,6 +7,7 @@ const imMarkdown=(()=>{
     heading:{attrs:{level:{default:1}},content:'inline*',group:'block',defining:true,
       parseDOM:[1,2,3,4,5,6].map(level=>({tag:'h'+level,attrs:{level}})),toDOM:n=>['h'+Math.max(1,Math.min(6,n.attrs.level)),0]},
     blockquote:{content:'block+',group:'block',defining:true,parseDOM:[{tag:'blockquote'}],toDOM:()=>['blockquote',0]},
+    horizontal_rule:{group:'block',parseDOM:[{tag:'hr'}],toDOM:()=>['hr']},
     bullet_list:{content:'list_item+',group:'block',parseDOM:[{tag:'ul'}],toDOM:()=>['ul',0]},
     ordered_list:{attrs:{order:{default:1}},content:'list_item+',group:'block',parseDOM:[{tag:'ol',getAttrs:n=>({order:Math.max(1,Number(n.getAttribute('start'))||1)})}],toDOM:n=>['ol',{start:n.attrs.order},0]},
     list_item:{attrs:{checked:{default:null}},content:'paragraph block*',defining:true,
@@ -40,6 +41,7 @@ const imMarkdown=(()=>{
     paragraph:(s,n)=>{if(!n.content.size)s.write('');renderInline(s,n,s.options.imListDepth||/^[ \t]+$/.test(n.textContent));s.closeBlock(n);},
     heading:(s,n)=>{s.write('#'.repeat(n.attrs.level)+' ');renderInline(s,n,true);s.closeBlock(n);},blockquote:base.nodes.blockquote,
     bullet_list:base.nodes.bullet_list,ordered_list:base.nodes.ordered_list,
+    horizontal_rule:base.nodes.horizontal_rule,
     list_item:(s,n)=>{if(n.attrs.checked!==null)s.write(n.attrs.checked?'[x] ':'[ ] ');s.options.imListDepth=(s.options.imListDepth||0)+1;try{s.renderContent(n);}finally{s.options.imListDepth--;}},
     // Single newlines display as line breaks in both editors. Consecutive or
     // trailing soft breaks need an explicit br so they cannot become paragraphs.
@@ -74,6 +76,7 @@ const imMarkdown=(()=>{
       }
       if(token.type==='checkbox')continue;
       if(token.type==='heading')nodes.push(schema.nodes.heading.create({level:token.depth},inline(token.tokens)));
+      else if(token.type==='hr')nodes.push(schema.nodes.horizontal_rule.create());
       else if(token.type==='blockquote')nodes.push(schema.nodes.blockquote.create(null,blocks(token.tokens)));
       else if(token.type==='list'){
         const children=token.items.map(item=>{
@@ -99,7 +102,7 @@ const imMarkdown=(()=>{
   function parse(value){
     const text=typeof value==='string'?value:'';
     if(cache.has(text)){const doc=cache.get(text);cache.delete(text);cache.set(text,doc);return doc;}
-    const simple=!/[*~#<>\[\]`\\&\r\n]/.test(text)&&!/^\s*(?:[-+]|\d+[.)])\s/.test(text);
+    const simple=!/[*~#<>\[\]`\\&\r\n]/.test(text)&&!/^\s*(?:[-+]|\d+[.)])\s/.test(text)&&!/^ {0,3}(?:-\s*){3,}$|^ {0,3}(?:_\s*){3,}$/.test(text);
     const doc=simple?schema.nodes.doc.create(null,schema.nodes.paragraph.create(null,text?schema.text(text):null)):schema.nodes.doc.create(null,blocks(imRichDeps.lexer._Lexer.lex(text.replace(/\r\n?/g,'\n'),{gfm:true,breaks:true})));
     if(text.length<=262144){cache.set(text,doc);cachedCharacters+=text.length;while(cache.size>128||cachedCharacters>1048576){const key=cache.keys().next().value;cachedCharacters-=key.length;cache.delete(key);}}
     return doc;
@@ -165,6 +168,7 @@ const imMarkdown=(()=>{
     let checkbox=0;const document=target.ownerDocument;
     function nodeDOM(node){
       if(node.isText){let out=document.createTextNode(node.text);for(const mark of node.marks){const wrap=document.createElement(mark.type===schema.marks.strong?'strong':'s');wrap.append(out);out=wrap;}return out;}
+      if(node.type===schema.nodes.horizontal_rule)return document.createElement('hr');
       if(node.type===schema.nodes.hard_break)return document.createTextNode('\n');
       const names={paragraph:'p',heading:'h'+node.attrs.level,blockquote:'blockquote',bullet_list:'ul',ordered_list:'ol',list_item:'li'};
       const out=document.createElement(names[node.type.name]||'div');

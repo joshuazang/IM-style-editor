@@ -344,6 +344,7 @@ function renderAppearance() {
   const root=document.documentElement,{palette,fontSize}=MosaicModel.appearance(active?.settings),font=MosaicModel.fontSizes[fontSize];
   const scale=typeof active?.settings.scale==='number'&&Number.isFinite(active.settings.scale)&&active.settings.scale>0?active.settings.scale:1.12;
   root.style.setProperty('--scale',String(scale));
+  root.style.setProperty('--paragraph-gap',imParagraphSpacing.style(active?.settings)['--paragraph-gap']);
   if(root.dataset.mosaicPalette!==palette)root.dataset.mosaicPalette=palette;
   if(root.dataset.mosaicFontSize!==fontSize)root.dataset.mosaicFontSize=fontSize;
   for(const [key,value] of Object.entries(font))if(typeof value==='number'){
@@ -383,7 +384,7 @@ function renderWindow() {
     if(!node){node=cardNode(item.message,item.width);mounted.set(item.message.id,node);board.append(node);}
     node.classList.toggle('is-drag-placeholder',!!boardDrag.placeholder(item.message.id));
     node.classList.toggle('is-compact',item.width<230);
-    const geometry=item.width+':'+fontSize+':'+item.previewRatio;
+    const geometry=item.width+':'+fontSize+':'+item.previewRatio+':'+(active?.settings.paragraphSpacing??'medium');
     Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
     if(node.dataset.geometry!==geometry){
       node.dataset.geometry=geometry;node.style.removeProperty('--board-title-lines');node.style.removeProperty('--board-body-lines');
@@ -416,7 +417,7 @@ function renderWindow() {
   for(const {node,item,truncated,height} of sizes){
     node.classList.toggle('is-truncated',truncated);
     if(truncated)node.style.height=height+'px';
-    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize,item.previewRatio);
+    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize,item.previewRatio,active?.settings.paragraphSpacing??'medium');
     if(measured&&(height!==item.height))changed=true;
   }
   if(changed){
@@ -642,7 +643,7 @@ function mainMenu(event) {
   if(!active)return;const s=active;searchOpen=false;renderSearchControls();
   showMenu([['Import from clipboard','import',()=>importDialog()],['Export all cards','export',()=>exportRecords(s,s.messages)],['Select cards','select',()=>startSelection()],
     ['Clear message statuses','select',()=>statusDialog(null)],['Clear clipboard','trash',()=>clearClipboardDialog()],null,
-    ['Color palette','palette',()=>appearanceDialog('palette')],['Font size','textSize',()=>appearanceDialog('fontSize')],['Arrange tags','tag',()=>arrangeTagsDialog()],null,
+    ['Color palette','palette',()=>appearanceDialog('palette')],['Font size','textSize',()=>appearanceDialog('fontSize')],['Paragraph spacing','textSize',()=>appearanceDialog('paragraphSpacing')],['Arrange tags','tag',()=>arrangeTagsDialog()],null,
     ...(Array.isArray(s.settings.mosaicCardOrder)?[['Reset card order','mosaic',()=>{const before=boardMotion.snapshot(mounted),settings={...s.settings};delete settings.mosaicCardOrder;safeRun(()=>update(s,{settings}));boardMotion.move(before,mounted);}]]:[]),
     ...(latestUnfinished(s.note.uuid)?[['Resume unfinished edit','edit',()=>editCard(latestUnfinished(s.note.uuid).id)]]:[]),['About Mosaic','info',()=>aboutDialog()]],event);
 }
@@ -697,6 +698,7 @@ function replaceEmojiDialog(from){
   });});input.focus();input.select();
 }
 function appearanceDialog(kind) {
+  if(kind==='paragraphSpacing'){paragraphSpacingDialog();return;}
   const s=active,key=kind==='palette'?'mosaicPalette':'mosaicFontSize',d=openModal('appearance',kind==='palette'?'Color palette':'Font size');
   d.root.append(el('p','dialog-help','For this note. Saved through Standard Notes.'));
   const choices=el('div','appearance-choices'),items=kind==='palette'?MosaicModel.palettes:Object.entries(MosaicModel.fontSizes).map(([id,value])=>({id,...value}));
@@ -717,6 +719,18 @@ function appearanceDialog(kind) {
     choice.append(label);choices.append(choice);controls.push(choice);
   }
   d.root.append(choices);actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
+}
+function paragraphSpacingDialog(){
+  const s=active,d=openModal('appearance','Paragraph spacing');
+  d.root.append(el('p','dialog-help','For this note in both editors. Medium adds a chat-like paragraph gap; line breaks stay compact.'));
+  const control=imParagraphSpacing.control(s.settings,async value=>{
+    if(d.busy||active!==s||modalState!==d||!writable(s))return;
+    d.busy=true;control.update(s.settings,true);
+    try{await update(s,{settings:{...s.settings,paragraphSpacing:value}});}
+    catch{dialogError(d,'Saving was not confirmed. Keep this editor open and retry saving.');}
+    finally{d.busy=false;if(modalState===d)control.update(s.settings,!writable(s));}
+  });
+  control.update(s.settings,!writable(s));d.root.append(control.dom);actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
 }
 function openModal(kind,title) {
   stashEdit();closeModal(true);const root=$('modal-content');root.replaceChildren();modal.classList.toggle('card-edit-dialog',kind==='edit');const heading=el('div','dialog-heading'),h=el('h2','',title);h.id='dialog-title';

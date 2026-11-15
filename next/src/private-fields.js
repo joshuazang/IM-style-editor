@@ -8,6 +8,12 @@ function imResizeVisualComposer(input){
   const overflow=natural>limit?'auto':'hidden';if(input.style.overflowY!==overflow)input.style.overflowY=overflow;
 }
 /* Created after the React prefix; props are shared with Mosaic's DOM fields. */
+function ImParagraphSpacingSetting({settings,disabled,change}){
+  const host=dt.useRef(null),control=dt.useRef(null),latest=dt.useRef(change);latest.current=change;
+  dt.useLayoutEffect(()=>{const item=imParagraphSpacing.control(settings,value=>latest.current({paragraphSpacing:value}));control.current=item;host.current.append(item.dom);return()=>{item.dom.remove();control.current=null;};},[]);
+  dt.useLayoutEffect(()=>control.current?.update(settings,disabled),[settings,disabled]);
+  return x.jsx('div',{ref:host,style:{width:'100%'}});
+}
 const ImVisualField=dt.forwardRef((props,ref)=>{
   const host=dt.useRef(null),field=dt.useRef(null),latest=dt.useRef(props),pending=dt.useRef(new Set()),context=dt.useRef(null);latest.current=props;
   dt.useLayoutEffect(()=>{
