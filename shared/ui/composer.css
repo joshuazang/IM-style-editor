@@ -4,3 +4,17 @@
  font-size:max(16px,calc(16px * var(--scale,1.12)));
  font-weight:400;line-height:1.45;
 }
+
+/* A narrow, non-interactive frost fades upward behind the capture area.
+   Filtering a separate layer keeps the field text and controls sharp. */
+.editor-shell .composer:has(.im-rich-input)::before,
+#app:not(.selection-mode):not(:has(dialog[open])):has(#capture-input)::after{
+ content:"";position:absolute;inset:auto 0 0;pointer-events:none;
+ background:rgba(90,94,98,.12);
+ backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+ mask-image:linear-gradient(to top,#000,transparent);
+ -webkit-mask-image:linear-gradient(to top,#000,transparent);
+}
+.editor-shell .composer:has(.im-rich-input)::before{height:100%;z-index:-1}
+#app:has(#capture-input){position:relative}
+#app:not(.selection-mode):not(:has(dialog[open])):has(#capture-input)::after{height:calc(var(--capture-clearance,100px) - 16px);z-index:19}

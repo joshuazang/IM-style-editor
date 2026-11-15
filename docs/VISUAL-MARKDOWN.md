@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.23 / Mosaic 1.5.29.
+Status: implemented for IM 4.4.24 / Mosaic 1.5.30.
 
 ## Agreed behavior
 
