@@ -8,7 +8,7 @@ const imRichField=(()=>{
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
-    const formatting=!options.capture,controls=new Map(),headingLevels=new Map();let send,floating,currentHeading,currentHeadingLevel=0,enterKeyActive=false,enterKeyHandled=false,enterModifiers=null,enterPairTimer=0;
+    const formatting=!options.capture,controls=new Map(),headingLevels=new Map(),tableControls=[];let send,floating,currentHeading,currentHeadingLevel=0,tableButton,tableTools,enterKeyActive=false,enterKeyHandled=false,enterModifiers=null,enterPairTimer=0;
     function markEnterHandled(){enterKeyHandled=enterKeyActive;clearTimeout(enterPairTimer);enterPairTimer=setTimeout(()=>{enterKeyHandled=false;},0);}
     function action(label,content,command){
       const b=document.createElement('button');b.type='button';b.className='im-format-action';b.title=label;b.setAttribute('aria-label',label);b.textContent=content;
@@ -19,16 +19,19 @@ const imRichField=(()=>{
     const execute=command=>command(view.state,view.dispatch,view);
     function refresh(){
       dom.dataset.empty=String(view.state.doc.childCount===1&&view.state.doc.firstChild.type===schema.nodes.paragraph&&!view.state.doc.firstChild.content.size);
-      const state=view.state,headingLevel=K.headingLevel(state);
+      const state=view.state,headingLevel=K.headingLevel(state),inTable=!!imMarkdownTables.current(state),hasTable=imMarkdownTables.intersects(state);
       for(const [key,button] of controls){
         let active=false;
-        if(key==='strong'||key==='strike')active=K.markActive(state,key);
+        if(key==='strong'||key==='em'||key==='strike')active=K.markActive(state,key);
         else if(key==='quote')active=K.quoteActive(state);
         else if(['bullet','ordered','checklist'].includes(key))active=K.listKind(state)===key;
         else if(key==='normal')active=K.paragraphActive(state);
-        button.setAttribute('aria-pressed',String(active));button.disabled=disabled||readOnly;
+        button.setAttribute('aria-pressed',String(active));button.disabled=disabled||readOnly||(hasTable&&['quote','bullet','ordered','checklist'].includes(key));
       }
-      for(const [level,button] of headingLevels){button.setAttribute('aria-pressed',String(headingLevel===level));button.disabled=disabled||readOnly;}
+      for(const [level,button] of headingLevels){button.setAttribute('aria-pressed',String(headingLevel===level));button.disabled=disabled||readOnly||hasTable;}
+      if(tableButton)tableButton.disabled=disabled||readOnly||hasTable;
+      if(tableTools)tableTools.hidden=!inTable;
+      for(const [button,command] of tableControls)button.disabled=disabled||readOnly||!command(state);
       if(currentHeading){
         const nextLevel=headingLevel>2?headingLevel:0;
         if(nextLevel!==currentHeadingLevel){
@@ -61,9 +64,10 @@ const imRichField=(()=>{
       'Alt-F10':()=>floating?.focus()||false,
       'Mod-a':(state,dispatch,currentView)=>{currentView.focus();return C.selectAll(currentView.state,dispatch);},
       'Ctrl-b':C.toggleMark(schema.marks.strong),'Meta-b':C.toggleMark(schema.marks.strong),
+      'Ctrl-i':C.toggleMark(schema.marks.em),'Meta-i':C.toggleMark(schema.marks.em),
       'Ctrl-Shift-x':C.toggleMark(schema.marks.strike),'Meta-Shift-x':C.toggleMark(schema.marks.strike),
       'Ctrl-z':history.undo,'Meta-z':history.undo,'Shift-Ctrl-z':history.redo,'Shift-Meta-z':history.redo,'Ctrl-y':history.redo,
-      'Tab':imRichDeps.lists.sinkListItem(schema.nodes.list_item),'Shift-Tab':imRichDeps.lists.liftListItem(schema.nodes.list_item)
+      'Tab':C.chainCommands(imMarkdownTables.nextCell(1),imRichDeps.lists.sinkListItem(schema.nodes.list_item)),'Shift-Tab':C.chainCommands(imMarkdownTables.nextCell(-1),imRichDeps.lists.liftListItem(schema.nodes.list_item))
     };
     for(const modifier of ['Ctrl','Meta'])for(const [key,last] of [['Home',false],['End',true]]){shortcuts[modifier+'-'+key]=documentEdge(last);shortcuts['Shift-'+modifier+'-'+key]=documentEdge(last,true);}
     function typingRules(){
@@ -77,6 +81,7 @@ const imRichField=(()=>{
       });
       const rules=[
         new R.InputRule(/^(?:---|\*\*\*|___)\s$/,(state,match,start,end)=>{
+          if(imMarkdownTables.current(state))return null;
           const tr=state.tr.delete(start,end),current=state.apply(tr);
           if(!K.divider(current,next=>{for(const step of next.steps)tr.step(step);tr.setSelection(imRichDeps.state.Selection.fromJSON(tr.doc,next.selection.toJSON()));tr.setStoredMarks([]);}))return null;
           return tr;
@@ -96,11 +101,14 @@ const imRichField=(()=>{
           return state.tr.delete(start,end).setNodeMarkup(item.pos,null,{checked:match[1]!==' '});
         })
       ];
-      for(const [pattern,mark] of [[/\*\*([^*]+)\*\*$/,schema.marks.strong],[/~~([^~]+)~~$/,schema.marks.strike]])rules.push(new R.InputRule(pattern,(state,match,start,end)=>state.tr.insertText(match[1],start,end).addMark(start,start+match[1].length,mark.create()).setStoredMarks([mark.create()])));
+      for(const [pattern,marks] of [[/(?<!\*)\*\*\*([^*\n]+)\*\*\*$/,[schema.marks.strong,schema.marks.em]],[/(?<!\*)\*\*([^*]+)\*\*$/,[schema.marks.strong]],[/(?<!\*)\*([^*\n]+)\*$/,[schema.marks.em]],[/(?<![\w_])_([^_\n]+)_$/,[schema.marks.em]],[/~~([^~]+)~~$/,[schema.marks.strike]]])rules.push(new R.InputRule(pattern,(state,match,start,end)=>{
+        const tr=state.tr.insertText(match[1],start,end);let active=state.storedMarks||state.selection.$from.marks();
+        for(const type of marks){const mark=type.create();tr.addMark(start,start+match[1].length,mark);active=mark.addToSet(active);}return tr.setStoredMarks(active);
+      }));
       return R.inputRules({rules});
     }
     const baseKeys=Object.fromEntries(Object.entries(C.baseKeymap).filter(([key])=>!key.includes('Enter')));
-    function newState(value){return EditorState.create({schema,doc:plain?plainDoc(value):imMarkdown.parse(value),plugins:[history.history({depth:100}),...(!plain?[typingRules()]:[]),imRichDeps.keymap.keymap(shortcuts),imRichDeps.keymap.keymap(baseKeys)]});}
+    function newState(value){return EditorState.create({schema,doc:plain?plainDoc(value):imMarkdown.parse(value),plugins:[history.history({depth:100}),...(!plain?[typingRules()]:[]),imRichDeps.keymap.keymap(shortcuts),imRichDeps.keymap.keymap(baseKeys),...(!plain?[imRichDeps.tables.tableEditing(),imMarkdownTables.plugin()]:[])]});}
     function attrs(){return {id:config.id||'',class:(config.className||'')+' im-rich-input',role:'textbox','aria-label':config.label||'Text','aria-multiline':'true','aria-readonly':String(readOnly),'aria-disabled':String(disabled),tabindex:disabled?'-1':'0',spellcheck:'false',autocorrect:'off',autocapitalize:'off',autocomplete:'off',writingsuggestions:'false',enterkeyhint:config.capture?'send':'enter','data-placeholder':config.placeholder||''};}
     view=new EditorView({mount:dom},{state:newState(source),attributes:attrs,editable:()=>!disabled&&!readOnly,
       dispatchTransaction:transaction=>{
@@ -115,10 +123,12 @@ const imRichField=(()=>{
         if((event.key==='End'||event.key==='Home')&&v.state.selection instanceof imRichDeps.state.AllSelection){v.dispatch(v.state.tr.setSelection(event.key==='End'?TextSelection.atEnd(v.state.doc):TextSelection.atStart(v.state.doc)).scrollIntoView());return true;}
         if(event.key!=='Enter'){config.onKeyDown?.(event);if(event.defaultPrevented)return true;}const handled=enter(event);if(handled)markEnterHandled();return handled;
       },
+      transformPasted:imMarkdownTables.transformPasted,
+      transformPastedHTML:imMarkdownTables.transformHTML,
       handlePaste:(v,event)=>{
         if(plain||disabled||readOnly||event.clipboardData?.getData('text/html'))return false;
         const text=event.clipboardData?.getData('text/plain');if(!text)return false;
-        const doc=imMarkdown.parse(text),whole=v.state.selection.from<=TextSelection.atStart(v.state.doc).from&&v.state.selection.to>=TextSelection.atEnd(v.state.doc).to,tr=whole?v.state.tr.replaceWith(0,v.state.doc.content.size,doc.content):v.state.tr.replaceSelection(new imRichDeps.model.Slice(doc.content,0,0));if(tr.doc.eq(doc))tr.setMeta('im-paste-source',text.replace(/\r\n?/g,'\n'));v.dispatch(tr.scrollIntoView());return true;
+        const doc=imMarkdown.parse(text),whole=v.state.selection.from<=TextSelection.atStart(v.state.doc).from&&v.state.selection.to>=TextSelection.atEnd(v.state.doc).to,tr=whole?v.state.tr.replaceWith(0,v.state.doc.content.size,doc.content):v.state.tr.replaceSelection(new imRichDeps.model.Slice(doc.content,0,0));if(whole)tr.setSelection(TextSelection.atEnd(tr.doc));if(tr.doc.eq(doc))tr.setMeta('im-paste-source',text.replace(/\r\n?/g,'\n'));v.dispatch(tr.scrollIntoView());return true;
       },
       handleDOMEvents:{
         keydown:(v,event)=>{if(event.key==='Enter'){enterKeyActive=true;enterKeyHandled=false;enterModifiers={key:'Enter',shiftKey:event.shiftKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,repeat:event.repeat};}else{enterKeyActive=false;enterKeyHandled=false;}return false;},
@@ -138,7 +148,7 @@ const imRichField=(()=>{
           enter(enterKeyActive?enterModifiers:{key:'Enter'});return true;
         }
       },
-      nodeViews:{list_item:(initial,v,getPos)=>{
+      nodeViews:{table:initial=>{const dom=document.createElement('div'),table=document.createElement('table'),contentDOM=document.createElement('tbody');dom.className='im-md-table-wrap';table.append(contentDOM);dom.append(table);const update=node=>{if(node.type!==schema.nodes.table)return false;const width=Math.max(280,node.firstChild.childCount*140)+'px';if(table.style.minWidth!==width)table.style.minWidth=width;return true;};update(initial);return {dom,contentDOM,update,ignoreMutation:m=>m.type==='attributes'&&m.target===table};},list_item:(initial,v,getPos)=>{
         let node=initial,check=null,touch=null,lastTouchCheck=-Infinity;const li=document.createElement('li'),contentDOM=document.createElement('div');contentDOM.className='im-md-item';
         const toggleCheck=focus=>{const pos=getPos();if(!disabled&&!readOnly&&typeof pos==='number'){const focused=v.hasFocus();v.dispatch(v.state.tr.setNodeMarkup(pos,null,{checked:!node.attrs.checked}));if(focus&&(focused||config.focusOnCheck!==false))v.focus();}};
         const click=event=>{
@@ -182,15 +192,16 @@ const imRichField=(()=>{
       readOnly:{get:()=>readOnly,set:value=>{if(readOnly!==!!value){readOnly=!!value;editableChanged();}}},
       disabled:{get:()=>disabled,set:value=>{if(disabled!==!!value){disabled=!!value;editableChanged();}}},
       placeholder:{get:()=>config.placeholder||'',set:value=>{if(config.placeholder!==String(value)){config.placeholder=String(value);view.setProps({attributes:attrs});}}},
-      selectionStart:{get:()=>offset(view.state.selection.from)},selectionEnd:{get:()=>offset(view.state.selection.to)},
+      selectionStart:{get:()=>view.state.selection instanceof imRichDeps.state.AllSelection?0:offset(view.state.selection.from)},selectionEnd:{get:()=>view.state.selection instanceof imRichDeps.state.AllSelection?source.length:offset(view.state.selection.to)},
       selectionDirection:{get:()=>view.state.selection.anchor>view.state.selection.head?'backward':'forward'}
     });
     dom.setSelectionRange=(from,to,direction)=>{const a=position(from),b=position(to);view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc,direction==='backward'?b:a,direction==='backward'?a:b)));};
-    dom.select=()=>dom.setSelectionRange(0,source.length);
+    dom.select=()=>view.dispatch(view.state.tr.setSelection(new imRichDeps.state.AllSelection(view.state.doc)));
     function icon(button,name){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.8');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.innerHTML=imUiIcons[name];button.replaceChildren(svg);return button;}
-    function add(key,label,text,command){const b=icon(action(label,text,()=>execute(command)),{strong:'formatBold',strike:'formatStrike',quote:'formatQuote',bullet:'formatBullet',ordered:'formatNumber',checklist:'formatChecklist'}[key]);controls.set(key,b);toolbar.append(b);return b;}
+    function add(key,label,text,command){const b=icon(action(label,text,()=>execute(command)),{strong:'formatBold',em:'formatItalic',strike:'formatStrike',quote:'formatQuote',bullet:'formatBullet',ordered:'formatNumber',checklist:'formatChecklist'}[key]);controls.set(key,b);toolbar.append(b);return b;}
     {
       add('strong','Bold','B',C.toggleMark(schema.marks.strong)).classList.add('im-format-bold');
+      add('em','Italic','I',C.toggleMark(schema.marks.em));
       add('quote','Quotation block','❞',K.quote);
       add('strike','Strikethrough','S',C.toggleMark(schema.marks.strike)).classList.add('im-format-strike');
       add('bullet','Bullet list','•',K.toggleList('bullet'));
@@ -202,6 +213,11 @@ const imRichField=(()=>{
       const ordinary=action('Normal text','Aa',()=>execute(K.normal));controls.set('normal',ordinary);styles.append(ordinary);toolbar.append(styles);
       const clear=icon(action('Clear Formatting','',()=>execute(K.clearFormatting)),'formatClear');clear.classList.add('im-format-clear');toolbar.append(clear);
       toolbar.append(icon(action('Insert divider','',()=>execute(K.divider)),'formatDivider'));
+      tableButton=icon(action('Insert table','',()=>execute(imMarkdownTables.insert)),'formatTable');toolbar.append(tableButton);
+      tableTools=document.createElement('div');tableTools.className='im-format-table-tools';
+      for(const [label,name,command] of [['Add row below','tableRowAdd',imRichDeps.tables.addRowAfter],['Add column right','tableColumnAdd',imRichDeps.tables.addColumnAfter],['Delete row','tableRowDelete',imRichDeps.tables.deleteRow],['Delete column','tableColumnDelete',imRichDeps.tables.deleteColumn],['Delete table','tableDelete',imRichDeps.tables.deleteTable]]){
+        const b=icon(action(label,'',()=>execute(command)),name);tableControls.push([b,command]);tableTools.append(b);
+      }toolbar.append(tableTools);
       icon(toggle,'formatText');
       if(formatting)main.append(toggle);
     }

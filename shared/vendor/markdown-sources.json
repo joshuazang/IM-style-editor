@@ -204,6 +204,35 @@
         "src/marked.ts": "3e1b05d3e95866b41da37d737f4de207a17bc74b987f234ed78684c7e22982ee",
         "src/rules.ts": "63b22dcdc8863a24612de8f1ebe618763d2f363d40ebae74e2b0ab26e41a0267"
       }
+    },
+    {
+      "name": "prosemirror-tables",
+      "repository": "ProseMirror/prosemirror-tables",
+      "tag": "v1.8.5",
+      "commit": "eb522f25959a1e4515a4ff5ce7e3a939f19c55e9",
+      "files": {
+        "LICENSE": "d1d2046ebbe6362f9ad8fd4d62e9074f2553f289c0e1de895a650f10ba5f4239",
+        "package.json": "330b36a92745c7f5ad8059b97c3fcc15a4cec134e1bb843d10bba2407f88422a",
+        "src/cellselection.ts": "53bd8e4c3f746f1d0a653908e3f68ecd01af21be4dfcfc37f9521a640714d9f3",
+        "src/columnresizing.ts": "6a5e39103abd1e90f07a9c3f5961d2ce9af7c4a7f053cec2d124c4395438ff5a",
+        "src/commands.ts": "700178a9465f627e80a4c520c4d442c5b08c7184b56290ef11884b5c73048241",
+        "src/copypaste.ts": "8a86ae9514736a85d1c892f99c25160a72c6f92e240662222a443dd288da2cf1",
+        "src/fixtables.ts": "577ed59813dc321feb28f67284acca7392b7ffa6e60590daefd4c826259bdcae",
+        "src/index.ts": "8e3baa97e54851b13e4b156e22d21b184a3eaf0976f84004d8b81524f6fd8153",
+        "src/input.ts": "ce14f3a964d968585e0981625c3058cc1f2810639db417ced2c6f2a25801a60e",
+        "src/schema.ts": "eca86f1a90af2bf752128d88e25a38f015a4491dbf70b5bc87d88eaf02ef7bf1",
+        "src/tablemap.ts": "31504a7d98b0bd07d907693b3586ee63b4305cc4f6bf3cd9eaf7df6b529ae9d0",
+        "src/tableview.ts": "faf93beb5522596edbe33c4be4d57ff357aa8ff29fa20e85dc44864003ff2014",
+        "src/util.ts": "0dced4c01f11fdfac58df3715018e1d839dc1c2eb3c19243d60ef133ab278a90",
+        "src/utils/convert.ts": "60363ba29204246f553e620fa9c4837a9bf8307c5cd7bfa942545bab10654a97",
+        "src/utils/get-cells.ts": "6bae3bfba0247c25d3010b7e7065219a79907906fd2525d9f4a2fbb89c9b7dba",
+        "src/utils/move-column.ts": "44a700269e40f8847753f5d4ee4f267fcb30ab704124d1d77a05c144288f2747",
+        "src/utils/move-row-in-array-of-rows.ts": "e803e07dd4a34d09dc47231bf19449aada022b3c93659e121dcfc9dfddff0123",
+        "src/utils/move-row.ts": "7dde0f2e8b813d0740f27edc21ec9e2bbcd5853ecfee69046ac0585ad708ddf9",
+        "src/utils/query.ts": "d02b81e10abf79811c3c8ee51d88da7f85fad9cadce506c92a021f615967df1c",
+        "src/utils/selection-range.ts": "537857d6fb37440dfdae3976bd3e0965ef3be0fd759c0e71baf61e3ad01e0014",
+        "src/utils/transpose.ts": "d7ad6484d756dd4e6928a6f8838221ad79b00f76a0c33973b4cce9934d82c92a"
+      }
     }
   ],
   "toolchain": "Playwright 1.62.1 Babel TypeScript/CommonJS transform",
@@ -240,6 +269,25 @@
     "prosemirror-state/src/selection.ts",
     "prosemirror-state/src/state.ts",
     "prosemirror-state/src/transaction.ts",
+    "prosemirror-tables/src/cellselection.ts",
+    "prosemirror-tables/src/columnresizing.ts",
+    "prosemirror-tables/src/commands.ts",
+    "prosemirror-tables/src/copypaste.ts",
+    "prosemirror-tables/src/fixtables.ts",
+    "prosemirror-tables/src/index.ts",
+    "prosemirror-tables/src/input.ts",
+    "prosemirror-tables/src/schema.ts",
+    "prosemirror-tables/src/tablemap.ts",
+    "prosemirror-tables/src/tableview.ts",
+    "prosemirror-tables/src/util.ts",
+    "prosemirror-tables/src/utils/convert.ts",
+    "prosemirror-tables/src/utils/get-cells.ts",
+    "prosemirror-tables/src/utils/move-column.ts",
+    "prosemirror-tables/src/utils/move-row-in-array-of-rows.ts",
+    "prosemirror-tables/src/utils/move-row.ts",
+    "prosemirror-tables/src/utils/query.ts",
+    "prosemirror-tables/src/utils/selection-range.ts",
+    "prosemirror-tables/src/utils/transpose.ts",
     "prosemirror-transform/src/attr_step.ts",
     "prosemirror-transform/src/index.ts",
     "prosemirror-transform/src/map.ts",
@@ -265,5 +313,5 @@
     "rope-sequence/index.js",
     "w3c-keyname/index.js"
   ],
-  "bundle_sha256": "51b4eabe0450749fcb990695ea4373307afe38af9c5749039bec0b1f8280d0e7"
+  "bundle_sha256": "989df9a7a9ecad85b69c18e44dc32550a677908ed9fd7a3fc0a3d907cb84d025"
 }

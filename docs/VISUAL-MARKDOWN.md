@@ -1,11 +1,12 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.27 / Mosaic 1.5.33.
+Status: implemented for IM 4.4.28 / Mosaic 1.5.34.
 
 ## Agreed behavior
 
-- Both IM and Mosaic support bold, quotation blocks, bullet lists, numbered
-  lists, headings, interactive checklists, and strikethrough.
+- Both IM and Mosaic support bold, italic, quotation blocks, bullet lists,
+  numbered lists, headings, interactive checklists, strikethrough, dividers,
+  and GitHub Flavored Markdown tables.
 - Editing is visual. The formatting toolbar is available in opened Mosaic
   cards through the underlined-A formatting button. Automatic selection popups are enabled in desktop editable
   fields and disabled on phones, including IM capture/edit and Mosaic capture/
@@ -249,3 +250,28 @@ divider, or type `---` on its own line followed by Space or Enter. The separator
 is saved as ordinary Markdown and opens in either editor. On phones the existing
 policy remains: capture fields have no automatic formatting popup, while Mosaic
 Card View retains the manual formatting button.
+
+## Italic and tables
+
+Italic uses the shared toolbar or ⌘/Ctrl+I, and live Markdown shortcuts
+`*text*` and `_text_`. Bold and italic can be combined. Clicking Italic again
+removes it, and Clear Formatting removes it alongside other inline marks.
+
+Tables use GitHub Flavored Markdown pipe syntax. Markdown and HTML table pastes
+remain visually editable in either editor. Insert table creates two columns
+with a header and two body rows. While the caret is inside a table, the shared
+toolbar offers Add row below, Add column right, Delete row, Delete column, and
+Delete table. Tab/Shift+Tab move between cells; Tab at the last cell adds a row.
+Enter/Shift+Enter add a line break within a cell, including capture fields;
+⌘/Ctrl+Enter starts ordinary text after the table. Lists, quotations and headings
+are unavailable inside cells because GFM cells contain inline content.
+
+Tables have bold headers, fine horizontal separators, and horizontal scrolling
+in editable fields/opened cards when needed. Board previews clip wide tables.
+The first row remains the header after row deletion. HTML merged cells become
+ordinary rectangular cells with their text retained once. Alignment, escaped
+pipes, line breaks and inline formatting survive saving and reopening.
+
+Table editing uses pinned official ProseMirror tables sources bundled locally;
+there are no runtime package requests. Unchanged immutable cell paragraphs reuse
+their serialized Markdown; table repair skips unchanged rows.

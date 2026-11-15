@@ -8,6 +8,9 @@ const imMarkdown=(()=>{
       parseDOM:[1,2,3,4,5,6].map(level=>({tag:'h'+level,attrs:{level}})),toDOM:n=>['h'+Math.max(1,Math.min(6,n.attrs.level)),0]},
     blockquote:{content:'block+',group:'block',defining:true,parseDOM:[{tag:'blockquote'}],toDOM:()=>['blockquote',0]},
     horizontal_rule:{group:'block',parseDOM:[{tag:'hr'}],toDOM:()=>['hr']},
+    ...imRichDeps.tables.tableNodes({tableGroup:'block',cellContent:'paragraph',cellAttributes:{align:{default:null,
+      getFromDOM:n=>['left','center','right'].includes(n.style.textAlign||n.getAttribute('align'))?(n.style.textAlign||n.getAttribute('align')):null,
+      setDOMAttr:(value,attrs)=>{if(value)attrs.style='text-align:'+value;}}}}),
     bullet_list:{content:'list_item+',group:'block',parseDOM:[{tag:'ul'}],toDOM:()=>['ul',0]},
     ordered_list:{attrs:{order:{default:1}},content:'list_item+',group:'block',parseDOM:[{tag:'ol',getAttrs:n=>({order:Math.max(1,Number(n.getAttribute('start'))||1)})}],toDOM:n=>['ol',{start:n.attrs.order},0]},
     list_item:{attrs:{checked:{default:null}},content:'paragraph block*',defining:true,
@@ -17,6 +20,7 @@ const imMarkdown=(()=>{
     hard_break:{inline:true,group:'inline',selectable:false,parseDOM:[{tag:'br'}],toDOM:()=>['br']}
   },marks:{
     strong:{parseDOM:[{tag:'strong'},{tag:'b',getAttrs:n=>n.style.fontWeight!=='normal'&&null},{style:'font-weight',getAttrs:v=>/^(bold(er)?|[6-9]00)$/.test(v)&&null}],toDOM:()=>['strong',0]},
+    em:{parseDOM:[{tag:'em'},{tag:'i'},{style:'font-style',getAttrs:v=>v==='italic'&&null}],toDOM:()=>['em',0]},
     strike:{parseDOM:[{tag:'s'},{tag:'del'},{tag:'strike'},{style:'text-decoration',getAttrs:v=>v.includes('line-through')&&null}],toDOM:()=>['s',0]}
   }});
   const base=imRichDeps.serializer.defaultMarkdownSerializer;
@@ -36,17 +40,28 @@ const imMarkdown=(()=>{
   // ProseMirror nodes are immutable: untouched top-level paragraphs can reuse
   // their escaped text across edits. Paragraph-only notes are joined in chunks;
   // structural documents retain the contextual serializer path.
-  const paragraphSource=new WeakMap();
+  const paragraphSource=new WeakMap(),tableCellSource=new WeakMap();
   const serializer=new imRichDeps.serializer.MarkdownSerializer({
     paragraph:(s,n)=>{if(!n.content.size)s.write('');renderInline(s,n,s.options.imListDepth||/^[ \t]+$/.test(n.textContent));s.closeBlock(n);},
     heading:(s,n)=>{s.write('#'.repeat(n.attrs.level)+' ');renderInline(s,n,true);s.closeBlock(n);},blockquote:base.nodes.blockquote,
     bullet_list:base.nodes.bullet_list,ordered_list:base.nodes.ordered_list,
     horizontal_rule:base.nodes.horizontal_rule,
+    table:(s,n)=>{
+      const lines=[],row=values=>lines.push('| '+values.join(' | ')+' |');
+      n.forEach((r,index)=>{
+        const cells=[];r.forEach(cell=>{
+          const paragraph=cell.firstChild;let value=tableCellSource.get(paragraph);
+          if(value===undefined){const writer=new imRichDeps.serializer.MarkdownSerializerState(serializer.nodes,serializer.marks,{...serializer.options,imTable:true,escapeExtraCharacters:/[&<|]/g});renderInline(writer,paragraph,true);value=writer.out.trim();tableCellSource.set(paragraph,value);}
+          cells.push(value);
+        });row(cells);
+        if(index===0){const align=[];r.forEach(cell=>align.push(cell.attrs.align==='center'?':---:':cell.attrs.align==='right'?'---:':cell.attrs.align==='left'?':---':'---'));row(align);}
+      });s.write(lines.join('\n'+s.delim)+'\n');s.closeBlock(n);
+    },
     list_item:(s,n)=>{if(n.attrs.checked!==null)s.write(n.attrs.checked?'[x] ':'[ ] ');s.options.imListDepth=(s.options.imListDepth||0)+1;try{s.renderContent(n);}finally{s.options.imListDepth--;}},
     // Single newlines display as line breaks in both editors. Consecutive or
     // trailing soft breaks need an explicit br so they cannot become paragraphs.
-    hard_break:(s,n,parent,index)=>s.write(parent.type===schema.nodes.heading?'<br>':index===parent.childCount-1?(s.options.imLastBlock===parent&&parent.type===schema.nodes.paragraph&&!s.delim&&parent.textContent.trim()?'\n':'<br>'):parent.child(index+1).type===schema.nodes.hard_break?'<br>':'\n'),text:base.nodes.text
-  },{strong:base.marks.strong,strike:{open:'~~',close:'~~',mixable:true,expelEnclosingWhitespace:true}},{tightLists:true,escapeExtraCharacters:/[&<]/g});
+    hard_break:(s,n,parent,index)=>s.write(s.options.imTable||parent.type===schema.nodes.heading?'<br>':index===parent.childCount-1?(s.options.imLastBlock===parent&&parent.type===schema.nodes.paragraph&&!s.delim&&parent.textContent.trim()?'\n':'<br>'):parent.child(index+1).type===schema.nodes.hard_break?'<br>':'\n'),text:base.nodes.text
+  },{strong:base.marks.strong,em:base.marks.em,strike:{open:'~~',close:'~~',mixable:true,expelEnclosingWhitespace:true}},{tightLists:true,escapeExtraCharacters:/[&<]/g});
   const cache=new Map(),records=new WeakMap();let cachedCharacters=0;
   const entities={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:'\u00a0'};
   const decode=text=>text.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi,(raw,name)=>{
@@ -58,7 +73,7 @@ const imMarkdown=(()=>{
     const nodes=[];
     for(const token of tokens||[]){
       if(token.type==='checkbox')continue;
-      if(token.type==='strong'||token.type==='del')nodes.push(...inline(token.tokens,[...marks,schema.marks[token.type==='strong'?'strong':'strike'].create()]));
+      if(['strong','em','del'].includes(token.type))nodes.push(...inline(token.tokens,[...marks,schema.marks[token.type==='del'?'strike':token.type].create()]));
       else if(token.type==='br'||token.type==='html'&&/^<br\s*\/?>$/i.test(token.raw))nodes.push(schema.nodes.hard_break.create());
       else if(token.type==='text'&&token.tokens)nodes.push(...inline(token.tokens,marks));
       else{const text=token.type==='text'?decode(token.text||''):token.type==='escape'?(token.text||''):(token.raw||token.text||'');if(text)nodes.push(schema.text(text,marks));}
@@ -77,6 +92,10 @@ const imMarkdown=(()=>{
       if(token.type==='checkbox')continue;
       if(token.type==='heading')nodes.push(schema.nodes.heading.create({level:token.depth},inline(token.tokens)));
       else if(token.type==='hr')nodes.push(schema.nodes.horizontal_rule.create());
+      else if(token.type==='table'){
+        const row=(cells,header)=>schema.nodes.table_row.create(null,token.header.map((_,i)=>schema.nodes[header?'table_header':'table_cell'].create({align:token.align[i]||null},schema.nodes.paragraph.create(null,inline(cells[i]?.tokens)))));
+        nodes.push(schema.nodes.table.create(null,[row(token.header,true),...token.rows.map(cells=>row(cells,false))]));
+      }
       else if(token.type==='blockquote')nodes.push(schema.nodes.blockquote.create(null,blocks(token.tokens)));
       else if(token.type==='list'){
         const children=token.items.map(item=>{
@@ -167,18 +186,20 @@ const imMarkdown=(()=>{
   function render(target,doc,onCheck){
     let checkbox=0;const document=target.ownerDocument;
     function nodeDOM(node){
-      if(node.isText){let out=document.createTextNode(node.text);for(const mark of node.marks){const wrap=document.createElement(mark.type===schema.marks.strong?'strong':'s');wrap.append(out);out=wrap;}return out;}
+      if(node.isText){let out=document.createTextNode(node.text);for(const mark of node.marks){const wrap=document.createElement(mark.type===schema.marks.strong?'strong':mark.type===schema.marks.em?'em':'s');wrap.append(out);out=wrap;}return out;}
       if(node.type===schema.nodes.horizontal_rule)return document.createElement('hr');
       if(node.type===schema.nodes.hard_break)return document.createTextNode('\n');
-      const names={paragraph:'p',heading:'h'+node.attrs.level,blockquote:'blockquote',bullet_list:'ul',ordered_list:'ol',list_item:'li'};
+      const names={paragraph:'p',heading:'h'+node.attrs.level,blockquote:'blockquote',bullet_list:'ul',ordered_list:'ol',list_item:'li',table:'table',table_row:'tr',table_cell:'td',table_header:'th'};
       const out=document.createElement(names[node.type.name]||'div');
+      if(node.type===schema.nodes.table_cell||node.type===schema.nodes.table_header){if(node.attrs.align)out.style.textAlign=node.attrs.align;}
       if(node.type===schema.nodes.ordered_list&&node.attrs.order!==1)out.start=node.attrs.order;
       if(node.type===schema.nodes.list_item&&node.attrs.checked!==null){
         out.dataset.checked=String(node.attrs.checked);const index=checkbox++,check=document.createElement('button');check.type='button';check.className='im-md-check';check.setAttribute('role','checkbox');check.setAttribute('aria-checked',String(node.attrs.checked));check.setAttribute('aria-label',node.attrs.checked?'Mark item incomplete':'Mark item complete');check.textContent=node.attrs.checked?'✓':'';
         if(onCheck)check.addEventListener('click',event=>{event.stopPropagation();if(check.isConnected)onCheck(index);});else{check.disabled=true;check.tabIndex=-1;}
         out.append(check);
       }
-      node.forEach(child=>out.append(nodeDOM(child)));return out;
+      node.forEach(child=>out.append(nodeDOM(child)));
+      if(node.type===schema.nodes.table){const wrap=document.createElement('div');wrap.className='im-md-table-wrap';out.style.minWidth=Math.max(280,node.firstChild.childCount*140)+'px';wrap.append(out);return wrap;}return out;
     }
     const fragment=document.createDocumentFragment();doc.forEach(node=>fragment.append(nodeDOM(node)));target.replaceChildren(fragment);target.classList.add('im-rich-display');
   }

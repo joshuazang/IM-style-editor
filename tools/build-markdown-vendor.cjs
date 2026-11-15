@@ -39,6 +39,7 @@ function visit(id){
 const entries={model:'prosemirror-model',state:'prosemirror-state',view:'prosemirror-view',commands:'prosemirror-commands',keymap:'prosemirror-keymap',history:'prosemirror-history',lists:'prosemirror-schema-list',inputrules:'prosemirror-inputrules'};
 const entryIds=Object.fromEntries(Object.entries(entries).map(([key,name])=>[key,resolve(name,'entry.js')]));
 entryIds.serializer='prosemirror-markdown/src/to_markdown.ts';entryIds.lexer='marked/src/Lexer.ts';
+entryIds.tables='prosemirror-tables/src/index.ts';
 Object.values(entryIds).forEach(visit);
 let output='/* Local editor dependencies; pinned official source and licenses in shared/vendor/markdown-sources.json and THIRD-PARTY-NOTICES.md. */\nconst imRichDeps=(()=>{\nconst modules={\n';
 output+=[...modules].sort(([a],[b])=>a.localeCompare(b)).map(([id,code])=>JSON.stringify(id)+':function(module,exports,__require){\n'+code+'\n}').join(',\n');

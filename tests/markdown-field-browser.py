@@ -24,7 +24,7 @@ try:
    box=page.get_by_role('toolbar',name='Text formatting',exact=True);heading=box.get_by_role('button',name='Normal text',exact=True)
    def choices():
     if not box.is_visible():page.locator('#detail').get_by_role('button',name='Text formatting',exact=True).click()
-   expected=['Bold','Quotation block','Strikethrough','Bullet list','Numbered list','Checklist','Heading 1','Heading 2','Normal text','Clear Formatting']
+   expected=['Bold','Italic','Quotation block','Strikethrough','Bullet list','Numbered list','Checklist','Heading 1','Heading 2','Normal text','Clear Formatting','Insert divider','Insert table']
    assert box.get_by_role('button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==expected
    box.screenshot(path='/tmp/format-toolbar-'+str(width)+'.png')
    expect(page.locator('#detail').get_by_role('button',name='Text formatting',exact=True).locator('svg')).to_have_count(1)

@@ -67,7 +67,7 @@ try:
     assert len(scope['parse'](page.evaluate('notes.a.content.text'))['messages'])==1,'Formatting must not send the capture draft'
     if mode!='mosaic-card':
      field.press('Escape');expect(popup).to_have_count(0);expect(field).to_be_focused();assert 'beta' in field.inner_text()
-     field.press('ArrowRight');field.press(select_all);expect(popup).to_be_visible();field.press('Alt+F10');expect(popup.get_by_role('button',name='Bold',exact=True)).to_be_focused();page.keyboard.press('ArrowRight');expect(popup.get_by_role('button',name='Quotation block',exact=True)).to_be_focused();page.keyboard.press('Escape');expect(popup).to_have_count(0);expect(field).to_be_focused()
+     field.press('ArrowRight');field.press(select_all);expect(popup).to_be_visible();field.press('Alt+F10');expect(popup.get_by_role('button',name='Bold',exact=True)).to_be_focused();page.keyboard.press('ArrowRight');expect(popup.get_by_role('button',name='Italic',exact=True)).to_be_focused();page.keyboard.press('ArrowRight');expect(popup.get_by_role('button',name='Quotation block',exact=True)).to_be_focused();page.keyboard.press('Escape');expect(popup).to_have_count(0);expect(field).to_be_focused()
     field.press('ArrowRight');field.press(select_all);expect(popup).to_be_visible();page.set_viewport_size({'width':390,'height':430});expect(popup).to_be_visible();popup.evaluate('n=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');bounds=popup.bounding_box();assert bounds['x']>=-1 and bounds['x']+bounds['width']<=page.viewport_size['width']+1 and bounds['y']>=-1 and bounds['y']+bounds['height']<=431,(mode,width,bounds)
     # The quote glyph is decorative: it must never become stored note text.
     assert '”' not in field.evaluate('n=>n.value')

@@ -3,8 +3,8 @@ const source=['shared/vendor/markdown-editor.js','shared/ui/markdown-model.js'].
 const m=vm.runInNewContext(source+';imMarkdown'),s=m.schema;
 const manifest=JSON.parse(fs.readFileSync('shared/vendor/markdown-sources.json'));
 assert.equal(crypto.createHash('sha256').update(fs.readFileSync('shared/vendor/markdown-editor.js')).digest('hex'),manifest.bundle_sha256);
-assert.deepEqual(Object.keys(s.marks),['strong','strike']);
-assert.deepEqual(Object.keys(s.nodes),['doc','paragraph','heading','blockquote','horizontal_rule','bullet_list','ordered_list','list_item','text','hard_break']);
+assert.deepEqual(Object.keys(s.marks),['strong','em','strike']);
+assert.deepEqual(Object.keys(s.nodes),['doc','paragraph','heading','blockquote','horizontal_rule','table','table_row','table_cell','table_header','bullet_list','ordered_list','list_item','text','hard_break']);
 const examples=[
  '---','***','___','before\n\n---\n\nafter','> ---','ordinary text','**bold** and ~~struck~~','# Heading\n\nBody',
  '> Quote\n>\n> Another paragraph','- first\n- second\n  - nested',
@@ -27,7 +27,7 @@ for(const content of [[s.text('end'),s.node('hard_break')],[s.node('hard_break')
 const tasks='- [ ] parent\n  - [x] child\n- [ ] last',toggled=m.toggleCheck(tasks,1),states=[];
 m.parse(toggled).descendants(n=>{if(n.type.name==='list_item'&&n.attrs.checked!==null)states.push(n.attrs.checked)});
 assert.deepEqual(states,[false,false,false]);assert.equal(m.toggleCheck(tasks,99),tasks);
-for(const unsupported of ['*italic*','[link](https://example.invalid)','![image](https://example.invalid/a.png)','<script>alert(1)</script>','`code`']){
+for(const unsupported of ['[link](https://example.invalid)','![image](https://example.invalid/a.png)','<script>alert(1)</script>','`code`']){
  const d=m.parse(unsupported);assert.equal(d.textContent,unsupported);assert.ok(m.parse(m.serialize(d)).eq(d));
 }
 for(let i=0;i<1000;i++)m.parse('Unique **message '+i+'**');

@@ -12,6 +12,12 @@ const imMarkdownCommands=(()=>{
   function exitFormat(state,dispatch){
     return transactionChain(state,dispatch,(get,apply)=>{
       let current=get();
+      const table=ancestor(current,schema.nodes.table);
+      if(table){
+        const pos=table.pos+table.node.nodeSize,tr=current.tr.insert(pos,schema.nodes.paragraph.create());tr.setSelection(TextSelection.create(tr.doc,pos+1));apply(tr);
+        while(get().selection.$from.depth>1&&C.lift(get(),apply)){}
+        apply(get().tr.setStoredMarks([]));return true;
+      }
       if(current.selection instanceof imRichDeps.state.AllSelection){apply(current.tr.setSelection(TextSelection.atEnd(current.doc)));current=get();}
       if(current.selection.$from.depth>1&&current.selection.$from.parent.content.size===0){
         if(!C.liftEmptyBlock(current,apply))C.splitBlockAs(()=>({type:schema.nodes.paragraph}))(current,apply);
@@ -27,13 +33,14 @@ const imMarkdownCommands=(()=>{
     if(dispatch){const marks=state.storedMarks||state.selection.$from.marks();dispatch(state.tr.replaceSelectionWith(schema.nodes.hard_break.create(),false).ensureMarks(marks).scrollIntoView());}return true;
   }
   function enter(state,dispatch){
+    if(ancestor(state,schema.nodes.table))return lineBreak(state,dispatch);
     const item=ancestor(state,schema.nodes.list_item),marks=state.storedMarks||state.selection.$from.marks();
     const apply=tr=>dispatch?.(tr.ensureMarks(marks));
     if(item&&L.splitListItem(schema.nodes.list_item,{checked:item.node.attrs.checked===null?null:false})(state,apply))return true;
     if(C.liftEmptyBlock(state,apply))return true;
     return C.splitBlockAs(()=>({type:schema.nodes.paragraph}))(state,apply);
   }
-  function structural(state){return state.selection.$from.parent.type===schema.nodes.heading||!!ancestor(state,schema.nodes.list_item)||!!ancestor(state,schema.nodes.blockquote);}
+  function structural(state){return state.selection.$from.parent.type===schema.nodes.heading||!!ancestor(state,schema.nodes.list_item)||!!ancestor(state,schema.nodes.blockquote)||!!ancestor(state,schema.nodes.table);}
   function divider(state,dispatch){
     return transactionChain(state,dispatch,(get,apply)=>{
       if(get().selection.$from.depth>1&&!exitFormat(get(),apply))return false;
@@ -43,7 +50,7 @@ const imMarkdownCommands=(()=>{
   }
   function dividerLine(state,dispatch){
     const {$from,empty}=state.selection;
-    if(!empty||$from.parent.type!==schema.nodes.paragraph||$from.parent.content.size!==3||$from.parentOffset!==3||!/^(?:---|\*\*\*|___)$/.test($from.parent.textContent))return false;
+    if(!empty||ancestor(state,schema.nodes.table)||$from.parent.type!==schema.nodes.paragraph||$from.parent.content.size!==3||$from.parentOffset!==3||!/^(?:---|\*\*\*|___)$/.test($from.parent.textContent))return false;
     return transactionChain(state,dispatch,(get,apply)=>{
       apply(get().tr.delete($from.start(),$from.end()));return divider(get(),apply);
     });
