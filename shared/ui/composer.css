@@ -10,8 +10,8 @@
 .editor-shell .composer:has(.im-rich-input)::before,
 #app:not(.selection-mode):not(:has(dialog[open])):has(#capture-input)::after{
  content:"";position:absolute;inset:auto 0 0;pointer-events:none;
- background:rgba(90,94,98,.12);
- backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+ background:rgba(90,94,98,.15);
+ backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
  mask-image:linear-gradient(to top,#000,transparent);
  -webkit-mask-image:linear-gradient(to top,#000,transparent);
 }
