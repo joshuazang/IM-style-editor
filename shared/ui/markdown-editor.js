@@ -4,6 +4,7 @@ const imRichField=(()=>{
   const C=imRichDeps.commands,K=imMarkdownCommands;let live=0;
   function plainDoc(text){const content=[];text.split(/\r\n?|\n/).forEach((part,i)=>{if(i)content.push(schema.nodes.hard_break.create());if(part)content.push(schema.text(part));});return schema.nodes.doc.create(null,schema.nodes.paragraph.create(null,content));}
   function create(options={}){
+    const phone=navigator.userAgentData?.mobile===true||/\biPhone\b|\biPod\b|Android.*\bMobile\b|Windows Phone/i.test(navigator.userAgent);
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
@@ -132,13 +133,28 @@ const imRichField=(()=>{
         }
       },
       nodeViews:{list_item:(initial,v,getPos)=>{
-        let node=initial,check=null;const li=document.createElement('li'),contentDOM=document.createElement('div');contentDOM.className='im-md-item';
-        const click=event=>{event.preventDefault();event.stopPropagation();const pos=getPos();if(!disabled&&!readOnly&&typeof pos==='number'){const focused=v.hasFocus();v.dispatch(v.state.tr.setNodeMarkup(pos,null,{checked:!node.attrs.checked}));if(focused||config.focusOnCheck!==false)v.focus();}};
+        let node=initial,check=null,touch=null,lastTouchCheck=-Infinity;const li=document.createElement('li'),contentDOM=document.createElement('div');contentDOM.className='im-md-item';
+        const toggleCheck=focus=>{const pos=getPos();if(!disabled&&!readOnly&&typeof pos==='number'){const focused=v.hasFocus();v.dispatch(v.state.tr.setNodeMarkup(pos,null,{checked:!node.attrs.checked}));if(focus&&(focused||config.focusOnCheck!==false))v.focus();}};
+        const click=event=>{
+          event.preventDefault();event.stopPropagation();
+          if(event.detail>0&&performance.now()-lastTouchCheck<500)return;
+          toggleCheck(!phone&&event.pointerType!=='touch'&&!event.sourceCapabilities?.firesTouchEvents);
+        };
+        const touchStart=event=>{const p=event.touches[0];touch=event.touches.length===1?{id:p.identifier,x:p.clientX,y:p.clientY}:null;};
+        const touchMove=event=>{const p=event.touches[0];if(!touch||event.touches.length!==1||p.identifier!==touch.id||Math.hypot(p.clientX-touch.x,p.clientY-touch.y)>10)touch=null;};
+        const touchEnd=event=>{
+          const start=touch;touch=null;const p=Array.from(event.changedTouches).find(p=>p.identifier===start?.id);
+          if(!start||event.touches.length||!p||Math.hypot(p.clientX-start.x,p.clientY-start.y)>10)return;
+          // Safari can focus the containing contenteditable from a touch's
+          // synthetic mouse events even after pointerdown was cancelled.
+          // Cancel that default only for a tap; swipes retain native scrolling.
+          event.preventDefault();lastTouchCheck=performance.now();toggleCheck(false);
+        };
         const update=next=>{
           if(next.type!==schema.nodes.list_item)return false;node=next;
           const task=node.attrs.checked!==null;li.toggleAttribute('data-task',task);
           if(!task){delete li.dataset.checked;check?.remove();check=null;return true;}
-          if(!check){check=document.createElement('button');check.type='button';check.className='im-md-check';check.contentEditable='false';check.setAttribute('role','checkbox');check.addEventListener('pointerdown',event=>event.preventDefault());check.addEventListener('click',click);li.prepend(check);}
+          if(!check){check=document.createElement('button');check.type='button';check.className='im-md-check';check.contentEditable='false';check.setAttribute('role','checkbox');check.addEventListener('pointerdown',event=>event.preventDefault());check.addEventListener('touchstart',touchStart,{passive:true});check.addEventListener('touchmove',touchMove,{passive:true});check.addEventListener('touchend',touchEnd,{passive:false});check.addEventListener('touchcancel',()=>{touch=null;},{passive:true});check.addEventListener('click',click);li.prepend(check);}
           li.dataset.checked=String(node.attrs.checked);check.disabled=disabled||readOnly;check.setAttribute('aria-checked',String(node.attrs.checked));check.setAttribute('aria-label',node.attrs.checked?'Mark item incomplete':'Mark item complete');check.textContent=node.attrs.checked?'✓':'';return true;
         };
         li.append(contentDOM);update(node);
