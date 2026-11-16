@@ -34,6 +34,13 @@ const MosaicModel = (() => {
     const preset=colors.find(item=>item.id===message.cardColor)||colors[0];
     return {id:preset.id,background:preset.light||'var(--surface)',ink:'#202124'};
   };
+  function setCardColor(messages,ids,value){
+    if(!colors.some(preset=>preset.id===value))return messages;
+    let changed=false;const result=messages.map(message=>{
+      if(!ids.has(message.id)||(value==='default'?!Object.hasOwn(message,'cardColor'):message.cardColor===value))return message;
+      const next={...message};if(value==='default')delete next.cardColor;else next.cardColor=value;changed=true;return next;
+    });return changed?result:messages;
+  }
   const normalized = text => text.replace(/\r\n?/g, '\n');
   function split(text) {
     const match = /\r\n|\n|\r/.exec(text);
@@ -195,5 +202,5 @@ const MosaicModel = (() => {
     }
     return result.sort((a,b)=>a.order-b.order);
   }
-  return {split,join,normalized,pins,tags,index,preview,label,boardTagLimit,boardBounds,boardTagCount,ordered,moveCard,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,palettes,fontSizes,appearance};
+  return {split,join,normalized,pins,tags,index,preview,label,boardTagLimit,boardBounds,boardTagCount,ordered,moveCard,visible,isImported,matches,clearStatuses,reply,target,merge,layout,measure,colors,color,setCardColor,palettes,fontSizes,appearance};
 })();

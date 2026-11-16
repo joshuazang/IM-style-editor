@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.30 / Mosaic 1.5.36.
+Status: implemented for IM 4.4.31 / Mosaic 1.5.37.
 
 ## Agreed behavior
 
@@ -296,3 +296,18 @@ forwarding history, original messages, other messages' reply links, and the
 separate capture draft/reply. Combining Reply with another status applies both
 chosen operations. Cancellation makes no change; failed saves retain the existing
 retry flow. Imported status clearing retains its previous behavior.
+
+## Selection menu batch pins and backgrounds
+
+Both selection-mode three-dot menus offer Pin selected or Unpin selected. One
+shared rule unpins only when every selected existing item is pinned; mixed and
+all-unpinned selections pin every selected item. Other pins keep their order.
+Selection remains active, and stale/nonexistent IDs never create pins.
+
+Mosaic additionally offers Background options, using the same palette, presets
+and SVG as the opened-card palette. A chosen preset applies only to selected
+cards; Default removes their explicit background overrides. Mixed backgrounds
+have no active swatch until a shared preset is chosen. Selecting an already
+shared color does not save again. Text, formatting, statuses, replies, tags,
+timestamps, card order and the capture draft remain intact; existing save-retry
+behavior handles failures. IM has no batch-background option.

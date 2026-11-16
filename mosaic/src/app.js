@@ -534,7 +534,7 @@ function renderSelection() {
   const bar=$('selection-bar'),toolbar=$('selection-toolbar'),s=active;bar.hidden=toolbar.hidden=!s?.view.selecting;bar.replaceChildren();toolbar.replaceChildren();if(bar.hidden)return;
   const count=s.view.selected.size,controls=el('div','ui-selection-actions');controls.setAttribute('aria-label','Selected cards');
   const choices=[['tag','Add tags to selected cards',event=>batchTagMenu(event)],['copy','Copy selected',()=>safeRun(()=>copyRecords(s,selectedRecords()))],
-    ['export','Export selected',()=>safeRun(()=>exportRecords(s,selectedRecords()))],['more','Selection options',event=>showMenu([['Merge selected','merge',()=>mergeDialog()],['Clear message statuses','select',()=>statusDialog(new Set(s.view.selected))]],event)],
+    ['export','Export selected',()=>safeRun(()=>exportRecords(s,selectedRecords()))],['more','Selection options',event=>selectionMenu(event)],
     ['delete','Delete selected',()=>deleteCards(s,new Set(s.view.selected))]];
   for(const [kind,label,action] of choices){const control=button(label,null,action,'ui-selection-action'+(kind==='delete'?' selection-delete':''));control.replaceChildren(mosaicIcon(kind,true));control.disabled=!count||!writable(s);controls.append(control);}
   toolbar.append(controls);
@@ -542,6 +542,14 @@ function renderSelection() {
   const description=el('span','selection-description',`${count} / ${s.messages.length} selected`);description.setAttribute('role','status');
   const cancel=button('Cancel selection',null,cancelSelection,'selection-cancel');cancel.replaceChildren(mosaicIcon('cancel',true));bar.append(all,description,cancel);
   syncOverlayMetrics();
+}
+function selectionMenu(event){
+  const s=active;if(!writable(s))return;const ids=new Set(s.view.selected),state=imSelectedPinState(s.messages,s.settings,ids);if(!state.count)return;
+  showMenu([[state.allPinned?'Unpin selected':'Pin selected',state.allPinned?'unpin':'pin',()=>{
+    if(active!==s||!writable(s))return;const settings=imToggleSelectedPins(s.messages,s.settings,ids);if(settings!==s.settings)return update(s,{settings});
+  }],['Background options','palette',()=>{
+    if(active!==s||!writable(s))return;colorMenu(ids,{currentTarget:$('selection-toolbar').querySelector('[aria-label="Selection options"]')});
+  }],null,['Merge selected','merge',()=>mergeDialog()],['Clear message statuses','select',()=>statusDialog(ids)]],event);
 }
 function syncOverlayMetrics() {
   const app=$('app'),capture=$('capture-composer');if(!capture)return;
@@ -607,15 +615,13 @@ function settleCardMotion(){
 }
 function colorMenu(id,event) {
   settleCardMotion();
-  const s=active,message=s?.messages.find(m=>m.id===id);if(!message||!writable(s))return;
-  hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Card background colors');
-  const grid=el('div','color-grid'),current=MosaicModel.color(message).id;
+  const s=active,ids=id instanceof Set?new Set(id):new Set([id]),records=s?.messages.filter(m=>ids.has(m.id));if(!records?.length||!writable(s))return;
+  hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label',id instanceof Set?'Selected card background colors':'Card background colors');
+  const grid=el('div','color-grid'),first=MosaicModel.color(records[0]).id,current=records.every(m=>MosaicModel.color(m).id===first)?first:null;
   for(const preset of MosaicModel.colors){
     const swatch=button(preset.name,preset.id==='default'?'noColor':null,()=>{
       hideMenu();if(active!==s||!writable(s))return;
-      const source=s.messages.find(m=>m.id===id);if(!source||(preset.id==='default'?!Object.hasOwn(source,'cardColor'):source.cardColor===preset.id))return;
-      const next={...source};if(preset.id==='default')delete next.cardColor;else next.cardColor=preset.id;
-      safeRun(()=>update(s,{messages:s.messages.map(m=>m.id===id?next:m)}));
+      const messages=MosaicModel.setCardColor(s.messages,ids,preset.id);if(messages!==s.messages)safeRun(()=>update(s,{messages}));
     },'color-swatch');
     swatch.setAttribute('aria-pressed',String(preset.id===current));
     swatch.style.setProperty('--swatch',preset.light||'var(--surface)');

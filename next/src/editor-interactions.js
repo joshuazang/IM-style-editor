@@ -150,7 +150,8 @@ function ImSelectionIcon({kind}) {
   return x.jsx('svg',{width:26,height:26,viewBox:'0 0 28 28',fill:'none',stroke:'currentColor',strokeWidth:1.8,
     strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,dangerouslySetInnerHTML:{__html:imSelectionIcons[kind]||''}});
 }
-function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessages,remove,notice,more,merge}) {
+function ImSelectionToolbar({count,order,messages,settings,selected,pin,save,copy,exportMessages,remove,notice,more,merge}) {
+  const pinState=imSelectedPinState(messages,settings,selected);
   const [open,setOpen]=dt.useState(false);
   const [options,setOptions]=dt.useState(false);
   const panel=dt.useRef(null);
@@ -182,6 +183,7 @@ function ImSelectionToolbar({count,order,messages,selected,save,copy,exportMessa
         const next=event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowUp'?-1:1)+items.length)%items.length;items[next]?.focus();
       }
     },children:[
+      x.jsxs('button',{type:'button',role:'menuitem',disabled:!pinState.count,onClick:()=>{setOptions(false);pin()},children:[x.jsx(ImUiIcon,{name:pinState.allPinned?'unpin':'pin'}),x.jsx('span',{children:pinState.allPinned?'Unpin selected':'Pin selected'})]}),
       x.jsxs('button',{type:'button',role:'menuitem',disabled:count<2,onClick:()=>{setOptions(false);merge()},children:[x.jsx(ImUiIcon,{name:'merge'}),x.jsx('span',{children:'Merge selected'})]}),
       x.jsxs('button',{type:'button',role:'menuitem',onClick:()=>{setOptions(false);more()},children:[x.jsx(ImUiIcon,{name:'select'}),x.jsx('span',{children:'Clear message statuses…'})]})]}),
     open&&x.jsxs('section',{className:'selection-tag-panel','aria-label':'Batch add emoji tag',children:[
