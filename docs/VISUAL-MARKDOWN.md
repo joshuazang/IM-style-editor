@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.28 / Mosaic 1.5.34.
+Status: implemented for IM 4.4.29 / Mosaic 1.5.35.
 
 ## Agreed behavior
 
@@ -275,3 +275,13 @@ pipes, line breaks and inline formatting survive saving and reopening.
 Table editing uses pinned official ProseMirror tables sources bundled locally;
 there are no runtime package requests. Unchanged immutable cell paragraphs reuse
 their serialized Markdown; table repair skips unchanged rows.
+
+## Exact inline formatting boundaries
+
+Visual formatting can begin/end at punctuation, spaces or mixed mark boundaries
+that Markdown emphasis delimiters cannot represent reliably. Those paragraphs
+use standard inline `<strong>`, `<em>` and `<s>` markup while ordinary runs keep
+Markdown delimiters. Parsing recognizes only these exact attribute-free mark
+tags and `<br>`; it never renders arbitrary HTML. Selected characters, whitespace
+and marked line breaks survive list/quote/table saves without expanding ranges
+or inserting hidden characters. Immutable paragraphs cache the boundary check.

@@ -24,8 +24,20 @@ const imMarkdown=(()=>{
     strike:{parseDOM:[{tag:'s'},{tag:'del'},{tag:'strike'},{style:'text-decoration',getAttrs:v=>v.includes('line-through')&&null}],toDOM:()=>['s',0]}
   }});
   const base=imRichDeps.serializer.defaultMarkdownSerializer;
+  const htmlInline=new WeakMap();
+  function needsHTML(parent){
+    if(htmlInline.has(parent))return htmlInline.get(parent);
+    let unsafe=false,previous=[];
+    parent.forEach(node=>{
+      if(node.marks.length&&(!node.isText||node.marks.length>1||/^[\p{P}\p{S}\s]|[\p{P}\p{S}\s]$/u.test(node.text)||previous.length&&!imRichDeps.model.Mark.sameSet(previous,node.marks)))unsafe=true;
+      previous=node.marks;
+    });htmlInline.set(parent,unsafe);return unsafe;
+  }
+  const inlineMark=(delimiter,tag)=>({mixable:true,expelEnclosingWhitespace:false,
+    open:s=>s.options.imHTMLMarks?'<'+tag+'>':delimiter,close:s=>s.options.imHTMLMarks?'</'+tag+'>':delimiter});
   function renderInline(s,n,preserve){
-    const text=s.text,total=n.textContent.length;let offset=0;
+    const text=s.text,total=n.textContent.length,html=s.options.imHTMLMarks,breakName=s.options.hardBreakNodeName;let offset=0;
+    s.options.imHTMLMarks=needsHTML(n);if(s.options.imHTMLMarks)s.options.hardBreakNodeName='im_html_break';
     if(preserve)s.text=function(value,escape=true){
       if(escape===false)return text.call(this,value,escape);
       const start=offset===0?(/^[ \t]+/.exec(value)?.[0].length||0):0;
@@ -35,7 +47,7 @@ const imMarkdown=(()=>{
       text.call(this,value.slice(start,end),escape);
       for(const char of value.slice(end))this.write(char===' '?'&#32;':'&#9;');
     };
-    try{s.renderInline(n);}finally{s.text=text;}
+    try{s.renderInline(n);}finally{s.text=text;s.options.imHTMLMarks=html;s.options.hardBreakNodeName=breakName;}
   }
   // ProseMirror nodes are immutable: untouched top-level paragraphs can reuse
   // their escaped text across edits. Paragraph-only notes are joined in chunks;
@@ -60,8 +72,8 @@ const imMarkdown=(()=>{
     list_item:(s,n)=>{if(n.attrs.checked!==null)s.write(n.attrs.checked?'[x] ':'[ ] ');s.options.imListDepth=(s.options.imListDepth||0)+1;try{s.renderContent(n);}finally{s.options.imListDepth--;}},
     // Single newlines display as line breaks in both editors. Consecutive or
     // trailing soft breaks need an explicit br so they cannot become paragraphs.
-    hard_break:(s,n,parent,index)=>s.write(s.options.imTable||parent.type===schema.nodes.heading?'<br>':index===parent.childCount-1?(s.options.imLastBlock===parent&&parent.type===schema.nodes.paragraph&&!s.delim&&parent.textContent.trim()?'\n':'<br>'):parent.child(index+1).type===schema.nodes.hard_break?'<br>':'\n'),text:base.nodes.text
-  },{strong:base.marks.strong,em:base.marks.em,strike:{open:'~~',close:'~~',mixable:true,expelEnclosingWhitespace:true}},{tightLists:true,escapeExtraCharacters:/[&<]/g});
+    hard_break:(s,n,parent,index)=>s.write(s.options.imHTMLMarks||s.options.imTable||parent.type===schema.nodes.heading?'<br>':index===parent.childCount-1?(s.options.imLastBlock===parent&&parent.type===schema.nodes.paragraph&&!s.delim&&parent.textContent.trim()?'\n':'<br>'):parent.child(index+1).type===schema.nodes.hard_break?'<br>':'\n'),text:base.nodes.text
+  },{strong:inlineMark('**','strong'),em:inlineMark('*','em'),strike:inlineMark('~~','s')},{tightLists:true,escapeExtraCharacters:/[&<]/g});
   const cache=new Map(),records=new WeakMap();let cachedCharacters=0;
   const entities={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:'\u00a0'};
   const decode=text=>text.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi,(raw,name)=>{
@@ -70,13 +82,16 @@ const imMarkdown=(()=>{
     return n>0&&n<=0x10ffff&&!(n>=0xd800&&n<=0xdfff)?String.fromCodePoint(n):'\ufffd';
   });
   function inline(tokens,marks=[]){
-    const nodes=[];
+    const nodes=[],stack=[];let active=marks;
     for(const token of tokens||[]){
       if(token.type==='checkbox')continue;
-      if(['strong','em','del'].includes(token.type))nodes.push(...inline(token.tokens,[...marks,schema.marks[token.type==='del'?'strike':token.type].create()]));
-      else if(token.type==='br'||token.type==='html'&&/^<br\s*\/?>$/i.test(token.raw))nodes.push(schema.nodes.hard_break.create());
-      else if(token.type==='text'&&token.tokens)nodes.push(...inline(token.tokens,marks));
-      else{const text=token.type==='text'?decode(token.text||''):token.type==='escape'?(token.text||''):(token.raw||token.text||'');if(text)nodes.push(schema.text(text,marks));}
+      const tag=token.type==='html'&&/^<(\/)?(strong|em|s)>$/i.exec(token.raw);
+      if(tag&&!tag[1]){stack.push({tag:tag[2].toLowerCase(),marks:active});active=schema.marks[{strong:'strong',em:'em',s:'strike'}[tag[2].toLowerCase()]].create().addToSet(active);continue;}
+      if(tag&&tag[1]&&stack.at(-1)?.tag===tag[2].toLowerCase()){active=stack.pop().marks;continue;}
+      if(['strong','em','del'].includes(token.type))nodes.push(...inline(token.tokens,schema.marks[token.type==='del'?'strike':token.type].create().addToSet(active)));
+      else if(token.type==='br'||token.type==='html'&&/^<br\s*\/?>$/i.test(token.raw))nodes.push(schema.nodes.hard_break.create(null,null,active));
+      else if(token.type==='text'&&token.tokens)nodes.push(...inline(token.tokens,active));
+      else{const text=token.type==='text'?decode(token.text||''):token.type==='escape'?(token.text||''):(token.raw||token.text||'');if(text)nodes.push(schema.text(text,active));}
     }
     return nodes;
   }
