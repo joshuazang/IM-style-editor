@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.31 / Mosaic 1.5.37.
+Status: implemented for IM 4.4.31 / Mosaic 1.5.38.
 
 ## Agreed behavior
 
@@ -131,7 +131,9 @@ the Markdown body are body content. Pinned previews use 6x on phones and 8x on c
 - In IM input and Mosaic Board input, Enter in an ordinary paragraph sends the
   capture. The Send action sends from any supported format.
 - In opened Mosaic cards, Enter in ordinary text creates another paragraph.
-  Close saves edits through the existing acknowledgment flow.
+  Edits checkpoint after a 0.7-second pause or 6 seconds of continuous typing.
+  Close, note switches and editor departures submit the latest pending edits
+  through the existing acknowledgment flow.
 - In both contexts, Enter in a bullet list, numbered list, or checklist continues
   the list. A new checklist item starts unchecked; Enter on an empty item exits
   the list and creates ordinary text.

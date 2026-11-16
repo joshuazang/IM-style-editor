@@ -83,6 +83,7 @@ file contents: their original bytes are retained.
 
 ## Mosaic
 
+- [1.5.37](mosaic/1.5.37/)
 - [1.5.36](mosaic/1.5.36/)
 - [1.5.35](mosaic/1.5.35/)
 - [1.5.34](mosaic/1.5.34/)

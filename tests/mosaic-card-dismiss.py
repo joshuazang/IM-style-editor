@@ -132,10 +132,10 @@ try:
             assert page.evaluate('notes.a.content.text') == data['note']['content']['text']
 
             open_card()
+            page.evaluate('rejectSaves=true')
             fill_field(body,text + '\nRetained edit')
             drag(body, 'right')
             assert page.evaluate('saves.length') == 0
-            page.evaluate('rejectSaves=true')
             body.press('Control+a');body.press('Escape');still_open()
             body.press('Escape')
             expect(editor.get_by_role('button', name='Retry save', exact=True).last).to_be_visible()
@@ -152,7 +152,7 @@ try:
             page.evaluate('holdAck=true')
             page.mouse.click(*outside('right'))
             expect(dialog).to_be_visible()
-            assert dialog.evaluate('n=>modalState.sending&&modalState.busy'), 'Outside dismissal must still wait for acknowledgment'
+            expect(editor.locator('.detail-close')).to_be_disabled()
             page.evaluate('releaseAcks()')
             expect(dialog).not_to_be_visible()
             assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text'] == text + '\nWait for acknowledgment'

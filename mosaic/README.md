@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.37](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.37.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.38](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.38.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -44,7 +44,8 @@ This is the current note's board, rather than an account-wide dashboard.
   composer. Enter saves and Shift+Enter adds a line. Cancel restores the capture
   draft. Starting another title cannot overwrite unfinished title entry.
 - An opened card initially has no editable title field. Edit title from its
-  context menu unlocks it above the body. Enter adds lines and Close saves.
+  context menu unlocks it above the body. Enter adds lines; edits autosave.
+  Close and departures submit the latest edits immediately.
   An existing title otherwise displays as a heading; untitled cards have no
   placeholder or reserved title space.
 - Top-right Search/tags and More controls matching IM; search, untagged filtering,
@@ -398,10 +399,20 @@ font size, height and right inset.
 Mosaic 1.5.7 shares live list, quote and heading shortcuts after soft line breaks
 with IM. Typing a marker followed by Space formats the current line immediately.
 
-Mosaic 1.5.37 reuses the Card Aa toolbar as a floating selection toolbar in Board
+Mosaic 1.5.38 reuses the Card Aa toolbar as a floating selection toolbar in Board
 capture and Card body fields. Shared SVG controls match IM, keep selected text
 and never trigger outside-click capture sending. Quotes use tinted rounded insets.
 
 Board preview caps: pinned phone cards use 6× and pinned computer cards 8×;
 unpinned phone cards use 8× and unpinned computer cards 14×. Titles, tags and
 replies add height beyond the body preview allowance.
+
+
+Mosaic 1.5.38 saves open-card body, title and tag changes after a 0.7-second
+typing pause, with a checkpoint every 6 seconds of continuous typing. Switching
+notes, leaving the editor or pressing Close submits the newest pending edit;
+Close is no longer required before switching. A later edit can replace a waiting
+snapshot while an earlier save is in flight. Note switches retain rejected saves
+in the original session and retry when that note becomes active again. Other
+notes and unsent capture drafts remain unchanged. Remote conflicts still pause
+saving for review. Autosave does not rebuild the Board during typing.

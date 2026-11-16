@@ -76,7 +76,7 @@ try:
   finish(context,errors,outside)
   print('PASS: failed final Send survives switches and retries as exactly one message',flush=True)
 
-  # More than one unfinished card edit is retained independently in this frame.
+  # Open-card edits save independently when switching notes without Close.
   context,page,e,errors,outside=start()
   for index in [2,3]:
     fill_search(e,'Thought '+str(index));e.locator('.card').click(button='right')
@@ -86,12 +86,12 @@ try:
     fill_field(field,'Unfinished card '+str(index));page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   for index in [3,2]:
-    open_more(e);e.get_by_role('menuitem',name='Resume unfinished edit',exact=True).click()
+    fill_search(e,'Unfinished card '+str(index));e.locator('.card').click()
     expect(e.get_by_role('textbox',name='Card body',exact=True)).to_have_js_property('value','Unfinished card '+str(index))
     e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
   result=parse(page.evaluate('notes.a.content.text'))
   assert result['messages'][2]['text']=='Unfinished card 2' and result['messages'][3]['text']=='Unfinished card 3'
-  finish(context,errors,outside);print('PASS: multiple unfinished card edits remain separate across note switches',flush=True)
+  finish(context,errors,outside);print('PASS: multiple open-card edits save separately across note switches without Close',flush=True)
 
   # A late Copy or Export result rebases its status against the newest same-note item.
   for action,flag in [('Copy','copied'),('Export','exported')]:
@@ -133,6 +133,7 @@ try:
     page.evaluate('notes.a.content.title="Host title";notes.a.content.references=[{uuid:"fresh"}];notes.a.content.appData.unrelated.newField="keep";stream(notes.a)')
     page.evaluate('holdAck=false;releaseAcks()')
     page.wait_for_function('acks.length===0&&notes.a.content.title==="Host title"')
+    page.wait_for_function('text=>notes.a.content.text.includes(text)',arg='Latest queued draft' if queued else 'First draft')
     expect(e.locator('#notice')).not_to_be_visible()
     content=page.evaluate('notes.a.content');assert content['references']==[{'uuid':'fresh'}] and content['appData']['unrelated']['newField']=='keep'
     assert parse(content['text'])['draft']==('Latest queued draft' if queued else 'First draft')

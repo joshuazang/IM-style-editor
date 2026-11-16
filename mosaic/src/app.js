@@ -165,11 +165,11 @@ function receive(note, force=false) {
     if(s.note.content?.text===text||((s.pending||s.error)&&knownSessionText(s,text))){
       receiveNativeFields(s,note);return;
     }
-    const editing=modalState?.kind==='edit'&&modalState.uuid===note.uuid&&(modalState.currentText!==modalState.original||modalState.titleValue!==modalState.originalTitle||JSON.stringify([...modalState.tags])!==JSON.stringify(modalState.originalTags));
+    const editing=modalState?.uuid===note.uuid&&cardEditChanged();
     if(s.pending||s.error||s.dirty||editing||s.titleEntry){s.remote=note;retainedSessions.set(note.uuid,s);imCancelQueuedNoteSaves(note.uuid);renderNotice();return;}
   }
   const previous=active;if(previous?.titleEntry)retainedSessions.set(previous.note.uuid,previous);
-  if(previous){previous.view.scroll=viewport.scrollTop;viewMemory.set(previous.note.uuid,previous.view);stashEdit();}
+  if(previous){previous.view.scroll=viewport.scrollTop;viewMemory.set(previous.note.uuid,previous.view);stashEdit();if(previous.note.uuid!==note.uuid)flushCardEdit();}
   closeModal(true);hideMenu();dateOpen=false;$('date-panel').replaceChildren();
   if(force){
     const discarded=retainedSessions.get(note.uuid)||previous;
@@ -183,6 +183,7 @@ function receive(note, force=false) {
     if(knownSessionText(retained,text))receiveNativeFields(retained,note);
     else{retained.remote=note;imCancelQueuedNoteSaves(note.uuid);}
     $('search').value=retained.view.query;renderAll();viewport.scrollTop=retained.view.scroll||0;scheduleWindow();
+    if(retained.cardSavePending&&writable(retained)){if(retained.pending)retained.retryCardOnReturn=true;else safeRun(()=>persist(retained));}
     safeRun(()=>applyTransferMarks(retained));return;
   }
   const parsed=imFormat.inspect(note.content?.text);
@@ -210,13 +211,13 @@ function persist(s,options) {
     const confirmed=imConfirmedNote?.note===s.note?imConfirmedNote.snapshot:null;
     s.lastAck=confirmed?{text:confirmed.text,native:imNoteNativeSignature(confirmed.item)}:submitted;
     if(s.remote)return;
-    if(revision===s.revision){s.error='';s.dirty=false;s.nativeRepair=false;if(!s.titleEntry)retainedSessions.delete(s.note.uuid);}
+    if(revision===s.revision){s.error='';s.dirty=false;s.nativeRepair=false;s.cardSavePending=false;if(!s.titleEntry)retainedSessions.delete(s.note.uuid);}
     for(const intent of [...s.intents])if(intent.revision<=revision){s.intents.delete(intent);intent.finish();}
     if(active===s)safeRun(()=>applyTransferMarks(s));
   },error=>{
     if(!s.discarded&&revision===s.revision){s.error='Saving was not confirmed. Keep this editor open and retry. Your text is still here.';s.dirty=true;retainedSessions.set(s.note.uuid,s);}
     throw error;
-  }).finally(()=>{s.pending--;if(!s.pending&&!s.dirty&&!s.error&&!s.remote&&!s.titleEntry)retainedSessions.delete(s.note.uuid);if(active===s){renderStatus();renderNotice();}});
+  }).finally(()=>{s.pending--;if(!s.pending&&!s.dirty&&!s.error&&!s.remote&&!s.titleEntry)retainedSessions.delete(s.note.uuid);if(active===s){renderStatus();renderNotice();if(!s.pending&&s.retryCardOnReturn){s.retryCardOnReturn=false;if(s.cardSavePending&&writable(s))safeRun(()=>persist(s));}}});
 }
 function update(s, change, redraw=true) {
   if(!writable(s))throw new Error('Saving is paused. Your original note is unchanged.');
@@ -739,7 +740,7 @@ function paragraphSpacingDialog(){
   control.update(s.settings,!writable(s));d.root.append(control.dom);actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
 }
 function openModal(kind,title) {
-  stashEdit();closeModal(true);const root=$('modal-content');root.replaceChildren();modal.classList.toggle('card-edit-dialog',kind==='edit');const heading=el('div','dialog-heading'),h=el('h2','',title);h.id='dialog-title';
+  stashEdit();flushCardEdit();closeModal(true);const root=$('modal-content');root.replaceChildren();modal.classList.toggle('card-edit-dialog',kind==='edit');const heading=el('div','dialog-heading'),h=el('h2','',title);h.id='dialog-title';
   const state={kind,uuid:active?.note.uuid,root,error:null,busy:false};modalState=state;
   heading.append(h,button('Close','close',()=>closeModal()));root.append(heading);modal.showModal();return state;
 }
@@ -751,6 +752,7 @@ function closeModal(force=false) {
   if(!force&&modalState?.busy)return;
   if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
   if(!force)stashEdit();
+  clearTimeout(modalState?.saveTimer);
   if(modalState?.viewportResize){window.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('scroll',modalState.viewportResize);modal.style.removeProperty('--card-view-height');modal.style.removeProperty('--card-view-top');}
   cancelAnimationFrame(modalState?.caretFrame);if(modalState?.revealCaret)document.removeEventListener('selectionchange',modalState.revealCaret);
   cancelAnimationFrame(modalState?.bodyFrame);
@@ -760,9 +762,11 @@ function closeModal(force=false) {
   hideMenu();if(modal.open)modal.close();modalState=null;
 }
 function stashEdit() {
-  const d=modalState;if(!d||d.kind!=='edit'||!d.currentText||!active||d.uuid!==active.note.uuid)return;
-  if(d.currentText!==d.original||d.titleValue!==d.originalTitle||JSON.stringify([...d.tags])!==JSON.stringify(d.originalTags))unfinishedEdits.set(editKey(d.uuid,d.id),{noteId:d.uuid,id:d.id,original:d.original,text:d.currentText,title:d.titleValue,originalTitle:d.originalTitle,titleUnlocked:d.titleUnlocked,tags:[...d.tags]});
+  const d=modalState;if(!d||d.kind!=='edit'||!active||d.uuid!==active.note.uuid)return;
+  if(cardEditChanged(d))unfinishedEdits.set(editKey(d.uuid,d.id),{noteId:d.uuid,id:d.id,original:d.original,text:d.currentText,title:d.titleValue,originalTitle:d.originalTitle,titleUnlocked:d.titleUnlocked,tags:[...d.tags]});
 }
+function cardEditChanged(d=modalState){return d?.kind==='edit'&&(d.currentText!==d.original||d.titleValue!==d.originalTitle||JSON.stringify([...d.tags])!==JSON.stringify(d.originalTags));}
+function flushCardEdit(){const d=modalState;if(d?.kind==='edit'&&d.commit)safeRun(()=>d.commit(false));}
 function actions(record,items) {const row=el('div','dialog-actions');for(const item of items)row.append(item);record.root.append(row);return row;}
 function confirmAction(title,description,label,action,danger=false) {
   const d=openModal('confirm',title);d.root.append(el('p','dialog-help',description));
@@ -837,6 +841,7 @@ function animateCard(d,closing=false){
 }
 function finishCard(d){
   if(modalState!==d)return;
+  if(d.boardDirty){renderAll();d.boardDirty=false;}
   cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;
   const animation=animateCard(d,true);
   if(!animation){closeModal(true);return;}
@@ -853,12 +858,13 @@ function editorDialog(id=null) {
   if(modalState?.kind==='edit'&&modalState.id===id&&modalState.uuid===active?.note.uuid){modalState.body.focus();return;}
   const s=active;if(s?.titleEntry){notify('Finish or cancel the current title entry first.');return;}if(!writable(s)){notify('This note is read only until the notice above is resolved.');return;}
   const message=s.messages.find(m=>m.id===id);if(!message)return;
-  const stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
+  let stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
+  if(stashed?.text===message.text&&(stashed.title??imFormat.title(message))===imFormat.title(message)&&JSON.stringify(stashed.tags)===JSON.stringify(message.reactions)){unfinishedEdits.delete(editKey(s.note.uuid,id));stashed=null;}
   const restored=stashed?.id===id&&stashed.original===message.text&&(stashed.originalTitle??imFormat.title(message))===imFormat.title(message)?stashed:null;
   const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
   const originalNormalized=MosaicModel.normalized(original),titleNormalized=MosaicModel.normalized(currentTitle),originalNewline=(/\r\n|\n|\r/.exec(original)||['\n'])[0];
   const sourceRect=cardTransitionRect(mounted.get(id));
-  const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,sending:false,wantClose:false});
+  const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,saveSequence:0,wantClose:false});
   const scroller=el('div','card-detail-scroll');d.scroll=scroller;d.root.append(scroller);
   if(stashed&&!restored){
     scroller.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
@@ -891,7 +897,7 @@ function editorDialog(id=null) {
   d.unlockTitle=()=>{d.prepareBody();d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';hideMenu();title.focus();};
   d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');modal.append(d.tagBadges);
   d.tagObserver=new ResizeObserver(()=>positionEditorTags(d));d.tagObserver.observe(d.tagBadges);
-  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);};
+  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);d.scheduleSave();};
   d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');scroller.append(d.meta);
   const footer=el('div','card-detail-tools');
   const palette=button('Background options','palette',event=>colorMenu(id,event));
@@ -923,37 +929,54 @@ function editorDialog(id=null) {
     if(d.bodyReady){const value=MosaicModel.normalized(body.value);d.currentText=value===originalNormalized?original:value.replace(/\n/g,originalNewline);}
     d.titleValue=MosaicModel.normalized(title.value)===titleNormalized?currentTitle:title.value;
     if(event.target===title&&!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}
+    d.scheduleSave();
   };
   title.addEventListener('input',change);body.addEventListener('im-markdown-change',change);
+  // Serialize/save only at checkpoints, never rebuild the Board on a keystroke.
+  // Keep the same idle and continuous-typing limits as capture drafts.
+  d.scheduleSave=()=>{
+    clearTimeout(d.saveTimer);if(modalState!==d||!writable(s)||d.composing)return;
+    const now=Date.now();if(d.saveStarted==null)d.saveStarted=now;
+    d.saveTimer=setTimeout(()=>safeRun(()=>saveEditor(false)),Math.max(0,Math.min(700,d.saveStarted+6000-now)));
+  };
+  for(const field of [title,body]){
+    field.addEventListener('compositionstart',()=>{d.composing=true;clearTimeout(d.saveTimer);});
+    field.addEventListener('compositionend',()=>{d.composing=false;d.scheduleSave();});
+  }
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
   bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
   bindContextMenu(d.tagBadges,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
   d.commit=saveEditor;
   async function saveEditor(closeAfter=true) {
     if(active!==s||modalState!==d)return false;
+    clearTimeout(d.saveTimer);d.saveStarted=null;
     if(!writable(s)){dialogError(d,'Saving is paused. Your edit is still here; review the saved version before continuing.');return false;}
     d.wantClose=d.wantClose||closeAfter;
-    if(d.sending){try{await persist(s);return !d.sending;}catch{return false;}}
     const submitted=d.currentText,submittedTitle=d.titleValue,submittedTags=[...d.tags],revision=d.fieldRevision;
     const source=s.messages.find(m=>m.id===id);if(!source||source.text!==d.original||imFormat.title(source)!==d.originalTitle){dialogError(d,'This card changed since you opened it. Your text is still here; copy it before reopening the card.');return false;}
     const edited=imFormat.withTitle({...imFormat.editMessage(source,submitted),reactions:submittedTags},submittedTitle);
-    if(submitted===source.text&&imFormat.title(edited)===imFormat.title(source)&&JSON.stringify(edited.reactions)===JSON.stringify(source.reactions)){
+    const changed=submitted!==source.text||imFormat.title(edited)!==imFormat.title(source)||JSON.stringify(edited.reactions)!==JSON.stringify(source.reactions);
+    if(!changed&&(!d.wantClose||!s.pending&&!s.error&&!s.dirty)){
       if(restored)unfinishedEdits.delete(editKey(s.note.uuid,id));if(d.wantClose)finishCard(d);return true;
     }
     const tagOrder=[...new Set([...(s.settings.reactionOrder||MosaicModel.tags(s.messages,s.settings)),...d.tags])];
-    d.sending=true;d.busy=true;close.disabled=true;close.textContent='Saving…';
-    const saving=update(s,{messages:s.messages.map(m=>m.id===id?edited:m),settings:{...s.settings,reactionOrder:tagOrder,deletedEmojis:(s.settings.deletedEmojis||[]).filter(tag=>!d.tags.has(tag))}});
+    const sequence=++d.saveSequence;d.busy=d.wantClose;close.disabled=d.wantClose;close.textContent=d.wantClose?'Saving…':'Close';close.setAttribute('aria-label','Close');
+    if(changed)s.cardSavePending=true;
+    const saving=changed?update(s,{messages:s.messages.map(m=>m.id===id?edited:m),settings:{...s.settings,reactionOrder:tagOrder,deletedEmojis:(s.settings.deletedEmojis||[]).filter(tag=>!d.tags.has(tag))}},false):persist(s);
+    // The local session now owns this snapshot, including while its host save
+    // waits. A newer edit can replace the queued snapshot before an older ack.
+    d.original=submitted;d.originalTitle=imFormat.title(edited);d.originalTags=submittedTags;d.boardDirty=d.boardDirty||changed;
+    const stored=unfinishedEdits.get(editKey(s.note.uuid,id));if(stored?.text===submitted&&(stored.title??originalTitle)===submittedTitle&&JSON.stringify(stored.tags)===JSON.stringify(submittedTags))unfinishedEdits.delete(editKey(s.note.uuid,id));
     s.intents.add({revision:s.revision,finish:()=>{
-      const stored=unfinishedEdits.get(editKey(s.note.uuid,id));if(stored?.text===submitted&&(stored.title??originalTitle)===submittedTitle&&JSON.stringify(stored.tags)===JSON.stringify(submittedTags))unfinishedEdits.delete(editKey(s.note.uuid,id));
-      if(modalState!==d)return;
-      d.sending=false;d.busy=false;close.disabled=false;close.textContent='Close';close.setAttribute('aria-label','Close');
+      if(modalState!==d||sequence!==d.saveSequence)return;
+      d.busy=false;close.disabled=false;close.textContent='Close';close.setAttribute('aria-label','Close');
       if(d.error){d.error.remove();d.error=null;}
-      d.original=submitted;d.originalTitle=submittedTitle.trim()?submittedTitle:'';d.originalTags=submittedTags;
       if(d.wantClose&&d.fieldRevision===revision){finishCard(d);notify('Card updated.');}
       else{d.wantClose=false;refreshEditorMetadata();}
     }});
     try{await saving;return d.fieldRevision===revision;}catch{
-      d.busy=false;close.disabled=false;close.textContent='Retry save';close.setAttribute('aria-label','Retry save');
+      if(modalState!==d||sequence!==d.saveSequence)return false;
+      d.busy=false;d.wantClose=false;close.disabled=false;close.textContent='Retry save';close.setAttribute('aria-label','Retry save');
       dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
     }
   }
@@ -1133,7 +1156,7 @@ function aboutDialog() {
   const d=openModal('about','Mosaic · '+MOSAIC_VERSION);
   d.root.append(el('p','about-copy','Each card is the same message your IM-style editor reads. All text is body text unless you explicitly add a title from its context menu. There is no separate copy of your notes.'));
   d.root.append(el('p','about-copy','Your note content is saved through Standard Notes. Mosaic has no analytics, independent cloud service, or browser-storage copy. Saving still submits a complete note; very large active notes can reach Standard Notes’ sync limits.'));
-  d.root.append(el('p','about-copy','New-card drafts autosave after a short typing pause. Click a card to edit. Enter adds a line; Close saves. Use Close before switching editors. Unfinished edits remain available while this editor stays open.'));
+  d.root.append(el('p','about-copy','New-card drafts and open-card edits autosave after a 0.7-second typing pause, with checkpoints every 6 seconds of continuous typing. Enter adds a line. Close and leaving the editor submit pending edits immediately. Failed saves remain here for retry; different saved versions require review.'));
   d.root.append(el('p','about-copy','Drag Board cards to arrange them. On a phone, hold still, then drag; release without moving to open the menu. With a card focused, Alt+Up/Down also changes its position. Pinned cards stay in their section. The arrangement affects Mosaic only and saves once on drop. Reset card order restores newest-first order.'));
   const p=el('p','about-copy'),a=el('a','','Source, installation & privacy details');a.href='https://github.com/joshuazang/IM-style-editor/tree/main/mosaic';a.target='_blank';a.rel='noopener noreferrer';p.append(a);d.root.append(p);
 }
@@ -1311,6 +1334,9 @@ modal.addEventListener('click',event=>{
   // Dismiss only when this same pointer also began outside this modal session.
   if(press&&event.detail>0&&(event.pointerId===undefined||event.pointerId===press.pointerId)&&event.target===modal&&isOutsideModal(event))closeModal();
 });
-window.addEventListener('beforeunload',event=>{if(retainedSessions.size||unfinishedEdits.size||(modalState?.kind==='edit'&&modalState.currentText!==modalState.original)){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(retainedSessions.size||unfinishedEdits.size||cardEditChanged()){event.preventDefault();event.returnValue='';}});
+window.addEventListener('blur',flushCardEdit);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushCardEdit();});
+window.addEventListener('pagehide',event=>{flushCardEdit();if(!event.persisted)imFlushNoteSaves();});
 renderAll();
 if(window.parent===window&&new URLSearchParams(location.search).get('preview')==='1')demo();
