@@ -1,8 +1,17 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const clear=vm.runInNewContext(fs.readFileSync('next/src/status-clear.js','utf8')+';imClearStatuses');
+const clear=vm.runInNewContext(fs.readFileSync('shared/core/message-statuses.js','utf8')+';imClearStatuses');
 const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});
 const a={id:f.newId(),text:'Keep exact text\n\n🙂',createdAt:'2026-11-01T12:00:00Z',reactions:['⭐'],copied:true,exported:true,edited:true,forwarding:{sourceNoteId:'source',sourceMessageId:f.newId()}};
 const b={...a,id:f.newId(),replyTo:{id:a.id,noteId:'current',text:a.text}};
+const c={...a,id:f.newId(),replyTo:{id:b.id,noteId:'current',text:b.text}};
+const records=[a,b,c],snapshot=JSON.stringify(records),standalone=clear(records,['reply'],new Set([b.id]));
+assert.equal(standalone[0],a);assert.equal(standalone[2],c);assert.ok(!Object.hasOwn(standalone[1],'replyTo'));
+const expected={...b};delete expected.replyTo;assert.equal(JSON.stringify(standalone[1]),JSON.stringify(expected));assert.equal(JSON.stringify(records),snapshot);
+const all=clear(records,new Set(['reply']));assert.equal(all[0],a);assert.ok(!Object.hasOwn(all[1],'replyTo')&&!Object.hasOwn(all[2],'replyTo'));
+const mixed=clear(records,['reply','copied'],new Set([b.id]));assert.ok(!Object.hasOwn(mixed[1],'replyTo')&&!Object.hasOwn(mixed[1],'copied'));assert.equal(mixed[1].forwarding,b.forwarding);assert.equal(mixed[1].edited,true);assert.equal(mixed[2],c);
+assert.equal(clear(all,['reply']),all);assert.equal(clear(records,['reply'],new Set()),records);assert.equal(clear(records,['unknown']),records);
+const draftReply={id:a.id,noteId:'current',text:a.text},saved=f.inspect(f.portable(standalone,{pinnedMessageIds:[b.id]},'Unsent draft',draftReply));
+assert.ok(!Object.hasOwn(saved.messages[1],'replyTo'));assert.equal(saved.messages[2].replyTo.id,b.id);assert.equal(saved.reply.id,a.id);assert.equal(saved.draft,'Unsent draft');assert.equal(saved.settings.pinnedMessageIds[0],b.id);
 const original=JSON.stringify([a,b]);
 const result=clear([a,b],['copied','exported','edited','imported'],new Set([a.id]));
 assert.equal(result[1],b);assert.equal(JSON.stringify([a,b]),original);

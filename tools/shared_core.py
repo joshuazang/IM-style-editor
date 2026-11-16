@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CORE_FILES = ['note-format.js', 'host-bridge.js', 'note-storage.js', 'message-transfer.js',
-              'privacy.js', 'clipboard.js', 'reply-record.js', 'emoji-tags.js']
+              'privacy.js', 'clipboard.js', 'reply-record.js', 'emoji-tags.js', 'message-statuses.js']
 UI_FILES = ['../vendor/markdown-editor.js', 'paragraph-spacing.js', 'markdown-model.js', 'markdown-commands.js', 'markdown-tables.js', 'markdown-editor.js', 'markdown.css', 'icons.js', 'selection-format.js', 'menu-position.js', 'menu.css', 'controls.css', 'selection.css', 'save-feedback.js', 'accessibility.css', 'search-filters.js', 'search-filters.css', 'composer.css']
 
 def ui_digest():

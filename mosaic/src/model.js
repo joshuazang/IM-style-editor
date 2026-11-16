@@ -84,17 +84,7 @@ const MosaicModel = (() => {
     for(const entry of data.byId.values())if((!normalized||entry.search.includes(normalized))&&(!tag||(tag==='__untagged__'?!entry.tags.size:entry.tags.has(tag)))&&(!pinnedOnly||pinned.has(entry.message.id)))result.push(entry.message);
     data.lastQuery={query:normalized,tag,pinnedOnly,pinIds,result};return result;
   }
-  function clearStatuses(messages, flags, ids) {
-    return messages.map(message => {
-      if (ids && !ids.has(message.id)) return message;
-      const next = {...message};
-      for (const flag of flags) {
-        if (flag==='imported') { if (next.forwarding) next.importedStatusCleared=true; }
-        else if (['edited','copied','exported'].includes(flag)) delete next[flag];
-      }
-      return next;
-    });
-  }
+  const clearStatuses=imClearStatuses;
   function reply(message, noteId) {
     return imReplySnapshot(message,noteId);
   }

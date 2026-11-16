@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-const source=['shared/ui/search-filters.js','shared/core/note-format.js','shared/core/emoji-tags.js','shared/core/reply-record.js','mosaic/src/model.js'].map(path=>fs.readFileSync(path,'utf8')).join('\n');
+const source=['shared/ui/search-filters.js','shared/core/note-format.js','shared/core/emoji-tags.js','shared/core/message-statuses.js','shared/core/reply-record.js','mosaic/src/model.js'].map(path=>fs.readFileSync(path,'utf8')).join('\n');
 const {f,m}=vm.runInNewContext(source+';({f:imFormat,m:MosaicModel})',{crypto,btoa});
 const messages=Array.from({length:8},(_,i)=>({id:f.newId(),text:'Message '+i,reactions:i%2?['📓']:[],createdAt:'2026-11-08T12:00:00Z'}));
 const before=JSON.stringify(messages),ids=value=>Array.from(value,x=>x.id);

@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.29 / Mosaic 1.5.35.
+Status: implemented for IM 4.4.30 / Mosaic 1.5.36.
 
 ## Agreed behavior
 
@@ -285,3 +285,14 @@ Markdown delimiters. Parsing recognizes only these exact attribute-free mark
 tags and `<br>`; it never renders arbitrary HTML. Selected characters, whitespace
 and marked line breaks survive list/quote/table saves without expanding ranges
 or inserting hidden characters. Immutable paragraphs cache the boundary check.
+
+## Clear Reply status
+
+Both Clear message statuses dialogs offer Reply. The shared status-clearing
+function removes `replyTo` from selected messages/cards or all messages in the
+note. The outgoing quoted preview disappears, and the message becomes standalone.
+It preserves message text/formatting, IDs, timestamps, tags, pins, other statuses,
+forwarding history, original messages, other messages' reply links, and the
+separate capture draft/reply. Combining Reply with another status applies both
+chosen operations. Cancellation makes no change; failed saves retain the existing
+retry flow. Imported status clearing retains its previous behavior.

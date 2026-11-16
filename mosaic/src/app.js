@@ -1093,14 +1093,16 @@ function clearClipboardDialog() {
 }
 function statusDialog(ids) {
   const s=active;if(!writable(s))return;const d=openModal('statuses','Clear message statuses');
-  d.root.append(el('p','dialog-help',ids?`${ids.size} selected cards. Text, tags, pins and timestamps are kept.`:'All cards in this note, including cards hidden by filters. Text, tags, pins and timestamps are kept.'));
-  const options=el('div','status-options'),flags=new Set();
-  for(const [key,label] of Object.entries({copied:'Copied',exported:'Exported',imported:'Imported',edited:'Edited'})){
-    const row=el('label'),check=el('input');check.type='checkbox';check.addEventListener('change',()=>{check.checked?flags.add(key):flags.delete(key);save.disabled=!flags.size;});row.append(check,document.createTextNode(label));options.append(row);
+  d.root.append(el('p','dialog-help',ids?`${ids.size} selected cards.`:'All cards in this note, including cards hidden by filters.'));
+  const options=el('div','status-options'),flags=new Set(),help=el('p','dialog-help',imStatusClearHelp(flags));
+  for(const [key,label] of Object.entries(imClearableStatuses)){
+    const row=el('label'),check=el('input');check.type='checkbox';check.addEventListener('change',()=>{check.checked?flags.add(key):flags.delete(key);save.disabled=!flags.size;help.textContent=imStatusClearHelp(flags);});row.append(check,document.createTextNode(label));options.append(row);
   }
-  d.root.append(options);const save=button('Clear selected statuses',null,async()=>{
-    d.busy=true;save.disabled=true;try{await update(s,{messages:MosaicModel.clearStatuses(s.messages,flags,ids)});if(modalState===d)closeModal(true);notify('Statuses cleared.');}
-    catch(error){dialogError(d,error.message);}finally{d.busy=false;save.disabled=false;}
+  d.root.append(options,help);const save=button('Clear selected statuses',null,async()=>{
+    if(d.busy||active!==s||modalState!==d||!writable(s)||!flags.size)return;
+    d.busy=true;save.disabled=true;options.querySelectorAll('input').forEach(input=>input.disabled=true);
+    try{await update(s,{messages:MosaicModel.clearStatuses(s.messages,flags,ids)});if(modalState===d)closeModal(true);notify('Statuses cleared.');}
+    catch(error){dialogError(d,error.message);}finally{d.busy=false;if(modalState===d){save.disabled=!flags.size||!writable(s);options.querySelectorAll('input').forEach(input=>input.disabled=!writable(s));}}
   },'primary-button');save.disabled=true;actions(d,[button('Cancel',null,()=>closeModal(),'secondary-button'),save]);
 }
 function mergeDialog() {
