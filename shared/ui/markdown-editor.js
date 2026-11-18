@@ -8,6 +8,15 @@ const imRichField=(()=>{
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
+    // The live document owns edits. Read and cache the text when a caller
+    // needs it, including fields with a synchronous onChange callback.
+    function value(){
+      if(source===null){
+        const {doc}=view.state;
+        source=plain?doc.textBetween(0,doc.content.size,'\n','\n'):imMarkdown.serialize(doc);
+      }
+      return source;
+    }
     const formatting=!options.capture,controls=new Map(),headingLevels=new Map(),tableControls=[];let send,floating,currentHeading,currentHeadingLevel=0,tableButton,tableTools,enterKeyActive=false,enterKeyHandled=false,enterModifiers=null,enterPairTimer=0;
     function markEnterHandled(){enterKeyHandled=enterKeyActive;clearTimeout(enterPairTimer);enterPairTimer=setTimeout(()=>{enterKeyHandled=false;},0);}
     function action(label,content,command){
@@ -114,8 +123,8 @@ const imRichField=(()=>{
       dispatchTransaction:transaction=>{
         const before=view.state.doc,result=view.state.applyTransaction(transaction);view.updateState(result.state);refresh();
         if(!before.eq(result.state.doc)){
-          source=plain?result.state.doc.textBetween(0,result.state.doc.content.size,'\n','\n'):(transaction.getMeta('im-paste-source')??imMarkdown.serialize(result.state.doc));
-          config.onChange?.(source);dom.dispatchEvent(new CustomEvent('im-markdown-change',{bubbles:true}));config.onResize?.();
+          source=transaction.getMeta('im-paste-source')??null;
+          config.onChange?.(value());dom.dispatchEvent(new CustomEvent('im-markdown-change',{bubbles:true}));config.onResize?.();
         }
       },
       handleKeyDown:(v,event)=>{
@@ -185,14 +194,14 @@ const imRichField=(()=>{
       if(reset||!parsed.eq(view.state.doc))view.updateState(newState(value));refresh();
     }
     const start=()=>TextSelection.atStart(view.state.doc).from,end=()=>TextSelection.atEnd(view.state.doc).to;
-    const offset=pos=>pos===end()?source.length:pos===start()?0:Math.max(0,pos-1);
-    function position(value){return value<=0?start():value>=source.length?end():Math.min(end(),Math.max(start(),value+1));}
+    const offset=pos=>pos===end()?value().length:pos===start()?0:Math.max(0,pos-1);
+    function position(offset){return offset<=0?start():offset>=value().length?end():Math.min(end(),Math.max(start(),offset+1));}
     Object.defineProperties(dom,{
-      value:{get:()=>source,set:value=>setValue(value)},
+      value:{get:value,set:value=>setValue(value)},
       readOnly:{get:()=>readOnly,set:value=>{if(readOnly!==!!value){readOnly=!!value;editableChanged();}}},
       disabled:{get:()=>disabled,set:value=>{if(disabled!==!!value){disabled=!!value;editableChanged();}}},
       placeholder:{get:()=>config.placeholder||'',set:value=>{if(config.placeholder!==String(value)){config.placeholder=String(value);view.setProps({attributes:attrs});}}},
-      selectionStart:{get:()=>view.state.selection instanceof imRichDeps.state.AllSelection?0:offset(view.state.selection.from)},selectionEnd:{get:()=>view.state.selection instanceof imRichDeps.state.AllSelection?source.length:offset(view.state.selection.to)},
+      selectionStart:{get:()=>view.state.selection instanceof imRichDeps.state.AllSelection?0:offset(view.state.selection.from)},selectionEnd:{get:()=>view.state.selection instanceof imRichDeps.state.AllSelection?value().length:offset(view.state.selection.to)},
       selectionDirection:{get:()=>view.state.selection.anchor>view.state.selection.head?'backward':'forward'}
     });
     dom.setSelectionRange=(from,to,direction)=>{const a=position(from),b=position(to);view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc,direction==='backward'?b:a,direction==='backward'?a:b)));};
@@ -231,7 +240,7 @@ const imRichField=(()=>{
       appendText:text=>{const selection=TextSelection.atEnd(view.state.doc),marks=view.state.storedMarks||selection.$from.marks();view.dispatch(view.state.tr.setSelection(selection).setStoredMarks(marks).insertText(text).scrollIntoView());view.focus();},
       backspaceAtEnd:()=>{view.dispatch(view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)));const state=view.state,from=state.selection.from,before=state.selection.$from.nodeBefore;if(state.selection.$from.parentOffset){const last=before?.isText?Array.from(before.text).at(-1):'';view.dispatch(state.tr.delete(from-(last?.length||1),from).scrollIntoView());}else C.joinBackward(state,view.dispatch,view);view.focus();},
       destroy:()=>{if(destroyed)return;destroyed=true;clearTimeout(enterPairTimer);floating?.destroy();view.destroy();live--;wrapper.remove();toolbar.remove();toggle.remove();},
-      value:()=>source,
+      value,
       get plain(){return plain;}
     };dom.imRich=controller;return controller;
   }

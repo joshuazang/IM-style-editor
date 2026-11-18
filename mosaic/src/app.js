@@ -864,7 +864,8 @@ function editorDialog(id=null) {
   const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
   const originalNormalized=MosaicModel.normalized(original),titleNormalized=MosaicModel.normalized(currentTitle),originalNewline=(/\r\n|\n|\r/.exec(original)||['\n'])[0];
   const sourceRect=cardTransitionRect(mounted.get(id));
-  const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,currentText:restored?.text??original,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,saveSequence:0,wantClose:false});
+  const initialText=restored?.text??original;
+  const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,saveSequence:0,wantClose:false});
   const scroller=el('div','card-detail-scroll');d.scroll=scroller;d.root.append(scroller);
   if(stashed&&!restored){
     scroller.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
@@ -872,7 +873,14 @@ function editorDialog(id=null) {
   }
   const title=imWritingTextField(el('textarea','editor-title'));title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
   const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
-  const startBody=cardBodyStart(d.currentText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,focusOnCheck:!phoneBoard,onResize:()=>d.updateScroll?.()}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
+  const startBody=cardBodyStart(initialText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,focusOnCheck:!phoneBoard,onResize:()=>d.updateScroll?.()}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
+  let bodyEdited=false;
+  Object.defineProperty(d,'currentText',{get(){
+    if(!bodyEdited)return initialText;
+    const value=body.value;
+    if(value===originalNormalized)return original;
+    return originalNewline==='\n'?value:value.replace(/\n/g,originalNewline);
+  }});
   // One scroller owns title, full-height body and trailing metadata. The toolbar
   // stays outside it; the editor itself never reserves a second scrollbar.
   // The visual editor is a normal contenteditable block, so CSS owns its
@@ -925,10 +933,13 @@ function editorDialog(id=null) {
   d.scrollObserver=new ResizeObserver(()=>{d.updateScroll();d.revealCaret?.();});for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
   const change=event=>{
     d.fieldRevision++;
-    if(event.target===body&&!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}
-    if(d.bodyReady){const value=MosaicModel.normalized(body.value);d.currentText=value===originalNormalized?original:value.replace(/\n/g,originalNewline);}
-    d.titleValue=MosaicModel.normalized(title.value)===titleNormalized?currentTitle:title.value;
-    if(event.target===title&&!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}
+    if(event.target===body){
+      bodyEdited=true;
+      if(!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}
+    }else{
+      d.titleValue=MosaicModel.normalized(title.value)===titleNormalized?currentTitle:title.value;
+      if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}
+    }
     d.scheduleSave();
   };
   title.addEventListener('input',change);body.addEventListener('im-markdown-change',change);

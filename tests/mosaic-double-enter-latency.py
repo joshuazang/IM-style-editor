@@ -1,4 +1,4 @@
-"""Rapid double-Enter bursts measure isolated editor frames, not just transactions."""
+"""Rapid Enter and Shift+Enter bursts in an isolated, throttled editor."""
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-phone-keyboard.py')};exec(Path(scope['__file__']).read_text().split('try:\n with sync_playwright()',1)[0],scope);globals().update(scope)
@@ -7,11 +7,35 @@ try:
   b=p.chromium.launch(**chromium_options())
   for kind,text in [('small','Notes\n\n'+('A thought to edit. '*10+'\n\n')*10),('tasks','\n'.join('- [ ] A task with **bold** text and 中文 '+str(i) for i in range(1800))),('table','| Name | Value | Result |\n| --- | --- | --- |\n'+'\n'.join('| Row '+str(i)+' | **bold** and *italic* | 中文 |' for i in range(500)))]:
    data['messages'][0]['text']=text;data['note']['content']['text']=subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(f.portable(d.messages,d.settings,''));"],cwd=ROOT,input=json.dumps(data),text=True)
-   page=b.new_page(viewport={'width':1100,'height':900},user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/537.36 Chrome/130 Electron/33 Safari/537.36');page.add_init_script("Object.defineProperty(navigator,'platform',{get:()=> 'MacIntel'})");page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('note=>{notes.a=note;openEditor("a","/mosaic/index.html",false)}',data['note']);e=page.frame_locator('#editor');e.locator('.card').first.click();body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_editable();e.locator('dialog').evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');body.press('Control+End');body.evaluate('''n=>{window.latencies=[];window.spans=[];const wrap=(o,k)=>{const f=o[k];o[k]=function(...args){const t=performance.now();try{return f.apply(this,args)}finally{spans.push({name:k,ms:performance.now()-t})}}};wrap(n.imRich.view,'dispatch');wrap(imMarkdown,'serialize');n.addEventListener('keydown',e=>{if(e.key==='Enter'){const t=performance.now();requestAnimationFrame(()=>requestAnimationFrame(()=>latencies.push(performance.now()-t))) }},true)}''');cdp=page.context.new_cdp_session(next(f for f in page.frames if f.parent_frame));cdp.send('Emulation.setCPUThrottlingRate',{'rate':4});cdp.send('Performance.enable');metrics0={m['name']:m['value'] for m in cdp.send('Performance.getMetrics')['metrics']}
-   for i in range(6):
-    body.press('Enter');body.press('Enter');body.type('a regular thought');page.wait_for_timeout(40)
-   page.wait_for_timeout(500);stats=body.evaluate('()=>({latencies,max:Math.max(...latencies),maxTransaction:Math.max(...spans.filter(s=>s.name==="dispatch").map(s=>s.ms))})');assert len(stats['latencies'])==12,stats;assert stats['max']<400,(kind,stats);assert body.evaluate('n=>n.imRich.view.state.doc.textContent.endsWith("a regular thought".repeat(6))')
+   page=b.new_page(viewport={'width':1100,'height':900},user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/537.36 Chrome/130 Electron/33 Safari/537.36');page.add_init_script("Object.defineProperty(navigator,'platform',{get:()=> 'MacIntel'})");page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('note=>{notes.a=note;openEditor("a","/mosaic/index.html",false)}',data['note']);e=page.frame_locator('#editor');e.locator('.card').first.click();body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_editable();e.locator('dialog').evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');body.press('Control+End')
+   body.evaluate('''n=>{
+     window.latencies=[];window.transactions=[];window.editSerializations=0;
+     const view=n.imRich.view,dispatch=view.dispatch,serialize=imMarkdown.serialize;
+     let editDepth=0;
+     view.dispatch=function(...args){
+       const start=performance.now();editDepth++;
+       try{return dispatch.apply(this,args)}finally{editDepth--;transactions.push(performance.now()-start)}
+     };
+     imMarkdown.serialize=function(doc){
+       if(editDepth)editSerializations++;
+       return serialize.call(this,doc);
+     };
+     n.addEventListener('keydown',event=>{
+       if(event.key!=='Enter')return;
+       const start=performance.now();
+       requestAnimationFrame(()=>requestAnimationFrame(()=>latencies.push(performance.now()-start)));
+     },true);
+   }''')
+   cdp=page.context.new_cdp_session(next(f for f in page.frames if f.parent_frame));cdp.send('Emulation.setCPUThrottlingRate',{'rate':4})
+   for key in ['Enter','Shift+Enter']*3:
+    body.press(key);body.press(key);body.type('a regular thought');page.wait_for_timeout(40)
+   body.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+   stats=body.evaluate('()=>({latencies,max:Math.max(...latencies),maxTransaction:Math.max(...transactions),editSerializations})')
+   assert len(stats['latencies'])==12,stats
+   assert stats['editSerializations']==0,('Card keystrokes must not serialize the whole document',stats)
+   assert stats['max']<400,(kind,stats)
+   assert body.evaluate('n=>n.imRich.view.state.doc.textContent.endsWith("a regular thought".repeat(6))')
    value=body.evaluate('n=>n.value');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text']==value
-   print(kind,{'max_key_to_frame_ms':stats['max'],'max_transaction_ms':stats['maxTransaction'],'checks':'six double-Enter bursts, continued typing, isolated renderer 4x CPU, exact saved draft'},flush=True);page.close()
+   print(kind,{'max_key_to_frame_ms':stats['max'],'max_transaction_ms':stats['maxTransaction'],'checks':'Enter and Shift+Enter bursts, no serialization during edit transactions, 4x CPU, exact saved draft'},flush=True);page.close()
   b.close()
 finally:server.shutdown()
