@@ -51,8 +51,8 @@ try:
 
   for width in [1100,390,320]:
     context,page,e,errors,outside=start(width=width);field=e.locator('#capture-input')
-    assert field.evaluate('n=>n.spellcheck') is False
-    assert field.get_attribute('autocomplete')=='off' and field.get_attribute('writingsuggestions')=='false'
+    assert field.evaluate('n=>n.spellcheck') is True
+    assert field.get_attribute('autocomplete')=='on' and field.get_attribute('writingsuggestions')=='true'
     page.evaluate('rejectSaves=true;enforceContext=true');fill_field(field,'Retained failed draft 🙂\n\nStill unsent')
     expect(e.locator('#notice')).to_contain_text('Saving was not confirmed')
     page.evaluate('switchNote("b")');expect(field).to_have_js_property('value','')
@@ -61,7 +61,7 @@ try:
     expect(e.locator('#notice')).not_to_be_visible()
     expect(field).to_have_js_property('value','Retained failed draft 🙂\n\nStill unsent')
     saved=parse(page.evaluate('notes.a.content.text'));assert saved['draft']=='Retained failed draft 🙂\n\nStill unsent' and len(saved['messages'])==20
-    finish(context,errors,outside);print(f'PASS {width}px: rejected draft survives switches; Retry preserves unsent state; private input defaults',flush=True)
+    finish(context,errors,outside);print(f'PASS {width}px: rejected draft survives switches; Retry preserves unsent state; native writing suggestions enabled',flush=True)
 
   # A failed final submission survives switching without duplication on retry.
   context,page,e,errors,outside=start();field=e.locator('#capture-input')
@@ -82,7 +82,7 @@ try:
     fill_search(e,'Thought '+str(index));e.locator('.card').click(button='right')
     e.get_by_role('menuitem',name='Edit',exact=True).click()
     field=e.get_by_role('textbox',name='Card body',exact=True)
-    assert field.evaluate('n=>n.spellcheck') is False
+    assert field.evaluate('n=>n.spellcheck') is True
     fill_field(field,'Unfinished card '+str(index));page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   page.evaluate('switchNote("b")');page.evaluate('switchNote("a")')
   for index in [3,2]:

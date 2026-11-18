@@ -7,7 +7,6 @@ const blocks=appFiles.map(path=>{
  const file=base+/src="\.\/([^\"]+\.js)"/.exec(html)[1],source=fs.readFileSync(file,'utf8');
  assert.equal(source.split('/* IM_SHARED_CORE_BEGIN ').length,2);
  const block=source.slice(source.indexOf('/* IM_SHARED_CORE_BEGIN '),source.indexOf('/* IM_SHARED_CORE_END */')+'/* IM_SHARED_CORE_END */'.length);
- assert.ok(!source.includes('spellCheck:!0'));
  return block;
 });
 assert.equal(blocks[0],blocks[1],'The two shipped interfaces must contain the identical shared core');

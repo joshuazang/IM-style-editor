@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.38](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.38.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.39](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.39.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -416,3 +416,11 @@ snapshot while an earlier save is in flight. Note switches retain rejected saves
 in the original session and retry when that note becomes active again. Other
 notes and unsent capture drafts remain unchanged. Remote conflicts still pause
 saving for review. Autosave does not rebuild the Board during typing.
+
+
+Mosaic 1.5.39 and IM 4.4.32 share native writing assistance for capture fields,
+message/card editing and titles: predictive text, spelling, autocorrection and
+sentence capitalization are permitted. Suggestions depend on the device's
+keyboard settings and the Standard Notes host. Import and clipboard fields keep
+their existing defaults. This adds no per-keystroke suggestion engine or network
+service to either editor.

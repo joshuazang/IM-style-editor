@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.31 / Mosaic 1.5.38.
+Status: implemented for IM 4.4.32 / Mosaic 1.5.39.
 
 ## Agreed behavior
 
@@ -313,3 +313,13 @@ have no active swatch until a shared preset is chosen. Selecting an already
 shared color does not save again. Text, formatting, statuses, replies, tags,
 timestamps, card order and the capture draft remain intact; existing save-retry
 behavior handles failures. IM has no batch-background option.
+
+
+## Native writing assistance
+
+IM 4.4.32 / Mosaic 1.5.39 use the shared native writing attributes in
+`shared/core/privacy.js` for rich authoring fields and Mosaic's native title
+field. Predictive text, spellchecking, autocorrection and sentence capitalization
+are allowed; the OS keyboard, system settings and host webview supply them.
+Temporary clipboard and import/recovery fields keep the private field defaults.
+No completion engine, per-keystroke suggestion work or new network path is added.

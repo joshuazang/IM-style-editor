@@ -49,8 +49,8 @@ with sync_playwright() as p:
     page.evaluate('()=>{editorPath="/next/index.html";notes.new={uuid:"new",content_type:"Note",content:{title:"New",text:""}};openIM("new")}')
     field=e.get_by_role('textbox',name='Message',exact=True)
     expect(field).to_be_visible()
-    assert field.evaluate('n=>n.spellcheck') is False
-    assert field.get_attribute('autocomplete')=='off' and field.get_attribute('writingsuggestions')=='false'
+    assert field.evaluate('n=>n.spellcheck') is True
+    assert field.get_attribute('autocomplete')=='on' and field.get_attribute('writingsuggestions')=='true'
     e.get_by_role('button',name='More options',exact=True).click()
     e.get_by_role('button',name='Import from clipboard',exact=True).click()
     expect(e.get_by_role('dialog')).to_contain_text('30 messages ready to import')

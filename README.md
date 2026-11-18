@@ -6,8 +6,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.4.31](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.5.38](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.4.32](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.5.39](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -69,8 +69,10 @@ across note switches in the same live editor, applies late clipboard statuses to
 the latest matching message, and preserves refreshed native note fields. Drafts
 reuse their cached message section after adding/editing cards. Newly created
 replies keep bounded quoted context rather than recursively copying the entire
-chain; existing saved replies are preserved. Both interfaces request that browser
-spellchecking, autocomplete, autocorrection and writing suggestions stay off.
+chain; existing saved replies are preserved. Those versions disabled browser
+writing assistance by default. Current note-writing fields allow native keyboard
+suggestions, autocorrection, spelling and sentence capitalization; clipboard/import
+fields retain their separate defaults.
 
 Mosaic 1.0.2 uses two compact masonry columns on phones. Enter adds a card and
 reveals it without moving input focus; Shift+Enter inserts a line break. The
@@ -420,3 +422,11 @@ text opens it beside the selection; Card view Aa opens the same controls
 manually. It floats without reserving layout space, retains the text range,
 and closes with Escape or a note switch. Read-only bubbles/cards do not open it.
 Quotation blocks use compact tinted insets with a decorative quote mark.
+
+
+IM 4.4.32 and Mosaic 1.5.39 enable native keyboard predictive text and writing
+assistance in capture, body editing and titles through one shared field policy.
+The device, keyboard settings and Standard Notes webview determine whether word
+suggestions are available. No autocomplete model or new suggestion service is
+added to the plugins. Existing formatting, save timing and private import fields
+are preserved.

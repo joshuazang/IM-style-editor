@@ -76,16 +76,18 @@ clearing empties the current clipboard, not every historical clipboard copy.
   no success acknowledgment for that preference API. Mosaic creates no browser
   storage copies. IM retains only its previously documented legacy selection-ID
   migration; it does not introduce plaintext note/draft browser storage.
-- Text fields request disabled spellchecking, autocomplete, autocorrection and
-  writing suggestions. These are client hints; OS/keyboard writing tools or
-  third-party services may ignore them. CSP does not govern those external tools.
+- Note-writing fields request native spellchecking, autocomplete, autocorrection,
+  sentence capitalization and writing suggestions. Clipboard/import/recovery
+  fields retain disabled writing assistance. These are client hints; the device,
+  keyboard settings and host webview control available suggestions. The plugins
+  add no suggestion service. CSP does not govern OS or keyboard writing tools.
 - Mosaic card colors resolve preset IDs to fixed local CSS colors; arbitrary
   metadata cannot supply CSS or URLs. Labels are text in the existing reaction
   array, rendered as text nodes. Neither feature introduces storage/network APIs.
-- Opened Mosaic cards use normal multiline typing and save through the same
-  acknowledged queue on Close. Failed Close leaves the fields available; a late
-  acknowledgment cannot discard newer typing. Note switches can retain an
-  unfinished editor in RAM, but do not create an additional durable text copy.
+- Opened Mosaic cards use normal multiline typing, checkpoint through the same
+  acknowledged queue, and flush the latest pending edit on Close or note switch.
+  Failed saves retain the local session for retry; late acknowledgments cannot
+  discard newer typing. No additional durable text copy is created.
 
 Neither the code review nor synthetic tests can establish that nobody or no
 machine can ever read a note. The renderer and trusted Standard Notes client

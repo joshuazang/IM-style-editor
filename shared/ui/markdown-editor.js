@@ -109,7 +109,7 @@ const imRichField=(()=>{
     }
     const baseKeys=Object.fromEntries(Object.entries(C.baseKeymap).filter(([key])=>!key.includes('Enter')));
     function newState(value){return EditorState.create({schema,doc:plain?plainDoc(value):imMarkdown.parse(value),plugins:[history.history({depth:100}),...(!plain?[typingRules()]:[]),imRichDeps.keymap.keymap(shortcuts),imRichDeps.keymap.keymap(baseKeys),...(!plain?[imRichDeps.tables.tableEditing(),imMarkdownTables.plugin()]:[])]});}
-    function attrs(){return {id:config.id||'',class:(config.className||'')+' im-rich-input',role:'textbox','aria-label':config.label||'Text','aria-multiline':'true','aria-readonly':String(readOnly),'aria-disabled':String(disabled),tabindex:disabled?'-1':'0',spellcheck:'false',autocorrect:'off',autocapitalize:'off',autocomplete:'off',writingsuggestions:'false',enterkeyhint:config.capture?'send':'enter','data-placeholder':config.placeholder||''};}
+    function attrs(){return {id:config.id||'',class:(config.className||'')+' im-rich-input',role:'textbox','aria-label':config.label||'Text','aria-multiline':'true','aria-readonly':String(readOnly),'aria-disabled':String(disabled),tabindex:disabled?'-1':'0',...imWritingTextAttributes,enterkeyhint:config.capture?'send':'enter','data-placeholder':config.placeholder||''};}
     view=new EditorView({mount:dom},{state:newState(source),attributes:attrs,editable:()=>!disabled&&!readOnly,
       dispatchTransaction:transaction=>{
         const before=view.state.doc,result=view.state.applyTransaction(transaction);view.updateState(result.state);refresh();
