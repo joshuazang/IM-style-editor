@@ -1,5 +1,6 @@
 /* Per-note acknowledged writes. Coalesce waiting snapshots without reordering saves. */
 const imNoteSaves = new Map();
+const imDraftIdleMs=700,imDraftCheckpointMs=6000;
 let imConfirmedNote=null;
 function imNoteSavePending(uuid) { return imNoteSaves.has(uuid); }
 function imNoteSnapshot(note) {
@@ -60,7 +61,7 @@ function imPersistNote(note,options={}) {
   const promise=new Promise((resolve,reject)=>state.waiters.push({version,resolve,reject}));
   const now=Date.now();
   if(options.draft){if(state.draftStarted==null)state.draftStarted=now;}else state.draftStarted=null;
-  state.next={version,snapshot,note,notBefore:options.draft?Math.min(now+700,state.draftStarted+6000):0};
+  state.next={version,snapshot,note,notBefore:options.draft?Math.min(now+imDraftIdleMs,state.draftStarted+imDraftCheckpointMs):0};
   const run=()=>{
     if(state.active||!state.next)return;
     clearTimeout(state.timer);

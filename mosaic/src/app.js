@@ -166,14 +166,20 @@ function receive(note, force=false) {
       receiveNativeFields(s,note);return;
     }
     const editing=modalState?.uuid===note.uuid&&cardEditChanged();
-    if(s.pending||s.error||s.dirty||editing||s.titleEntry){s.remote=note;retainedSessions.set(note.uuid,s);imCancelQueuedNoteSaves(note.uuid);renderNotice();return;}
+    if(s.pending||s.error||s.dirty||s.captureStarted!=null||editing||s.titleEntry){
+      s.remote=note;imCancelQueuedNoteSaves(note.uuid);flushCapture(s);
+      retainedSessions.set(note.uuid,s);renderNotice();return;
+    }
   }
   const previous=active;if(previous?.titleEntry)retainedSessions.set(previous.note.uuid,previous);
-  if(previous){previous.view.scroll=viewport.scrollTop;viewMemory.set(previous.note.uuid,previous.view);stashEdit();if(previous.note.uuid!==note.uuid)flushCardEdit();}
+  if(previous){
+    previous.view.scroll=viewport.scrollTop;viewMemory.set(previous.note.uuid,previous.view);stashEdit();
+    if(previous.note.uuid!==note.uuid){flushCapture(previous);flushCardEdit();}
+  }
   closeModal(true);hideMenu();dateOpen=false;$('date-panel').replaceChildren();
   if(force){
     const discarded=retainedSessions.get(note.uuid)||previous;
-    if(discarded?.note.uuid===note.uuid){discarded.discarded=true;imCancelQueuedNoteSaves(note.uuid);retainedSessions.delete(note.uuid);}
+    if(discarded?.note.uuid===note.uuid){discarded.discarded=true;clearTimeout(discarded.captureTimer);imCancelQueuedNoteSaves(note.uuid);retainedSessions.delete(note.uuid);}
     for(const [key,entry] of unfinishedEdits)if(entry.noteId===note.uuid)unfinishedEdits.delete(key);
   }
   const retained=!force&&retainedSessions.get(note.uuid);
@@ -190,7 +196,7 @@ function receive(note, force=false) {
   const s={note,messages:imFormat.readMessages(note),settings:imFormat.readSettings(note),draft:imFormat.readDraft(note),reply:imFormat.readReply(note),
     damaged:parsed.kind==='damaged',plain:parsed.kind==='plain'&&!!note.content?.text,deleted:!!note.deleted,
     view:newView(note.uuid),pending:0,revision:0,error:'',remote:null,intents:new Set(),demo:!!note.mosaicDemo,
-    captureValue:imFormat.readDraft(note),captureOriginal:imFormat.readDraft(note),captureRevision:0,submission:null,composing:false,submitAfterComposition:null,
+    captureValue:imFormat.readDraft(note),captureOriginal:imFormat.readDraft(note),captureRevision:0,captureStarted:null,captureTimer:0,submission:null,composing:false,submitAfterComposition:null,
     dirty:false,discarded:false,lastHostText:note.content?.text||'',lastAck:null,nativeRepair:false};
   const valid=new Set(s.messages.map(m=>m.id));s.view.selected=new Set([...s.view.selected].filter(id=>valid.has(id)));
   if(s.view.selected.size)s.view.selecting=true;
@@ -227,17 +233,18 @@ function update(s, change, redraw=true) {
   const before=added.length?boardMotion.snapshot(mounted):null;
   if(added.length)boardMotion.queue(added);
   const messages=change.messages??s.messages,settings=change.settings??s.settings;
-  const draft=Object.hasOwn(change,'draft')?change.draft:s.draft,reply=Object.hasOwn(change,'reply')?change.reply:s.reply;
+  const captureChanged=takeCapture(s);
+  const draft=Object.hasOwn(change,'draft')?change.draft:captureChanged?s.captureValue:s.draft,reply=Object.hasOwn(change,'reply')?change.reply:s.reply;
   imFormat.write(s.note,messages,settings,draft,reply);
   Object.assign(s,{messages:messages===s.messages?s.messages:imFormat.readMessages(s.note),settings:imFormat.readSettings(s.note),draft:imFormat.readDraft(s.note),reply:imFormat.readReply(s.note)});
-  const promise=persist(s,{draft:Object.keys(change).length===1&&Object.hasOwn(change,'draft')});
+  const promise=persist(s);
   if(s===active){if(redraw){renderAll(!!before);if(before)boardMotion.move(before,mounted);}else renderCapture();}
   return promise;
 }
-function retrySave() {if(active)safeRun(()=>persist(active));}
+function retrySave() {if(active&&!flushCapture())safeRun(()=>persist(active));}
 function renderStatus() {
   const node=$('save-status'),s=active;
-  const text=saveFeedback.update(s?.note.uuid,!!s?.pending,!!(s?.error||s?.remote||s?.damaged||s?.deleted||s?.view.selecting));
+  const text=saveFeedback.update(s?.note.uuid,!!s?.pending||s?.captureStarted!=null,!!(s?.error||s?.remote||s?.damaged||s?.deleted||s?.view.selecting));
   node.classList.add('ui-save-feedback');node.classList.toggle('saving',text==='Saving…');
   node.textContent=s?.demo?'Preview · not saved':text;node.hidden=!node.textContent;
   node.title=text==='Saved'?'Accepted by Standard Notes':'';
@@ -256,10 +263,12 @@ function renderNotice() {
   if(s.damaged||s.remote||s.error)box.append(button('Review text',null,()=>recoveryDialog(s),''));
 }
 function renderCapture() {
-  const s=active,field=$('capture-input'),value=MosaicModel.normalized(s?.titleEntry?.text??s?.captureValue??'');
-  captureEditor?.setContext((s?.note.uuid||'')+':'+(s?.titleEntry?.id||'capture'),value,!!s?.titleEntry);
+  const s=active,field=$('capture-input');
+  if(s?.captureStarted==null||s.titleEntry){
+    const value=MosaicModel.normalized(s?.titleEntry?.text??s?.captureValue??'');
+    captureEditor?.setContext((s?.note.uuid||'')+':'+(s?.titleEntry?.id||'capture'),value,!!s?.titleEntry);
+  }
   field.setAttribute('aria-label',s?.titleEntry?'Title':'Take a note');field.placeholder=s?.titleEntry?'Write a title…':'Take a note…';
-  if(field.value!==value)field.value=value;
   field.disabled=!writable();scheduleWindow();
   const quote=$('capture-reply');quote.replaceChildren();quote.hidden=!s?.reply&&!s?.titleEntry;
   if(s?.titleEntry){const source=s.messages.find(m=>m.id===s.titleEntry.id);quote.append(el('strong','','Title for card'),el('span','inline-quote',source?imMarkdown.message(source).text.slice(0,160)||'Card':'Card'),button('Cancel title entry','close',()=>{s.titleEntry=null;if(!s.dirty&&!s.pending)retainedSessions.delete(s.note.uuid);renderCapture();},'icon-button'));}
@@ -270,16 +279,44 @@ function renderCapture() {
 }
 function inputCapture(){
   const s=active;if(!writable(s))return;
-  const value=$('capture-input').value;
-  if(s.titleEntry){s.titleEntry.text=value;return;}
-  s.captureValue=value===MosaicModel.normalized(s.captureOriginal)?s.captureOriginal:value;s.captureRevision++;
-  safeRun(()=>update(s,{draft:s.captureValue},false));
+  if(s.titleEntry){s.titleEntry.text=captureEditor.value();return;}
+  s.captureRevision++;
+  if(s.captureStarted==null){s.captureStarted=Date.now();renderStatus();}
+  scheduleCaptureSave(s);
+}
+function scheduleCaptureSave(s){
+  clearTimeout(s.captureTimer);
+  if(s.composing)return;
+  const delay=Math.min(imDraftIdleMs,s.captureStarted+imDraftCheckpointMs-Date.now());
+  s.captureTimer=setTimeout(()=>flushCapture(s),Math.max(0,delay));
+}
+function captureText(s){
+  if(s.captureStarted==null)return s.captureValue;
+  const value=captureEditor.value();
+  return value===MosaicModel.normalized(s.captureOriginal)?s.captureOriginal:value;
+}
+function takeCapture(s){
+  if(s!==active||s?.captureStarted==null)return false;
+  s.captureValue=captureText(s);
+  clearTimeout(s.captureTimer);s.captureStarted=null;
+  return true;
+}
+function flushCapture(s=active){
+  if(!takeCapture(s))return;
+  if(s.captureValue===s.draft){renderStatus();return;}
+  // Keep the latest local draft available in conflict review without sending
+  // it over a different host version. Normal checkpoints use the save queue.
+  imFormat.write(s.note,s.messages,s.settings,s.captureValue,s.reply);
+  s.draft=imFormat.readDraft(s.note);
+  if(writable(s)){safeRun(()=>persist(s));return true;}
+  else{s.dirty=true;retainedSessions.set(s.note.uuid,s);}
 }
 function submitCapture(s=active,tag=s?.view.tag){
   if(s?.titleEntry){if(s.composing){s.submitAfterComposition={title:true};return Promise.resolve();}return submitTitle(s);}
-  if(!writable(s)||s.submission||!imMarkdown.hasText(s.captureValue))return Promise.resolve();
+  if(!writable(s)||s.submission)return Promise.resolve();
   if(s.composing){s.submitAfterComposition={tag};return Promise.resolve();}
-  const text=s.captureValue,revision=s.captureRevision;
+  const text=captureText(s),revision=s.captureRevision;
+  if(!captureEditor.hasText(MosaicModel.normalized(text)))return Promise.resolve();
   const tags=tag&&tag!=='__untagged__'?[tag]:[];
   const message={id:imFormat.newId(),text,reactions:tags,createdAt:new Date().toISOString(),...(s.reply?{replyTo:s.reply}:{})};
   s.submission={id:message.id,text,revision};
@@ -308,6 +345,7 @@ function submitCapture(s=active,tag=s?.view.tag){
 function beginTitle(id){
   const s=active,source=s?.messages.find(m=>m.id===id);if(!source||!writable(s))return;
   if(s.titleEntry&&s.titleEntry.id!==id){hideMenu();notify('Finish or cancel the current title entry first.');return;}
+  flushCapture(s);
   if(!s.titleEntry)s.titleEntry={id,text:imFormat.title(source),original:imFormat.title(source),pending:false};retainedSessions.set(s.note.uuid,s);hideMenu();renderCapture();$('capture-input').focus();
 }
 function submitTitle(s){
@@ -948,7 +986,7 @@ function editorDialog(id=null) {
   d.scheduleSave=()=>{
     clearTimeout(d.saveTimer);if(modalState!==d||!writable(s)||d.composing)return;
     const now=Date.now();if(d.saveStarted==null)d.saveStarted=now;
-    d.saveTimer=setTimeout(()=>safeRun(()=>saveEditor(false)),Math.max(0,Math.min(700,d.saveStarted+6000-now)));
+    d.saveTimer=setTimeout(()=>safeRun(()=>saveEditor(false)),Math.max(0,Math.min(imDraftIdleMs,d.saveStarted+imDraftCheckpointMs-now)));
   };
   for(const field of [title,body]){
     field.addEventListener('compositionstart',()=>{d.composing=true;clearTimeout(d.saveTimer);});
@@ -1155,6 +1193,7 @@ function mergeDialog() {
   const field=el('textarea','transfer-text');field.readOnly=true;field.value=preview;field.setAttribute('aria-label','Merged card preview');d.root.insertBefore(field,d.root.lastChild);
 }
 function recoveryDialog(s) {
+  flushCapture(s);
   const d=openModal('recovery','Review your text');d.root.append(el('p','dialog-help','Copy this text somewhere safe before closing the editor. Mosaic will not automatically overwrite a different saved version.'));
   const field=el('textarea','transfer-text');field.readOnly=true;field.value=s.note.content.text||'';field.setAttribute('aria-label','Current local note text');d.root.append(field);
   if(s.titleEntry){const title=el('textarea','transfer-text');title.readOnly=true;title.value=s.titleEntry.text;title.setAttribute('aria-label','Unfinished title');d.root.append(title);}
@@ -1200,16 +1239,18 @@ $('search-button').append(mosaicToolbarIcon('searchTags'));$('clear-filter').app
 $('search-button').addEventListener('click',toggleSearch);$('change-filter').addEventListener('click',toggleSearch);
 $('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';searchOpen=false;renderAll();});
 $('more-button').addEventListener('click',mainMenu);
-captureEditor=imRichField.create({id:'capture-input',label:'Take a note',placeholder:'Take a note…',capture:true,sendButton:true,onSubmit:()=>safeRun(()=>submitCapture()),onResize:scheduleWindow});
+captureEditor=imRichField.create({id:'capture-input',label:'Take a note',placeholder:'Take a note…',capture:true,sendButton:true,onSubmit:()=>safeRun(()=>submitCapture())});
 const originalCapture=$('capture-field');originalCapture.replaceWith(captureEditor.wrapper);
 $('capture-input').addEventListener('im-markdown-change',inputCapture);
-$('capture-input').addEventListener('compositionstart',()=>{if(active)active.composing=true;});
+$('capture-input').addEventListener('blur',()=>flushCapture());
+$('capture-input').addEventListener('compositionstart',()=>{if(active){active.composing=true;clearTimeout(active.captureTimer);}});
 $('capture-input').addEventListener('compositionend',()=>{
   const s=active;if(!s)return;s.composing=false;
   // The final input event may follow compositionend in the same browser task.
   setTimeout(()=>{
     if(active!==s)return;
     if($('capture-input').value!==MosaicModel.normalized(s.titleEntry?.text??s.captureValue))inputCapture();
+    else if(s.captureStarted!=null)scheduleCaptureSave(s);
     const request=s.submitAfterComposition;s.submitAfterComposition=null;
     if(request)safeRun(()=>submitCapture(s,request.tag));
   },0);
@@ -1345,9 +1386,10 @@ modal.addEventListener('click',event=>{
   // Dismiss only when this same pointer also began outside this modal session.
   if(press&&event.detail>0&&(event.pointerId===undefined||event.pointerId===press.pointerId)&&event.target===modal&&isOutsideModal(event))closeModal();
 });
-window.addEventListener('beforeunload',event=>{if(retainedSessions.size||unfinishedEdits.size||cardEditChanged()){event.preventDefault();event.returnValue='';}});
-window.addEventListener('blur',flushCardEdit);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushCardEdit();});
-window.addEventListener('pagehide',event=>{flushCardEdit();if(!event.persisted)imFlushNoteSaves();});
+window.addEventListener('beforeunload',event=>{if(active?.captureStarted!=null||retainedSessions.size||unfinishedEdits.size||cardEditChanged()){event.preventDefault();event.returnValue='';}});
+function flushEditorChanges(){flushCapture();flushCardEdit();}
+window.addEventListener('blur',flushEditorChanges);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushEditorChanges();});
+window.addEventListener('pagehide',event=>{flushEditorChanges();if(!event.persisted)imFlushNoteSaves();});
 renderAll();
 if(window.parent===window&&new URLSearchParams(location.search).get('preview')==='1')demo();

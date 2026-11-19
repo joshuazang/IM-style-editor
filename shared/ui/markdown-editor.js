@@ -52,7 +52,7 @@ const imRichField=(()=>{
       }
       const clear=toolbar.querySelector('.im-format-clear');if(clear)clear.disabled=disabled||readOnly||state.selection.empty;
       toggle.disabled=disabled||readOnly;toggle.hidden=plain||!formatting;
-      if(send)send.disabled=disabled||readOnly||!view.state.doc.textContent.trim();
+      if(send)send.disabled=disabled||readOnly||!imMarkdown.documentHasText(view.state.doc);
       if(plain){toolbar.hidden=true;toggle.setAttribute('aria-expanded','false');}
       floating?.update();
     }
@@ -241,6 +241,7 @@ const imRichField=(()=>{
       backspaceAtEnd:()=>{view.dispatch(view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)));const state=view.state,from=state.selection.from,before=state.selection.$from.nodeBefore;if(state.selection.$from.parentOffset){const last=before?.isText?Array.from(before.text).at(-1):'';view.dispatch(state.tr.delete(from-(last?.length||1),from).scrollIntoView());}else C.joinBackward(state,view.dispatch,view);view.focus();},
       destroy:()=>{if(destroyed)return;destroyed=true;clearTimeout(enterPairTimer);floating?.destroy();view.destroy();live--;wrapper.remove();toolbar.remove();toggle.remove();},
       value,
+      hasText:text=>text===source?imMarkdown.documentHasText(view.state.doc):imMarkdown.hasText(text),
       get plain(){return plain;}
     };dom.imRich=controller;return controller;
   }

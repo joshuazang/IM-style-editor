@@ -53,8 +53,34 @@ const imMarkdown=(()=>{
   // their escaped text across edits. Paragraph-only notes are joined in chunks;
   // structural documents retain the contextual serializer path.
   const paragraphSource=new WeakMap(),tableCellSource=new WeakMap();
+  const listParagraphSource=new WeakMap();
+  let listParagraphWriter;
+  function renderListParagraph(state,paragraph){
+    let text=listParagraphSource.get(paragraph);
+    if(text===undefined){
+      // Single-line inline content is independent of bullet width, numbering
+      // and quote depth. Keep line breaks with the contextual writer, which
+      // supplies the surrounding indentation on each line.
+      const singleLine=paragraph.content.content.every(node=>node.isText&&!node.text.includes('\n'));
+      if(singleLine){
+        const writer=listParagraphWriter??=new imRichDeps.serializer.MarkdownSerializerState(state.nodes,state.marks,{...serializer.options});
+        writer.out='';
+        renderInline(writer,paragraph,true);
+        text=writer.out;
+      }else text=null;
+      listParagraphSource.set(paragraph,text);
+    }
+    if(text===null){renderInline(state,paragraph,true);return;}
+    state.write(text);
+    state.atBlockStart=false;
+  }
   const serializer=new imRichDeps.serializer.MarkdownSerializer({
-    paragraph:(s,n)=>{if(!n.content.size)s.write('');renderInline(s,n,s.options.imListDepth||/^[ \t]+$/.test(n.textContent));s.closeBlock(n);},
+    paragraph:(s,n)=>{
+      if(!n.content.size){s.write('');s.atBlockStart=false;}
+      else if(s.options.imListDepth)renderListParagraph(s,n);
+      else renderInline(s,n,/^[ \t]+$/.test(n.textContent));
+      s.closeBlock(n);
+    },
     heading:(s,n)=>{s.write('#'.repeat(n.attrs.level)+' ');renderInline(s,n,true);s.closeBlock(n);},blockquote:base.nodes.blockquote,
     bullet_list:base.nodes.bullet_list,ordered_list:base.nodes.ordered_list,
     horizontal_rule:base.nodes.horizontal_rule,
@@ -218,5 +244,10 @@ const imMarkdown=(()=>{
     }
     const fragment=document.createDocumentFragment();doc.forEach(node=>fragment.append(nodeDOM(node)));target.replaceChildren(fragment);target.classList.add('im-rich-display');
   }
-  return {schema,parse,serialize,preview,message,bounded,toggleCheck,render,hasText:text=>!!parse(text).textContent.trim(),cacheStats:()=>({documents:cache.size,characters:cachedCharacters})};
+  function documentHasText(node){
+    if(node.isText)return !!node.text.trim();
+    for(let index=0;index<node.childCount;index++)if(documentHasText(node.child(index)))return true;
+    return false;
+  }
+  return {schema,parse,serialize,preview,message,bounded,toggleCheck,render,documentHasText,hasText:text=>documentHasText(parse(text)),cacheStats:()=>({documents:cache.size,characters:cachedCharacters})};
 })();
