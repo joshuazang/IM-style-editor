@@ -3,7 +3,7 @@ import functools,http.server,json,re,threading,subprocess
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 from browser_engine import chromium_options,fill_field
-from mosaic_helpers import fill_search,click_outside_capture,choose_tag,open_more
+from mosaic_helpers import fill_search,choose_tag,open_more
 ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
@@ -52,6 +52,24 @@ try:
    fill_field(field,'中文输入');field.evaluate("n=>n.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',keyCode:229,isComposing:true,bubbles:true,cancelable:true}))")
    expect(field).to_have_js_property('value','中文输入');assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==202
    fill_field(field,'');page.wait_for_function('!notes.a.content.text.includes("中文输入")')
+   # Select All and a selection-generated click leave the text as a draft.
+   draft='Selecting this text must keep the draft'
+   fill_field(field,draft);field.press('Control+a')
+   assert field.evaluate('n=>!n.imRich.view.state.selection.empty')
+   field.evaluate("()=>document.querySelector('#viewport').dispatchEvent(new MouseEvent('click',{bubbles:true,button:0,detail:1}))")
+   expect(field).to_have_js_property('value',draft)
+   viewport=e.locator('#viewport')
+   press_gutter=viewport.tap if width<600 else viewport.click
+   press_gutter(position={'x':2,'y':120})
+   page.wait_for_function('draft=>notes.a.content.text.includes(draft)',arg=draft)
+   saved=parse(page.evaluate('notes.a.content.text'))
+   assert saved['draft']==draft and len(saved['messages'])==202
+   expect(field).to_have_js_property('value',draft)
+   # A matched, deliberate outside click with a caret still sends this draft.
+   field.focus();field.press('Control+End');press_gutter(position={'x':2,'y':120})
+   expect(field).to_have_js_property('value','')
+   saved=parse(page.evaluate('notes.a.content.text'))
+   assert len(saved['messages'])==203 and saved['messages'][-1]['text']==draft
    # Color and label actions are independent from text and status changes.
    fill_search(e,'Thought 192');card=e.locator('[data-id="'+small['messages'][192]['id']+'"]')
    expect(card).to_be_visible();assert card.get_by_role('button',name='Background options',exact=True).count()==0
@@ -96,7 +114,7 @@ try:
    page.wait_for_function('!notes.a.content.text.includes("cardColor")')
    assert 'cardColor' not in parse(page.evaluate('notes.a.content.text'))['messages'][192]
    assert not errors,errors;assert not external,external
-   print(f'PASS {width}px: compact columns, Enter/Shift+Enter and soft-keyboard send, IME, reveal/focus, saved labels/colors, IM interchange and failed-send retry',flush=True)
+   print(f'PASS {width}px: selection keeps draft, deliberate outside click sends, Enter/Shift+Enter, IME, reveal/focus, saved labels/colors, IM interchange and failed-send retry',flush=True)
    if width==390:
     fill_search(e,'');e.locator('#viewport').evaluate('n=>n.scrollTop=0');page.screenshot(path='/tmp/mosaic-mobile-new.png')
    context.close()

@@ -75,7 +75,7 @@ function notify(text) {
 }
 function safeRun(action) {try{Promise.resolve(action()).catch(error=>notify(error.message||'The action could not be completed.'));}catch(error){notify(error.message);}}
 /* A hold only arms the menu. Release opens it; movement/cancellation never does. */
-function bindContextMenu(node,open,canHold=()=>true) {
+function bindContextMenu(node,open,canHold=()=>true,preferNative=()=>false) {
   let gesture=null,timer=0,suppressUntil=0;
   const cancel=()=>{clearTimeout(timer);timer=0;gesture=null;};
   node.addEventListener('pointerdown',event=>{
@@ -97,7 +97,7 @@ function bindContextMenu(node,open,canHold=()=>true) {
   for(const name of ['pointercancel','pointerleave'])node.addEventListener(name,cancel);
   node.addEventListener('click',event=>{if(performance.now()<suppressUntil&&event.detail!==0&&!event.target.closest('#menu')){event.preventDefault();event.stopImmediatePropagation();}},true);
   node.addEventListener('contextmenu',event=>{
-    if(event.target.closest('#menu'))return;
+    if(event.target.closest('#menu')||preferNative())return;
     const touch=!!gesture||event.pointerType==='touch'||(matchMedia('(pointer:coarse) and (hover:none)').matches&&event.pointerType!=='mouse');
     if(touch&&event.target.closest('input,textarea,select,[contenteditable]'))return;
     event.preventDefault();if(!touch)open(event);
@@ -993,8 +993,10 @@ function editorDialog(id=null) {
     field.addEventListener('compositionend',()=>{d.composing=false;d.scheduleSave();});
   }
   // Enter is ordinary multiline editing here; the capture field has its own send keys.
-  bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
-  bindContextMenu(d.tagBadges,event=>cardMenu(s.messages.find(m=>m.id===id),event),()=>active===s&&modalState===d);
+  const hasSelection=()=>cardHasTextSelection(d)||hasDOMSelectionIn(d.root);
+  const canHoldCard=()=>active===s&&modalState===d&&!hasSelection();
+  bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),canHoldCard,hasSelection);
+  bindContextMenu(d.tagBadges,event=>cardMenu(s.messages.find(m=>m.id===id),event),canHoldCard,hasSelection);
   d.commit=saveEditor;
   async function saveEditor(closeAfter=true) {
     if(active!==s||modalState!==d)return false;
@@ -1256,17 +1258,36 @@ $('capture-input').addEventListener('compositionend',()=>{
   },0);
 });
 let outsideCapture=null;
+function outsideCaptureTarget(target){
+  return !target.closest('#capture-composer,dialog,#notice,#menu,.im-format-toolbar,.card-tag,#search-button,#change-filter,#search-tags-panel');
+}
+function captureHasSelection(){
+  return !captureEditor.view.state.selection.empty||hasDOMSelectionIn(captureEditor.dom);
+}
+// Send on a deliberate outside click. A selection gesture may emit a click
+// outside the input even though its press (or native selection handle) did not.
 document.addEventListener('pointerdown',event=>{
-  outsideCapture=!active?.titleEntry&&document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu,.im-format-toolbar,.card-tag,#search-button,#change-filter,#search-tags-panel')?{session:active,tag:active?.view.tag,x:event.clientX,y:event.clientY}:null;
+  outsideCapture=null;
+  if(!active||active.titleEntry||event.button!==0||!event.isPrimary||event.shiftKey||event.ctrlKey||event.metaKey||event.altKey)return;
+  if(document.activeElement!==captureEditor.dom||!outsideCaptureTarget(event.target)||captureHasSelection())return;
+  outsideCapture={session:active,tag:active.view.tag,id:event.pointerId,x:event.clientX,y:event.clientY,released:false};
 },true);
-document.addEventListener('pointercancel',()=>outsideCapture=null,true);
-document.addEventListener('pointermove',event=>{if(outsideCapture&&Math.hypot(event.clientX-outsideCapture.x,event.clientY-outsideCapture.y)>9)outsideCapture=null;},true);
-document.addEventListener('pointerup',()=>{const pending=outsideCapture;setTimeout(()=>{if(outsideCapture===pending)outsideCapture=null;},700);},true);
+document.addEventListener('pointercancel',event=>{if(outsideCapture?.id===event.pointerId)outsideCapture=null;},true);
+document.addEventListener('pointermove',event=>{
+  if(outsideCapture?.id===event.pointerId&&Math.hypot(event.clientX-outsideCapture.x,event.clientY-outsideCapture.y)>9)outsideCapture=null;
+},true);
+document.addEventListener('pointerup',event=>{
+  const pending=outsideCapture;
+  if(!pending||pending.id!==event.pointerId)return;
+  if(!outsideCaptureTarget(event.target)||captureHasSelection()){outsideCapture=null;return;}
+  pending.released=true;
+  setTimeout(()=>{if(outsideCapture===pending)outsideCapture=null;},700);
+},true);
 document.addEventListener('click',event=>{
   const pending=outsideCapture;outsideCapture=null;
-  if(active?.titleEntry||!menu.hidden||modal.open)return;
-  if(pending?.session===active)safeRun(()=>submitCapture(pending.session,pending.tag));
-  else if(document.activeElement===$('capture-input')&&!$('capture-composer').contains(event.target)&&!event.target.closest('dialog,#notice,#menu,.im-format-toolbar,.card-tag,#search-button,#change-filter,#search-tags-panel'))safeRun(()=>submitCapture());
+  if(!pending?.released||pending.session!==active||event.detail===0||(event.pointerId!==undefined&&event.pointerId!==pending.id))return;
+  if(active.titleEntry||!menu.hidden||modal.open||!outsideCaptureTarget(event.target)||captureHasSelection())return;
+  safeRun(()=>submitCapture(pending.session,pending.tag));
 },true);
 $('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;searchOpen=false;renderAll();}});
 $('search').addEventListener('input',event=>{if(active){active.view.query=event.target.value;viewport.scrollTop=0;renderAll();}});
@@ -1361,10 +1382,14 @@ modal.addEventListener('touchend',event=>{
   if(gesture.dx>=Math.max(60,Math.min(120,innerWidth*.25))&&Math.abs(gesture.dy)<gesture.dx*.6)closeModal();
 },{capture:true,passive:false});
 modal.addEventListener('touchcancel',()=>{cardBackSwipe=null;},{capture:true,passive:true});
+function hasDOMSelectionIn(node){
+  const selection=window.getSelection();
+  return !!(node&&selection&&!selection.isCollapsed&&(node.contains(selection.anchorNode)||node.contains(selection.focusNode)));
+}
 function cardHasTextSelection(d){
   if(d?.kind!=='edit')return false;
-  const selection=window.getSelection(),field=document.activeElement;
-  return !!(selection&&!selection.isCollapsed&&(d.body?.contains(selection.anchorNode)||d.body?.contains(selection.focusNode)))||
+  const field=document.activeElement;
+  return hasDOMSelectionIn(d.body)||
     !!(field?.matches('.editor-title')&&modal.contains(field)&&field.selectionStart!==field.selectionEnd)||
     !!(d.body?.imRich&&!d.body.imRich.view.state.selection.empty);
 }

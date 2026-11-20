@@ -96,6 +96,24 @@ try:
                 expect(dialog).not_to_be_visible()
                 assert page.evaluate('saves.length')==0
             open_card()
+            body.press('Control+Home')
+            body.press('Shift+End')
+            highlighted = body.evaluate('()=>getSelection().toString()')
+            assert highlighted
+            point = body.evaluate('''n=>{
+                document.addEventListener('contextmenu',event=>{
+                    window.cardContextPrevented=event.defaultPrevented;
+                },{once:true});
+                const selection=getSelection().getRangeAt(0).getClientRects()[0];
+                const field=n.getBoundingClientRect();
+                return {x:selection.left-field.left+5,y:selection.top-field.top+selection.height/2};
+            }''')
+            body.click(button='right', position=point)
+            assert body.evaluate('()=>window.cardContextPrevented') is False
+            assert body.evaluate('()=>getSelection().toString()') == highlighted
+            expect(editor.locator('#menu')).not_to_be_visible()
+            still_open()
+
             for side in ['right', 'left', 'top', 'bottom']:
                 drag(body, side)
                 assert body.evaluate('n=>n.selectionStart!==n.selectionEnd'), 'The regression must exercise actual text selection'
@@ -103,6 +121,10 @@ try:
             editor.locator('.detail-more').click()
             editor.get_by_role('menuitem', name='Edit title', exact=True).click()
             drag(editor.get_by_role('textbox', name='Card title', exact=True), 'left')
+            title = editor.get_by_role('textbox', name='Card title', exact=True)
+            title.press('Control+a')
+            assert title.evaluate("n=>n.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2}))")
+            expect(editor.locator('#menu')).not_to_be_visible()
 
             # A press outside that ends inside is not an outside click either.
             page.mouse.move(*outside('left'))
