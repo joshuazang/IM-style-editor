@@ -22,6 +22,7 @@ try:
    # The selection is established before the keyboard animation, including
    # intermediate resize/pan events. No document edit is needed to reveal it.
    for height,offset in [(650,0),(420,0),(360,35)]:viewport(height,offset);visible();expect(body).to_be_focused()
+   assert page.evaluate('saves.length')==0
    before=body.evaluate('n=>n.imRich.view.state.doc.textContent');body.type(' visible typing');settle();visible();body.press('Enter');body.type('next line');settle();visible()
    assert body.evaluate('n=>n.imRich.view.state.doc.textContent').startswith(before)
    # Opening the floating formatting panel must reveal the caret without
@@ -33,10 +34,14 @@ try:
    # Tap an earlier low line with the keyboard closed, then reopen it.
    viewport(900);body.evaluate('n=>{const v=n.imRich.view;v.dispatch(v.state.tr.setSelection(v.state.selection.constructor.create(v.state.doc,Math.floor(v.state.doc.content.size*.6))).scrollIntoView());}');settle();viewport(380);visible()
    # Programmatic caret scrolling must not trigger swipe-to-dismiss.
-   expect(body).to_be_focused();assert page.evaluate('saves.length')==0
+   expect(body).to_be_focused()
+   expected=body.evaluate('n=>n.value')
    # Close/reopen cancels listeners and queued work; keyboard changes with no
    # focused body do not move the newly opened card.
-   e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible();e.locator('.card').first.click();expect(dialog).to_be_visible();viewport(400);expect(body).not_to_be_focused() if phone=="iPhone" else expect(body).to_be_focused();assert not errors,errors
+   e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible()
+   saved=scope['parse'](page.evaluate('notes.a.content.text'))['messages']
+   assert len(saved)==1 and saved[0]['text']==expected
+   e.locator('.card').first.click();expect(dialog).to_be_visible();viewport(400);expect(body).not_to_be_focused() if phone=="iPhone" else expect(body).to_be_focused();assert not errors,errors
    print(f'PASS {phone} {width}px: keyboard resize/pan, long-note caret and typing visible, focus/draft retained, reopen cleanup',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

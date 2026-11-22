@@ -6,6 +6,18 @@ text-field defaults, reply records and tag-management commands. `next/src` conta
 `mosaic/src` contains the Mosaic interface. Root `src` and root `index.html`
 belong to the independent format-2 Archive, which is not migrated.
 
+IM's timeline and composer live in `next/src/editor-runtime.js`. Display
+helpers for note settings and dates live in `next/src/note-presentation.js`,
+and editor-specific CSS lives in `next/src/styles.css`. Use `ImPrivateInput`
+and `ImPrivateTextarea` for IM inputs. The bundler includes these components
+directly from source.
+
+Mosaic starts in `mosaic/src/app.js`. `note-session.js` handles host updates
+and saving, `capture.js` owns the Board composer, and `board.js` handles card
+layout and selection. `card-view.js` owns the card editor and its dialog
+lifecycle. `menus.js` and `card-actions.js` cover menus and card operations.
+The build combines the sources in one local runtime, with startup last.
+
 `shared/ui` contains the common static SVG dictionaries, solid message-menu panels,
 compact toolbar styles and selection controls. `menu-position.js` supplies the
 same touch clearance and viewport fitting to both interfaces; `selection.css`
@@ -30,7 +42,9 @@ This release keeps format 3; opening a note in either view does not convert it.
    manifests and install ZIPs and records a common SHA-256 fingerprint.
 4. Run `python3 tools/check-editors.py`. Data suites include Archive regressions;
    browser suites cover both modern interfaces, clipboard behavior and shared
-   note switching. They use synthetic notes only.
+   note switching. They use synthetic notes only. During development, use
+   `--browser draft-batching-browser.py` to run a specific browser suite
+   alongside the data checks.
 5. Commit the source and generated releases together. The Both editors workflow
    checks the packaged core and rebuilds both applications to detect stale output.
 6. Publish the main branch to its existing GitHub Pages configuration. Verify

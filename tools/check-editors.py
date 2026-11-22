@@ -9,8 +9,72 @@ import threading
 from collections import deque
 from shared_core import ROOT
 
+BROWSER_SUITES = (
+    'native-writing-browser.py',
+    'mosaic-card-autosave.py',
+    'batch-pin-color-browser.py',
+    'clear-reply-status-browser.py',
+    'list-bold-save-browser.py',
+    'tables-italic-browser.py',
+    'paragraph-spacing-browser.py',
+    'divider-browser.py',
+    'selection-format-browser.py',
+    'live-format-browser.py',
+    'enter-event-sequences.py',
+    'mosaic-enter-latency.py',
+    'mosaic-double-enter-latency.py',
+    'mosaic-phone-keyboard.py',
+    'mosaic-checklist-focus-back.py',
+    'checklist-touch-focus.py',
+    'mosaic-phone-text-selection.py',
+    'mosaic-keyboard-caret.py',
+    'checklist-browser.py',
+    'markdown-field-browser.py',
+    'markdown-editors-browser.py',
+    'next-editor-smoke.py',
+    'im-session-safety-smoke.py',
+    'draft-batching-browser.py',
+    'clipboard-clear-smoke.py',
+    'mosaic-browser.py',
+    'mosaic-safety-smoke.py',
+    'mosaic-capture-ui.py',
+    'mosaic-card-height.py',
+    'mosaic-card-scroll.py',
+    'mosaic-card-transition.py',
+    'mosaic-card-dismiss.py',
+    'mosaic-card-focus.py',
+    'mosaic-card-morph.py',
+    'mosaic-card-startup.py',
+    'mosaic-card-paint-start.py',
+    'mosaic-six-long-cards.py',
+    'mosaic-markdown-performance.py',
+    'mosaic-board-height.py',
+    'mosaic-body-budget.py',
+    'mosaic-pin-preview-caps.py',
+    'mosaic-tag-bottom-gap.py',
+    'mosaic-motion-browser.py',
+    'mosaic-drag-large.py',
+    'mosaic-drag-stability.py',
+    'card-editor-menu-smoke.py',
+    'mosaic-touch-overlay-smoke.py',
+    'mosaic-appearance-smoke.py',
+    'editor-ux-smoke.py',
+    'im-touch-scroll-smoke.py',
+    'im-momentum.py',
+    'artwork-options-browser.py',
+    'title-browser.py',
+    'mosaic-hanging-tags.py',
+    'selection-layout-smoke.py',
+    'shared-controls-smoke.py',
+    'composer-typography.py',
+    'date-navigation-browser.py',
+    'ui-layout-regressions.py',
+)
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-only', action='store_true', help='Skip browser tests')
+selection = parser.add_mutually_exclusive_group()
+selection.add_argument('--data-only', action='store_true', help='Skip browser tests')
+selection.add_argument('--browser', nargs='+', choices=BROWSER_SUITES, help='Run only the named browser suites after data checks')
 args = parser.parse_args()
 
 def run(*command, env=None):
@@ -45,9 +109,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Handler, directory=str(ROOT)))
 threading.Thread(target=server.serve_forever, daemon=True).start()
 env = {**os.environ, 'IM_STYLE_EDITOR_BASE_URL': 'http://127.0.0.1:' + str(server.server_port), 'IM_EDITOR_ROOT': str(ROOT)}
+suites = args.browser or BROWSER_SUITES
 try:
-    for name in ['native-writing-browser.py', 'mosaic-card-autosave.py', 'batch-pin-color-browser.py', 'clear-reply-status-browser.py', 'list-bold-save-browser.py', 'tables-italic-browser.py', 'paragraph-spacing-browser.py', 'divider-browser.py', 'selection-format-browser.py', 'live-format-browser.py', 'enter-event-sequences.py', 'mosaic-enter-latency.py', 'mosaic-double-enter-latency.py', 'mosaic-phone-keyboard.py', 'mosaic-checklist-focus-back.py', 'checklist-touch-focus.py', 'mosaic-phone-text-selection.py', 'mosaic-keyboard-caret.py', 'checklist-browser.py', 'markdown-field-browser.py', 'markdown-editors-browser.py', 'next-editor-smoke.py', 'im-session-safety-smoke.py', 'draft-batching-browser.py', 'clipboard-clear-smoke.py', 'mosaic-browser.py', 'mosaic-safety-smoke.py', 'mosaic-capture-ui.py', 'mosaic-card-height.py', 'mosaic-card-scroll.py', 'mosaic-card-transition.py', 'mosaic-card-dismiss.py', 'mosaic-card-focus.py', 'mosaic-card-morph.py', 'mosaic-card-startup.py', 'mosaic-card-paint-start.py', 'mosaic-six-long-cards.py', 'mosaic-markdown-performance.py', 'mosaic-board-height.py', 'mosaic-body-budget.py', 'mosaic-pin-preview-caps.py', 'mosaic-tag-bottom-gap.py', 'mosaic-motion-browser.py', 'mosaic-drag-large.py', 'mosaic-drag-stability.py', 'card-editor-menu-smoke.py', 'mosaic-touch-overlay-smoke.py', 'mosaic-appearance-smoke.py', 'editor-ux-smoke.py', 'im-touch-scroll-smoke.py', 'im-momentum.py', 'artwork-options-browser.py', 'title-browser.py', 'mosaic-hanging-tags.py', 'selection-layout-smoke.py', 'shared-controls-smoke.py', 'composer-typography.py', 'date-navigation-browser.py', 'ui-layout-regressions.py']:
+    for name in suites:
+        print(f'Running browser suite {name}', flush=True)
         run(sys.executable, 'tests/' + name, env=env)
 finally:
     server.shutdown()
-print('Both editors passed the coordinated browser and data checks.')
+print(f'All {len(suites)} browser suites passed.')

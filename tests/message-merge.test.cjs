@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-const context=vm.createContext({crypto,btoa,Ed:value=>value?.slice(0,10)||'earlier'});
-for(const file of ['shared/core/note-format','shared/core/message-transfer','shared/core/reply-record','next/src/reply-ui','next/src/message-merge'])vm.runInContext(fs.readFileSync(file+'.js','utf8'),context);
+const context=vm.createContext({crypto,btoa});
+for(const file of ['shared/core/note-format','shared/core/message-transfer','shared/core/reply-record','next/src/reply-ui','next/src/note-presentation','next/src/message-merge'])vm.runInContext(fs.readFileSync(file+'.js','utf8'),context);
 const {imFormat:f,imMergeSelected:merge,imReplyTarget:target,imMessagesByDay:days}=vm.runInContext('({imFormat,imMergeSelected,imReplyTarget,imMessagesByDay})',context);
 const plain=value=>JSON.parse(JSON.stringify(value));
-const messages=[' A\n\n🙂 ','untouched','B\n@@IM:BUBBLE\n','C'].map((text,i)=>({id:f.newId(),text,reactions:i%2?['📓']:['⭐'],createdAt:`2026-11-0${i+1}T12:00:00Z`,copied:true,exported:true}));
+const messages=[' A\n\n🙂 ','untouched','B\n@@IM:BUBBLE\n','C'].map((text,i)=>({id:f.newId(),text,reactions:i%2?['📓']:['⭐'],createdAt:new Date(2026,10,i+1,12).toISOString(),copied:true,exported:true}));
 messages[2].replyTo={id:messages[1].id,noteId:'note',text:messages[1].text};
 messages[3].forwarding={sourceMessageId:f.newId(),sourceNoteId:'archive'};
 messages[3].custom={precious:'metadata'};
@@ -41,5 +41,5 @@ const exported=transfer.read(transfer.create(again.messages,again.settings,'note
 const imported=transfer.merge([],exported).messages;
 assert.equal(target(imported,{id:messages[3].id,noteId:'note'},'destination'),imported[0]);
 assert.throws(()=>merge(messages,settings,new Set([messages[0].id]),'note'),/at least two/);
-assert.deepEqual(plain([...days(messages)]),messages.map((m,i)=>[`2026-11-0${i+1}`,[m.id]]));
+assert.deepEqual(plain([...days(messages)]),messages.map((m,i)=>[`2026-10-${i+1}`,[m.id]]));
 console.log('PASS: noncontiguous merge order, exact text, sparse statuses, immutable sources, tags, pins, quoted metadata, nested reply destinations, note isolation and format round trip');

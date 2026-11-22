@@ -129,7 +129,7 @@ function ImTransferDialog({ transfer }) {
       x.jsx('p', { children: exported ? (plain?'Automatic copying was unavailable. Select and copy the message below.':'Automatic copying was unavailable. Copy all the text below; it contains the complete selected message records.') :
         'Import an exported message selection or a complete IM note. Your current messages and appearance stay in place. Imported bubbles keep their timestamps and tags and show an Imported label.' }),
       dialog.hint && x.jsx('p', { children: dialog.hint }),
-      x.jsx('textarea', { 'aria-label': plain ? 'Message text to copy' : exported ? 'Message export' : 'Paste exported messages', value: dialog.text,
+      x.jsx(ImPrivateTextarea, { 'aria-label': plain ? 'Message text to copy' : exported ? 'Message export' : 'Paste exported messages', value: dialog.text,
         readOnly: exported, disabled: dialog.busy, onChange: event => transfer.edit(event.target.value),
         onFocus: exported ? event => event.currentTarget.select() : undefined, spellCheck: false }),
       dialog.reading && x.jsx('p', { role: 'status', children: 'Reading clipboard… You can also paste below.' }),
@@ -198,6 +198,6 @@ function ImRecoveryView({ error, restore }) {
       ] }, message.id))
     ] }),
     x.jsxs('details', { open: !proposal, children: [x.jsx('summary', { children: 'Complete original text' }),
-      x.jsx('textarea', { 'aria-label': 'Original note text for recovery', readOnly: true, value: error.text })] })
+      x.jsx(ImPrivateTextarea, { 'aria-label': 'Original note text for recovery', readOnly: true, value: error.text })] })
   ] });
 }

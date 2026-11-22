@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.34 / Mosaic 1.5.42.
+Status: implemented for IM 4.4.35 / Mosaic 1.5.43.
 
 ## Agreed behavior
 
@@ -119,7 +119,7 @@ the Markdown body are body content. Pinned previews use 6x on phones and 8x on c
   Preserve session-based edit/draft retention and late-acknowledgment behavior.
 - `next/src/private-fields.js`: maintain private-input attributes on editable
   content. Search, import/export, and legacy title fields remain ordinary fields.
-- `mosaic/src/app.js`: integrate capture and opened-body editing; retain iPhone
+- `mosaic/src/capture.js` and `mosaic/src/card-view.js`: integrate capture and opened-body editing; retain iPhone
   no-keyboard opening, Mac end-caret behavior, and gesture-aware dismissal.
 - `mosaic/src/model.js`: preserve bounded previews and measured masonry layout
   for formatted blocks. Do not estimate a different body allowance for titles.

@@ -37,7 +37,7 @@ function ImClearStatusDialog({controller}){
       x.jsx('h2',{id:'status-clear-title',children:'Clear message statuses'}),
       x.jsx('p',{children:dialog.ids?`${count} selected message${count===1?"":"s"}`:`All ${count} messages in this note, including messages hidden by filters.`}),
       x.jsx('div',{className:'status-clear-options',children:Object.entries(imClearableStatuses).map(([flag,label])=>x.jsxs('label',{children:[
-        x.jsx('input',{type:'checkbox',checked:flags.includes(flag),disabled:busy,onChange:event=>setFlags(old=>event.target.checked?[...old,flag]:old.filter(value=>value!==flag))}),label
+        x.jsx(ImPrivateInput,{type:'checkbox',checked:flags.includes(flag),disabled:busy,onChange:event=>setFlags(old=>event.target.checked?[...old,flag]:old.filter(value=>value!==flag))}),label
       ]},flag))}),
       x.jsx('p',{children:imStatusClearHelp(flags)}),
       error&&x.jsx('p',{role:'alert',children:error}),

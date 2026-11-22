@@ -1,1420 +1,830 @@
-/* Mosaic's UI. Persistence, portable text and transfer logic are the shared IM core. */
+/* Initialize Mosaic and wire the Board, Card view, and host events. */
 const $ = id => document.getElementById(id);
-function el(tag, className='', text) {
-  const node=document.createElement(tag);if(tag==='input'||tag==='textarea')imPrivateTextField(node);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;
+
+function el(tag, className = '', text) {
+  const node = document.createElement(tag);
+  if (tag === 'input' || tag === 'textarea') imPrivateTextField(node);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
-function button(label, icon, handler, className='icon-button') {
-  const node=el('button',className);node.type='button';node.setAttribute('aria-label',label);node.title=label;
-  if(icon)node.append(mosaicIcon(icon));else node.textContent=label;
-  if(handler)node.addEventListener('click',event=>{event.stopPropagation();handler(event);});return node;
+
+function button(label, icon, handler, className = 'icon-button') {
+  const node = el('button', className);
+  node.type = 'button';
+  node.setAttribute('aria-label', label);
+  node.title = label;
+  if (icon) node.append(mosaicIcon(icon));
+  else node.textContent = label;
+  if (handler) node.addEventListener('click', event => {
+    event.stopPropagation();
+    handler(event);
+  });
+  return node;
 }
-const cardTimestampFormat=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-const isIPhone=/\biPhone\b/i.test(navigator.userAgent);
-const phoneBoard=navigator.userAgentData?.mobile===true||/\biPhone\b|\biPod\b|Android.*\bMobile\b|Windows Phone/i.test(navigator.userAgent);
-const boardPreviewRatio=phoneBoard?8:14,boardPinnedRatio=phoneBoard?6:8;
-document.documentElement.classList.toggle('is-iphone',isIPhone);
-document.documentElement.classList.toggle('is-phone',phoneBoard);
-const modal=$('modal'), menu=$('menu'), viewport=$('viewport'), board=$('board');
-let active=null, modalState=null, cardBackSwipe=null, toastTimer, frame=0, searchOpen=false, menuFromTouch=false, menuPress=false, dateOpen=false, layout={items:[],headings:[],height:0,count:0};
-let mounted=new Map(), selectionPreferences=Object.create(null), searchPanelFit=null;
-let dragPreview=null;
+const cardTimestampFormat = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit'
+});
+const isIPhone = /\biPhone\b/i.test(navigator.userAgent);
+const phoneBoard = navigator.userAgentData?.mobile === true ||
+  /\biPhone\b|\biPod\b|Android.*\bMobile\b|Windows Phone/i.test(navigator.userAgent);
+const boardPreviewRatio = phoneBoard ? 8 : 14,
+  boardPinnedRatio = phoneBoard ? 6 : 8;
+document.documentElement.classList.toggle('is-iphone', isIPhone);
+document.documentElement.classList.toggle('is-phone', phoneBoard);
+const modal = $('modal'),
+  menu = $('menu'),
+  viewport = $('viewport'),
+  board = $('board');
+let active = null,
+  modalState = null,
+  cardBackSwipe = null,
+  toastTimer, frame = 0,
+  searchOpen = false,
+  menuFromTouch = false,
+  menuPress = false,
+  dateOpen = false,
+  layout = {
+    items: [],
+    headings: [],
+    height: 0,
+    count: 0
+  };
+let mounted = new Map(),
+  selectionPreferences = Object.create(null),
+  searchPanelFit = null;
+let dragPreview = null;
 let captureEditor;
-const boardMotion=new MosaicBoardMotion(board,viewport);
-const boardDrag=new MosaicBoardDrag({board,viewport,
-  canStart:()=>writable()&&!active.view.selecting&&!modal.open&&menu.hidden,
-  canContinue:()=>!!dragPreview&&dragPreview.session===active&&writable()&&!active.view.selecting&&!modal.open&&menu.hidden,
-  onClearCapture:()=>{outsideCapture=null;window.getSelection()?.removeAllRanges();},
-  onStart:id=>{if(!writable())return false;dragPreview={session:active,id,settings:active.settings,pins:new Set(MosaicModel.pins(active.settings))};return true;},
-  getLayout:()=>layout,
-  hitRect:item=>mounted.get(item.message.id)?.getBoundingClientRect(),
-  candidates:y=>{
-    const nearby=MosaicModel.visible(layout,y-400,y+400),seen=new Set(nearby.map(item=>item.message.id));
+const boardMotion = new MosaicBoardMotion(board, viewport);
+const boardDrag = new MosaicBoardDrag({
+  board,
+  viewport,
+  canStart: () => writable() && !active.view.selecting && !modal.open && menu.hidden,
+  canContinue: () => !!dragPreview && dragPreview.session === active && writable() && !active.view.selecting &&
+    !modal.open && menu.hidden,
+  onClearCapture: () => {
+    outsideCapture = null;
+    window.getSelection()?.removeAllRanges();
+  },
+  onStart: id => {
+    if (!writable()) return false;
+    dragPreview = {
+      session: active,
+      id,
+      settings: active.settings,
+      pins: new Set(MosaicModel.pins(active.settings))
+    };
+    return true;
+  },
+  getLayout: () => layout,
+  hitRect: item => mounted.get(item.message.id)?.getBoundingClientRect(),
+  candidates: y => {
+    const nearby = MosaicModel.visible(layout, y - 400, y + 400),
+      seen = new Set(nearby.map(item => item.message.id));
     // A moving card can still be visible far from its final layout position.
-    for(const id of mounted.keys()){const item=layout.byId.get(id);if(item&&!seen.has(id)){nearby.push(item);seen.add(id);}}
-    return nearby.length?nearby:y<0?layout.items.slice(0,3):layout.items.slice(-3);
+    for (const id of mounted.keys()) {
+      const item = layout.byId.get(id);
+      if (item && !seen.has(id)) {
+        nearby.push(item);
+        seen.add(id);
+      }
+    }
+    return nearby.length ? nearby : y < 0 ? layout.items.slice(0, 3) : layout.items.slice(-3);
   },
-  getBounds:()=>{const bounds=viewport.getBoundingClientRect();return {top:bounds.top,bottom:Math.min(bounds.bottom,$('capture-composer').getBoundingClientRect().top-8)};},
-  sameSection:(id,target)=>dragPreview.pins.has(id)===dragPreview.pins.has(target),
-  getSlot:id=>{const item=layout.byId?.get(id),origin=board.getBoundingClientRect();return item?{left:origin.left+item.x,top:origin.top+item.y}:null;},
-  onPreview:(id,target,after)=>{
-    const s=active;let settings=MosaicModel.moveCard(s.messages,dragPreview.settings,id,target,after);
-    if(settings===dragPreview.settings)settings=MosaicModel.moveCard(s.messages,dragPreview.settings,id,target,!after);
-    if(settings===dragPreview.settings)return;
-    const before=boardMotion.snapshot(mounted);dragPreview.settings=settings;reflowBoard();boardMotion.move(before,mounted);
+  getBounds: () => {
+    const bounds = viewport.getBoundingClientRect();
+    return {
+      top: bounds.top,
+      bottom: Math.min(bounds.bottom, $('capture-composer').getBoundingClientRect().top - 8)
+    };
   },
-  onDrop:()=>{
-    const preview=dragPreview;dragPreview=null;
-    if(preview?.session!==active||!writable())return;
-    const current=MosaicModel.ordered(active.messages,active.settings),next=MosaicModel.ordered(active.messages,preview.settings);
+  sameSection: (id, target) => dragPreview.pins.has(id) === dragPreview.pins.has(target),
+  getSlot: id => {
+    const item = layout.byId?.get(id),
+      origin = board.getBoundingClientRect();
+    return item ? {
+      left: origin.left + item.x,
+      top: origin.top + item.y
+    } : null;
+  },
+  onPreview: (id, target, after) => {
+    const s = active;
+    let settings = MosaicModel.moveCard(s.messages, dragPreview.settings, id, target, after);
+    if (settings === dragPreview.settings) settings = MosaicModel.moveCard(s.messages, dragPreview.settings,
+      id, target, !after);
+    if (settings === dragPreview.settings) return;
+    const before = boardMotion.snapshot(mounted);
+    dragPreview.settings = settings;
+    reflowBoard();
+    boardMotion.move(before, mounted);
+  },
+  onDrop: () => {
+    const preview = dragPreview;
+    dragPreview = null;
+    if (preview?.session !== active || !writable()) return;
+    const current = MosaicModel.ordered(active.messages, active.settings),
+      next = MosaicModel.ordered(active.messages, preview.settings);
     // Keep the preview's measured geometry on drop instead of rebuilding it
     // from estimates while the lifted card is landing.
-    if(next.some((message,i)=>message.id!==current[i].id))safeRun(()=>update(active,{settings:preview.settings},false));
+    if (next.some((message, i) => message.id !== current[i].id)) safeRun(() => update(active, {
+      settings: preview.settings
+    }, false));
     else renderWindow();
   },
-  onCancel:redraw=>{const before=redraw?boardMotion.snapshot(mounted):null;dragPreview=null;if(redraw){reflowBoard();boardMotion.move(before,mounted);}},
-  onSettled:()=>renderWindow()
+  onCancel: redraw => {
+    const before = redraw ? boardMotion.snapshot(mounted) : null;
+    dragPreview = null;
+    if (redraw) {
+      reflowBoard();
+      boardMotion.move(before, mounted);
+    }
+  },
+  onSettled: () => renderWindow()
 });
-const viewMemory=new Map(), unfinishedEdits=new Map();
+const viewMemory = new Map(),
+  unfinishedEdits = new Map();
 // Only unconfirmed sessions and deferred status intents survive note switches.
 // Both are working memory; no text or recovery copy is written to browser storage.
-const retainedSessions=new Map(), transferMarks=new Map();
-const editKey=(uuid,id)=>JSON.stringify([uuid,id]);
-function latestUnfinished(uuid){let latest;for(const entry of unfinishedEdits.values())if(entry.noteId===uuid)latest=entry;return latest;}
-const saveFeedback=new ImSaveFeedback(()=>renderStatus());
-const pf=new MosaicRelay({targetWindow:window,options:{coallesedSaving:false,acceptsThemes:false},onReady:()=>{
-  const saved=pf.getComponentDataValueForKey('mosaicSelectionsV1');
-  if(saved&&typeof saved==='object'&&!Array.isArray(saved))for(const [id,ids] of Object.entries(saved)){
-    if(Array.isArray(ids)&&ids.every(imFormat.validId))selectionPreferences[id]=ids;
+const retainedSessions = new Map(),
+  transferMarks = new Map();
+const editKey = (uuid, id) => JSON.stringify([uuid, id]);
+
+function latestUnfinished(uuid) {
+  let latest;
+  for (const entry of unfinishedEdits.values())
+    if (entry.noteId === uuid) latest = entry;
+  return latest;
+}
+const saveFeedback = new ImSaveFeedback(() => renderStatus());
+const pf = new MosaicRelay({
+  targetWindow: window,
+  options: {
+    coallesedSaving: false,
+    acceptsThemes: false
+  },
+  onReady: () => {
+    const saved = pf.getComponentDataValueForKey('mosaicSelectionsV1');
+    if (saved && typeof saved === 'object' && !Array.isArray(saved))
+      for (const [id, ids] of Object.entries(saved)) {
+        if (Array.isArray(ids) && ids.every(imFormat.validId)) selectionPreferences[id] = ids;
+      }
+    pf.streamContextItem(receive);
   }
-  pf.streamContextItem(receive);
-}});
+});
 
 function notify(text) {
-  clearTimeout(toastTimer);$('toast').textContent=text;$('toast').hidden=false;
-  toastTimer=setTimeout(()=>$('toast').hidden=true,5000);
+  clearTimeout(toastTimer);
+  $('toast').textContent = text;
+  $('toast').hidden = false;
+  toastTimer = setTimeout(() => $('toast').hidden = true, 5000);
 }
-function safeRun(action) {try{Promise.resolve(action()).catch(error=>notify(error.message||'The action could not be completed.'));}catch(error){notify(error.message);}}
+
+function safeRun(action) {
+  try {
+    Promise.resolve(action()).catch(error => notify(error.message || 'The action could not be completed.'));
+  } catch (error) {
+    notify(error.message);
+  }
+}
 /* A hold only arms the menu. Release opens it; movement/cancellation never does. */
-function bindContextMenu(node,open,canHold=()=>true,preferNative=()=>false) {
-  let gesture=null,timer=0,suppressUntil=0;
-  const cancel=()=>{clearTimeout(timer);timer=0;gesture=null;};
-  node.addEventListener('pointerdown',event=>{
-    if(event.pointerType!=='touch'||event.isPrimary===false||event.target.closest('button,input,textarea,select,[contenteditable],#menu')||!canHold())return;
-    cancel();gesture={id:event.pointerId,x:event.clientX,y:event.clientY,scroll:viewport.scrollTop,ready:false};const current=gesture;
-    timer=setTimeout(()=>{
-      if(gesture!==current||!node.isConnected||!canHold()){cancel();return;}
-      window.getSelection()?.removeAllRanges();current.ready=true;outsideCapture=null;timer=0;
-    },520);
+function bindContextMenu(node, open, canHold = () => true, preferNative = () => false) {
+  let gesture = null,
+    timer = 0,
+    suppressUntil = 0;
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = 0;
+    gesture = null;
+  };
+  node.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch' || event.isPrimary === false || event.target.closest(
+        'button,input,textarea,select,[contenteditable],#menu') || !canHold()) return;
+    cancel();
+    gesture = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      scroll: viewport.scrollTop,
+      ready: false
+    };
+    const current = gesture;
+    timer = setTimeout(() => {
+      if (gesture !== current || !node.isConnected || !canHold()) {
+        cancel();
+        return;
+      }
+      window.getSelection()?.removeAllRanges();
+      current.ready = true;
+      outsideCapture = null;
+      timer = 0;
+    }, 520);
   });
-  node.addEventListener('pointermove',event=>{if(gesture&&event.pointerId===gesture.id&&Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>10)cancel();});
-  node.addEventListener('pointerup',event=>{
-    const held=gesture;
-    if(!held||held.id!==event.pointerId)return;
-    cancel();if(!held.ready||!canHold()||Math.abs(viewport.scrollTop-held.scroll)>2)return;
-    suppressUntil=performance.now()+800;outsideCapture=null;
-    open({clientX:held.x,clientY:held.y,currentTarget:node,anchor:node.getBoundingClientRect(),touch:true});
+  node.addEventListener('pointermove', event => {
+    if (gesture && event.pointerId === gesture.id && Math.hypot(event.clientX - gesture.x, event.clientY -
+        gesture.y) > 10) cancel();
   });
-  for(const name of ['pointercancel','pointerleave'])node.addEventListener(name,cancel);
-  node.addEventListener('click',event=>{if(performance.now()<suppressUntil&&event.detail!==0&&!event.target.closest('#menu')){event.preventDefault();event.stopImmediatePropagation();}},true);
-  node.addEventListener('contextmenu',event=>{
-    if(event.target.closest('#menu')||preferNative())return;
-    const touch=!!gesture||event.pointerType==='touch'||(matchMedia('(pointer:coarse) and (hover:none)').matches&&event.pointerType!=='mouse');
-    if(touch&&event.target.closest('input,textarea,select,[contenteditable]'))return;
-    event.preventDefault();if(!touch)open(event);
+  node.addEventListener('pointerup', event => {
+    const held = gesture;
+    if (!held || held.id !== event.pointerId) return;
+    cancel();
+    if (!held.ready || !canHold() || Math.abs(viewport.scrollTop - held.scroll) > 2) return;
+    suppressUntil = performance.now() + 800;
+    outsideCapture = null;
+    open({
+      clientX: held.x,
+      clientY: held.y,
+      currentTarget: node,
+      anchor: node.getBoundingClientRect(),
+      touch: true
+    });
+  });
+  for (const name of ['pointercancel', 'pointerleave']) node.addEventListener(name, cancel);
+  node.addEventListener('click', event => {
+    if (performance.now() < suppressUntil && event.detail !== 0 && !event.target.closest('#menu')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+  node.addEventListener('contextmenu', event => {
+    if (event.target.closest('#menu') || preferNative()) return;
+    const touch = !!gesture || event.pointerType === 'touch' || (matchMedia(
+      '(pointer:coarse) and (hover:none)').matches && event.pointerType !== 'mouse');
+    if (touch && event.target.closest('input,textarea,select,[contenteditable]')) return;
+    event.preventDefault();
+    if (!touch) open(event);
   });
 }
 // iOS keyboards may issue beforeinput without a useful keydown. Shift+Enter
 // remains a native line break; neither path submits an IME confirmation key.
-function bindSubmitField(field,submit,{composing=()=>false,newline}={}) {
-  let allowLineBreak=false,ime=false;
-  const allowThisEvent=()=>{allowLineBreak=true;setTimeout(()=>allowLineBreak=false,0);};
-  field.addEventListener('compositionstart',()=>ime=true);
-  field.addEventListener('compositionend',()=>ime=false);
-  field.addEventListener('keydown',event=>{
-    if(event.key!=='Enter')return;
-    if(event.isComposing||event.keyCode===229||ime||composing()){allowThisEvent();return;}
-    if(event.shiftKey){allowThisEvent();if(newline){event.preventDefault();newline();}return;}
-    event.preventDefault();if(!event.repeat)submit();
-  });
-  field.addEventListener('beforeinput',event=>{
-    if(!['insertLineBreak','insertParagraph'].includes(event.inputType)||allowLineBreak||event.isComposing||ime||composing())return;
-    event.preventDefault();submit();
-  });
-}
-function newView(uuid) {
-  const old=viewMemory.get(uuid);
-  return old||{query:'',tag:'',pinned:false,selecting:false,selected:new Set(selectionPreferences[uuid]||[]),scroll:0};
-}
-function rememberSelection() {
-  if(!active)return;
-  if(active.view.selected.size)selectionPreferences[active.note.uuid]=[...active.view.selected];else delete selectionPreferences[active.note.uuid];
-  if(active.demo)return;
-  try{
-    const data={...pf.component.data,mosaicSelectionsV1:{...selectionPreferences}};
-    pf.component.data=data;
-    pf.postMessage('set-component-data',{componentData:data},reply=>{if(reply?.error)notify('Selection preferences could not be saved. Your cards are unchanged.');});
-  }catch{notify('Selection preferences could not be saved. Your cards are unchanged.');}
-}
-function sessionEcho(s,note){
-  const queue=imNoteSaves.get(note.uuid),native=imNoteNativeSignature(note),text=note.content?.text||'';
-  return [queue?.current?.snapshot,queue?.next?.snapshot,s.lastAck].some(snapshot=>snapshot&&snapshot.text===text&&(snapshot.native||imNoteNativeSignature(snapshot.item))===native);
-}
-function knownSessionText(s,text){
-  const queue=imNoteSaves.get(s.note.uuid);
-  return [s.note.content.text,s.lastHostText,s.lastAck?.text,queue?.current?.snapshot.text,queue?.next?.snapshot.text].includes(text);
-}
-function receiveNativeFields(s,note){
-  const signature=imNoteNativeSignature(s.note),incoming=imNoteNativeSignature(note);
-  if(s.nativeRepair&&incoming!==signature&&sessionEcho(s,note)){
-    imNoteMetadataReceived(s.note,{...note,isMetadataUpdate:true});return;
-  }
-  imApplyNoteNative(s.note,note);s.lastHostText=note.content?.text||'';s.deleted=!!note.deleted;
-  if(s.deleted){imCancelQueuedNoteSaves(note.uuid);renderNotice();renderCapture();return;}
-  if(signature!==incoming){
-    const rebased=imRebaseQueuedNote(s.note.uuid,note);
-    if(s.pending&&!s.remote){s.nativeRepair=true;if(!rebased&&active===s)safeRun(()=>persist(s));}
-  }
-  if(!s.dirty&&!s.pending&&!s.error)imNoteReceived(s.note);
-}
-function receive(note, force=false) {
-  if(!note||!note.uuid)return;
-  if(active&&(active.note.uuid!==note.uuid||!note.isMetadataUpdate&&active.note.content.text!==(note.content?.text||'')&&!knownSessionText(active,note.content?.text||''))){boardDrag.reset();boardMotion.reset();}
-  if(note.isMetadataUpdate===true){const s=active?.note.uuid===note.uuid?active:retainedSessions.get(note.uuid);if(s)imNoteMetadataReceived(s.note,note);return;}
-  if(active?.note.uuid===note.uuid&&!force){
-    const s=active,text=note.content?.text||'';
-    if(s.note.content?.text===text||((s.pending||s.error)&&knownSessionText(s,text))){
-      receiveNativeFields(s,note);return;
-    }
-    const editing=modalState?.uuid===note.uuid&&cardEditChanged();
-    if(s.pending||s.error||s.dirty||s.captureStarted!=null||editing||s.titleEntry){
-      s.remote=note;imCancelQueuedNoteSaves(note.uuid);flushCapture(s);
-      retainedSessions.set(note.uuid,s);renderNotice();return;
-    }
-  }
-  const previous=active;if(previous?.titleEntry)retainedSessions.set(previous.note.uuid,previous);
-  if(previous){
-    previous.view.scroll=viewport.scrollTop;viewMemory.set(previous.note.uuid,previous.view);stashEdit();
-    if(previous.note.uuid!==note.uuid){flushCapture(previous);flushCardEdit();}
-  }
-  closeModal(true);hideMenu();dateOpen=false;$('date-panel').replaceChildren();
-  if(force){
-    const discarded=retainedSessions.get(note.uuid)||previous;
-    if(discarded?.note.uuid===note.uuid){discarded.discarded=true;clearTimeout(discarded.captureTimer);imCancelQueuedNoteSaves(note.uuid);retainedSessions.delete(note.uuid);}
-    for(const [key,entry] of unfinishedEdits)if(entry.noteId===note.uuid)unfinishedEdits.delete(key);
-  }
-  const retained=!force&&retainedSessions.get(note.uuid);
-  if(retained){
-    active=retained;imNoteUnconfirmed(retained.note);
-    const text=note.content?.text||'';
-    if(knownSessionText(retained,text))receiveNativeFields(retained,note);
-    else{retained.remote=note;imCancelQueuedNoteSaves(note.uuid);}
-    $('search').value=retained.view.query;renderAll();viewport.scrollTop=retained.view.scroll||0;scheduleWindow();
-    if(retained.cardSavePending&&writable(retained)){if(retained.pending)retained.retryCardOnReturn=true;else safeRun(()=>persist(retained));}
-    safeRun(()=>applyTransferMarks(retained));return;
-  }
-  const parsed=imFormat.inspect(note.content?.text);
-  const s={note,messages:imFormat.readMessages(note),settings:imFormat.readSettings(note),draft:imFormat.readDraft(note),reply:imFormat.readReply(note),
-    damaged:parsed.kind==='damaged',plain:parsed.kind==='plain'&&!!note.content?.text,deleted:!!note.deleted,
-    view:newView(note.uuid),pending:0,revision:0,error:'',remote:null,intents:new Set(),demo:!!note.mosaicDemo,
-    captureValue:imFormat.readDraft(note),captureOriginal:imFormat.readDraft(note),captureRevision:0,captureStarted:null,captureTimer:0,submission:null,composing:false,submitAfterComposition:null,
-    dirty:false,discarded:false,lastHostText:note.content?.text||'',lastAck:null,nativeRepair:false};
-  const valid=new Set(s.messages.map(m=>m.id));s.view.selected=new Set([...s.view.selected].filter(id=>valid.has(id)));
-  if(s.view.selected.size)s.view.selecting=true;
-  active=s;dateOpen=false;$('date-panel').replaceChildren();imNoteReceived(note);
-  $('search').value=s.view.query;viewport.scrollTop=0;
-  renderAll();viewport.scrollTop=s.view.scroll||0;scheduleWindow();
-  if(force&&writable(s)&&imNoteSavePending(note.uuid))safeRun(()=>persist(s));
-  safeRun(()=>applyTransferMarks(s));
-}
-function writable(s=active) {return !!s&&s===active&&!s.discarded&&!s.damaged&&!s.deleted&&!s.plain&&!s.remote;}
-function persist(s,options) {
-  if(!writable(s))return Promise.reject(new Error('Saving is paused. The original note has been kept.'));
-  const revision=++s.revision,submitted={text:s.note.content.text,native:imNoteNativeSignature(s.note)};
-  s.pending++;s.dirty=true;s.error='';retainedSessions.set(s.note.uuid,s);renderStatus();renderNotice();
-  const promise=s.demo?Promise.resolve():imPersistNote(s.note,options);
-  return promise.then(()=>{
-    if(s.discarded)return;
-    const confirmed=imConfirmedNote?.note===s.note?imConfirmedNote.snapshot:null;
-    s.lastAck=confirmed?{text:confirmed.text,native:imNoteNativeSignature(confirmed.item)}:submitted;
-    if(s.remote)return;
-    if(revision===s.revision){s.error='';s.dirty=false;s.nativeRepair=false;s.cardSavePending=false;if(!s.titleEntry)retainedSessions.delete(s.note.uuid);}
-    for(const intent of [...s.intents])if(intent.revision<=revision){s.intents.delete(intent);intent.finish();}
-    if(active===s)safeRun(()=>applyTransferMarks(s));
-  },error=>{
-    if(!s.discarded&&revision===s.revision){s.error='Saving was not confirmed. Keep this editor open and retry. Your text is still here.';s.dirty=true;retainedSessions.set(s.note.uuid,s);}
-    throw error;
-  }).finally(()=>{s.pending--;if(!s.pending&&!s.dirty&&!s.error&&!s.remote&&!s.titleEntry)retainedSessions.delete(s.note.uuid);if(active===s){renderStatus();renderNotice();if(!s.pending&&s.retryCardOnReturn){s.retryCardOnReturn=false;if(s.cardSavePending&&writable(s))safeRun(()=>persist(s));}}});
-}
-function update(s, change, redraw=true) {
-  if(!writable(s))throw new Error('Saving is paused. Your original note is unchanged.');
-  boardDrag.cancel(false);
-  const previousIds=redraw?new Set(s.messages.map(m=>m.id)):null;
-  const added=redraw&&change.messages?change.messages.filter(m=>!previousIds.has(m.id)).map(m=>m.id):[];
-  const before=added.length?boardMotion.snapshot(mounted):null;
-  if(added.length)boardMotion.queue(added);
-  const messages=change.messages??s.messages,settings=change.settings??s.settings;
-  const captureChanged=takeCapture(s);
-  const draft=Object.hasOwn(change,'draft')?change.draft:captureChanged?s.captureValue:s.draft,reply=Object.hasOwn(change,'reply')?change.reply:s.reply;
-  imFormat.write(s.note,messages,settings,draft,reply);
-  Object.assign(s,{messages:messages===s.messages?s.messages:imFormat.readMessages(s.note),settings:imFormat.readSettings(s.note),draft:imFormat.readDraft(s.note),reply:imFormat.readReply(s.note)});
-  const promise=persist(s);
-  if(s===active){if(redraw){renderAll(!!before);if(before)boardMotion.move(before,mounted);}else renderCapture();}
-  return promise;
-}
-function retrySave() {if(active&&!flushCapture())safeRun(()=>persist(active));}
-function renderStatus() {
-  const node=$('save-status'),s=active;
-  const text=saveFeedback.update(s?.note.uuid,!!s?.pending||s?.captureStarted!=null,!!(s?.error||s?.remote||s?.damaged||s?.deleted||s?.view.selecting));
-  node.classList.add('ui-save-feedback');node.classList.toggle('saving',text==='Saving…');
-  node.textContent=s?.demo?'Preview · not saved':text;node.hidden=!node.textContent;
-  node.title=text==='Saved'?'Accepted by Standard Notes':'';
-}
-function renderNotice() {
-  const box=$('notice');box.replaceChildren();const s=active;box.hidden=true;if(!s)return;
-  let text='';
-  if(s.damaged)text='Saving is paused: this is not a valid format-3 note. The original text is unchanged. Format-2 notes belong in IM-style-editor Archive.';
-  else if(s.deleted)text='This note is deleted. Restore it in Standard Notes before editing.';
-  else if(s.remote)text='Standard Notes sent a different version while you had unsaved changes. Saving is paused so neither version is silently overwritten.';
-  else if(s.plain)text='This is an ordinary plain-text note. Convert it to the shared card format before editing.';
-  else if(s.error)text=s.error;
-  if(!text)return;box.hidden=false;box.append(el('span','',text));
-  if(s.error&&!s.remote)box.append(button('Retry save',null,retrySave,''));
-  if(s.plain)box.append(button('Use card format',null,()=>confirmAction('Use the shared card format?','Your existing text will become cards. Mosaic and the current IM editor will both be able to open this note.','Convert note',()=>{s.plain=false;return update(s,{});}),''));
-  if(s.damaged||s.remote||s.error)box.append(button('Review text',null,()=>recoveryDialog(s),''));
-}
-function renderCapture() {
-  const s=active,field=$('capture-input');
-  if(s?.captureStarted==null||s.titleEntry){
-    const value=MosaicModel.normalized(s?.titleEntry?.text??s?.captureValue??'');
-    captureEditor?.setContext((s?.note.uuid||'')+':'+(s?.titleEntry?.id||'capture'),value,!!s?.titleEntry);
-  }
-  field.setAttribute('aria-label',s?.titleEntry?'Title':'Take a note');field.placeholder=s?.titleEntry?'Write a title…':'Take a note…';
-  field.disabled=!writable();scheduleWindow();
-  const quote=$('capture-reply');quote.replaceChildren();quote.hidden=!s?.reply&&!s?.titleEntry;
-  if(s?.titleEntry){const source=s.messages.find(m=>m.id===s.titleEntry.id);quote.append(el('strong','','Title for card'),el('span','inline-quote',source?imMarkdown.message(source).text.slice(0,160)||'Card':'Card'),button('Cancel title entry','close',()=>{s.titleEntry=null;if(!s.dirty&&!s.pending)retainedSessions.delete(s.note.uuid);renderCapture();},'icon-button'));}
-  else if(s?.reply){
-    const text=button('Show quoted card',null,()=>jumpTo(s.reply),'inline-quote');text.textContent=imMarkdown.message(s.reply).text.replace(/\s+/g,' ').slice(0,160)||'Quoted message';
-    quote.append(text,button('Cancel reply','close',()=>safeRun(()=>update(s,{reply:null},false)),'icon-button danger'));
-  }
-}
-function inputCapture(){
-  const s=active;if(!writable(s))return;
-  if(s.titleEntry){s.titleEntry.text=captureEditor.value();return;}
-  s.captureRevision++;
-  if(s.captureStarted==null){s.captureStarted=Date.now();renderStatus();}
-  scheduleCaptureSave(s);
-}
-function scheduleCaptureSave(s){
-  clearTimeout(s.captureTimer);
-  if(s.composing)return;
-  const delay=Math.min(imDraftIdleMs,s.captureStarted+imDraftCheckpointMs-Date.now());
-  s.captureTimer=setTimeout(()=>flushCapture(s),Math.max(0,delay));
-}
-function captureText(s){
-  if(s.captureStarted==null)return s.captureValue;
-  const value=captureEditor.value();
-  return value===MosaicModel.normalized(s.captureOriginal)?s.captureOriginal:value;
-}
-function takeCapture(s){
-  if(s!==active||s?.captureStarted==null)return false;
-  s.captureValue=captureText(s);
-  clearTimeout(s.captureTimer);s.captureStarted=null;
-  return true;
-}
-function flushCapture(s=active){
-  if(!takeCapture(s))return;
-  if(s.captureValue===s.draft){renderStatus();return;}
-  // Keep the latest local draft available in conflict review without sending
-  // it over a different host version. Normal checkpoints use the save queue.
-  imFormat.write(s.note,s.messages,s.settings,s.captureValue,s.reply);
-  s.draft=imFormat.readDraft(s.note);
-  if(writable(s)){safeRun(()=>persist(s));return true;}
-  else{s.dirty=true;retainedSessions.set(s.note.uuid,s);}
-}
-function submitCapture(s=active,tag=s?.view.tag){
-  if(s?.titleEntry){if(s.composing){s.submitAfterComposition={title:true};return Promise.resolve();}return submitTitle(s);}
-  if(!writable(s)||s.submission)return Promise.resolve();
-  if(s.composing){s.submitAfterComposition={tag};return Promise.resolve();}
-  const text=captureText(s),revision=s.captureRevision;
-  if(!captureEditor.hasText(MosaicModel.normalized(text)))return Promise.resolve();
-  const tags=tag&&tag!=='__untagged__'?[tag]:[];
-  const message={id:imFormat.newId(),text,reactions:tags,createdAt:new Date().toISOString(),...(s.reply?{replyTo:s.reply}:{})};
-  s.submission={id:message.id,text,revision};
-  s.locatedId=message.id;setTimeout(()=>{if(s.locatedId===message.id)s.locatedId=null;},2200);
-  // Reveal the card just captured, including when a search or pins-only view
-  // would otherwise hide it. Its active emoji filter still supplies the label.
-  if(s.view.query&&!text.toLocaleLowerCase().includes(s.view.query.toLocaleLowerCase())){s.view.query='';$('search').value='';}
-  s.view.pinned=false;
-  let saving;
-  try{saving=update(s,{messages:[...s.messages,message],draft:'',reply:null});}
-  catch(error){s.submission=null;throw error;}
-  const placed=layout.byId?.get(message.id);
-  if(placed){
-    const origin=board.getBoundingClientRect().top-viewport.getBoundingClientRect().top+viewport.scrollTop;
-    viewport.scrollTo({top:Math.max(0,origin+placed.y-64),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-    scheduleWindow();requestAnimationFrame(()=>mounted.get(message.id)?.classList.add('located'));
-  }
-  s.intents.add({revision:s.revision,finish:()=>{
-    s.submission=null;
-    if(s.captureRevision===revision){s.captureValue='';s.captureOriginal='';}
-    else s.captureOriginal=s.captureValue;
-    if(active===s)renderCapture();
-  }});
-  return saving;
-}
-function beginTitle(id){
-  const s=active,source=s?.messages.find(m=>m.id===id);if(!source||!writable(s))return;
-  if(s.titleEntry&&s.titleEntry.id!==id){hideMenu();notify('Finish or cancel the current title entry first.');return;}
-  flushCapture(s);
-  if(!s.titleEntry)s.titleEntry={id,text:imFormat.title(source),original:imFormat.title(source),pending:false};retainedSessions.set(s.note.uuid,s);hideMenu();renderCapture();$('capture-input').focus();
-}
-function submitTitle(s){
-  const entry=s.titleEntry;if(!writable(s)||!entry||entry.pending)return Promise.resolve();
-  const source=s.messages.find(m=>m.id===entry.id),text=entry.text;
-  if(!source||imFormat.title(source)!==entry.original&&imFormat.title(source)!==entry.submitted)throw new Error('This title changed. Your entry is retained; review before saving.');
-  entry.pending=true;entry.submitted=text.trim()?text:'';
-  const saving=update(s,{messages:s.messages.map(m=>m.id===entry.id?imFormat.withTitle(m,text):m)});
-  s.intents.add({revision:s.revision,finish:()=>{entry.pending=false;entry.original=text.trim()?text:'';if(s.titleEntry===entry&&entry.text===text)s.titleEntry=null;if(active===s)renderCapture();}});
-  return saving.catch(error=>{entry.pending=false;throw error;});
-}
-function renderTags() {
-  const box=$('tag-filters');box.replaceChildren();if(!active)return;
-  const s=active;
-  const add=(tag,label,icon)=>{
-    const node=button(label,icon,()=>{s.view.tag=s.view.tag===tag?'':tag;s.view.scroll=0;viewport.scrollTop=0;searchOpen=false;renderAll();},'tag-chip'+(tag==='__untagged__'?' untagged':''));
-    if(!icon){node.replaceChildren(el('span','',tag?label:'All'));}
-    node.setAttribute('aria-label',tag==='__untagged__'?'Untagged cards':tag?'Filter by '+tag:'All tags');node.setAttribute('aria-pressed',String(s.view.tag===tag));
-    box.append(node);
+function bindSubmitField(field, submit, {
+  composing = () => false,
+  newline
+} = {}) {
+  let allowLineBreak = false,
+    ime = false;
+  const allowThisEvent = () => {
+    allowLineBreak = true;
+    setTimeout(() => allowLineBreak = false, 0);
   };
-  add('','All tags');
-  const tags=MosaicModel.tags(s.messages,s.settings),pos=Number.isInteger(s.settings.untaggedPosition)?Math.max(0,Math.min(tags.length,s.settings.untaggedPosition)):tags.length;
-  tags.splice(pos,0,'__untagged__');for(const tag of tags)add(tag,tag,tag==='__untagged__'?'untagged':null);
-}
-function renderAll(inserting=false) {
-  boardDrag.cancel(false);
-  const s=active;renderAppearance();renderStatus();renderNotice();renderCapture();renderTags();
-  $('welcome').hidden=!!s;$('more-button').disabled=!s;$('search-button').disabled=!s;$('pinned-filter').disabled=!s;$('search').disabled=!s;
-  $('pinned-filter').setAttribute('aria-pressed',String(!!s?.view.pinned));
-  renderSearchControls();refreshEditorMetadata();
-  $('app').classList.toggle('selection-mode',!!s?.view.selecting);
-  rebuildLayout(inserting);renderSelection();
-}
-function renderAppearance() {
-  const root=document.documentElement,{palette,fontSize}=MosaicModel.appearance(active?.settings),font=MosaicModel.fontSizes[fontSize];
-  const scale=typeof active?.settings.scale==='number'&&Number.isFinite(active.settings.scale)&&active.settings.scale>0?active.settings.scale:1.12;
-  root.style.setProperty('--scale',String(scale));
-  root.style.setProperty('--paragraph-gap',imParagraphSpacing.style(active?.settings)['--paragraph-gap']);
-  if(root.dataset.mosaicPalette!==palette)root.dataset.mosaicPalette=palette;
-  if(root.dataset.mosaicFontSize!==fontSize)root.dataset.mosaicFontSize=fontSize;
-  for(const [key,value] of Object.entries(font))if(typeof value==='number'){
-    const name='--type-'+key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()),next=value+'px';
-    if(root.style.getPropertyValue(name)!==next)root.style.setProperty(name,next);
-  }
-}
-function rebuildLayout(inserting=false) {
-  const anchor=inserting?null:findAnchor();
-  layout=active?MosaicModel.layout(active.messages,active.settings,Math.max(1,board.clientWidth),active.view.query,active.view.tag,active.view.pinned,active.view.selecting,boardPreviewRatio,boardPinnedRatio):{items:[],headings:[],height:0,count:0};
-  board.style.height=layout.height+'px';board.replaceChildren();mounted.clear();
-  for(const heading of layout.headings){const node=el('div','section-heading',heading.label);node.style.top=heading.y+'px';board.append(node);}
-  const filtered=active&&(active.view.query||active.view.tag||active.view.pinned);
-  $('empty').hidden=!active||!!layout.count||active.damaged||!filtered;
-  if(anchor){const next=layout.byId?.get(anchor.id);if(next)viewport.scrollTop+=next.y-anchor.y;}
-  renderWindow();
-}
-function reflowBoard() {
-  const s=active;if(!s)return;
-  layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting,boardPreviewRatio,boardPinnedRatio);
-  board.style.height=layout.height+'px';
-  for(const [i,node] of [...board.querySelectorAll('.section-heading')].entries())if(layout.headings[i])node.style.top=layout.headings[i].y+'px';
-  renderWindow();
-}
-function findAnchor() {
-  const top=viewport.getBoundingClientRect().top,origin=board.getBoundingClientRect().top;
-  const item=MosaicModel.visible(layout,top-origin,top-origin+viewport.clientHeight).find(p=>p.y+origin+p.height>top&&p.y+origin<top+viewport.clientHeight);
-  return item?{id:item.message.id,y:item.y}:null;
-}
-function scheduleWindow() {if(!frame)frame=requestAnimationFrame(()=>{frame=0;renderWindow();});}
-function renderWindow() {
-  const top=viewport.getBoundingClientRect().top-board.getBoundingClientRect().top,low=top-550,high=top+viewport.clientHeight+550,fontSize=MosaicModel.appearance(active?.settings).fontSize;
-  const visible=new Set(),measurements=[];
-  for(const item of MosaicModel.visible(layout,low,high)){
-    visible.add(item.message.id);
-    let node=mounted.get(item.message.id);
-    if(!node){node=cardNode(item.message,item.width);mounted.set(item.message.id,node);board.append(node);}
-    node.classList.toggle('is-drag-placeholder',!!boardDrag.placeholder(item.message.id));
-    node.classList.toggle('is-compact',item.width<230);
-    const geometry=item.width+':'+fontSize+':'+item.previewRatio+':'+(active?.settings.paragraphSpacing??'medium');
-    Object.assign(node.style,{width:item.width+'px',height:node.dataset.geometry===geometry?item.height+'px':'auto',transform:`translate(${item.x}px,${item.y}px)`});
-    if(node.dataset.geometry!==geometry){
-      node.dataset.geometry=geometry;node.style.removeProperty('--board-title-lines');node.style.removeProperty('--board-body-lines');
-      measurements.push({node,item});
-    }
-  }
-  for(const [id,node] of mounted)if(!visible.has(id)){node.remove();mounted.delete(id);}
-  // Body text owns the standard preview allowance. Titles, replies and tags
-  // add height outside it; they never change the body's visible line count.
-  const previewLimit=({node,item})=>{
-    const title=node.querySelector('.card-title'),body=node.querySelector('.card-body');
-    const bounds=MosaicModel.boardBounds(item.width,fontSize,item.previewRatio),available=bounds.maximum-bounds.padding;
-    const bodyStyle=body&&getComputedStyle(body),titleStyle=title&&getComputedStyle(title);
-    const bodyLine=bodyStyle?parseFloat(bodyStyle.lineHeight):0,titleLine=titleStyle?parseFloat(titleStyle.lineHeight):0;
-    const titleLines=title?Math.max(1,Math.floor(available/titleLine)):0;
-    const bodyLines=body?Math.max(1,Math.floor(available/bodyLine)):0;
-    return {node,titleLines,bodyLines,bodyHeight:bodyLines?bodyLines*bodyLine:available};
-  };
-  const limits=measurements.map(previewLimit);
-  for(const {node,titleLines,bodyLines,bodyHeight} of limits){node.style.setProperty('--board-title-lines',titleLines);node.style.setProperty('--board-body-lines',bodyLines);node.style.setProperty('--board-body-height',bodyHeight+'px');}
-  // Measure only newly mounted/resized previews, in one read batch. Reuse those
-  // real heights on future layouts rather than leaving guessed empty space.
-  let changed=false;const selecting=!!active?.view.selecting;
-  const sizes=measurements.map(({node,item})=>{
-    const truncated=[...node.querySelectorAll('.card-title,.card-body')].some(field=>field.scrollHeight>field.clientHeight+1);
-    const body=node.querySelector('.card-body'),bodyTruncated=body&&body.scrollHeight>body.clientHeight+1;
-    const bounds=MosaicModel.boardBounds(item.width,fontSize,item.previewRatio),filler=bodyTruncated?Math.max(0,bounds.maximum-bounds.padding-body.clientHeight):0;
-    return {node,item,truncated,height:Math.ceil(node.getBoundingClientRect().height+filler)};
-  });
-  for(const {node,item,truncated,height} of sizes){
-    node.classList.toggle('is-truncated',truncated);
-    if(truncated)node.style.height=height+'px';
-    const measured=MosaicModel.measure(item.message,item.width,node.classList.contains('is-pinned'),selecting,height,fontSize,item.previewRatio,active?.settings.paragraphSpacing??'medium');
-    if(measured&&(height!==item.height))changed=true;
-  }
-  if(changed){
-    const anchor=findAnchor(),s=active,locatedY=s.locatedId?layout.byId.get(s.locatedId)?.y:null,atBottom=viewport.scrollHeight-viewport.clientHeight-viewport.scrollTop<=4;
-    layout=MosaicModel.layout(s.messages,dragPreview?.session===s?dragPreview.settings:s.settings,Math.max(1,board.clientWidth),s.view.query,s.view.tag,s.view.pinned,s.view.selecting,boardPreviewRatio,boardPinnedRatio);
-    board.style.height=layout.height+'px';
-    for(const [index,heading] of layout.headings.entries())board.querySelectorAll('.section-heading')[index].style.top=heading.y+'px';
-    for(const [id,node] of mounted){const item=layout.byId.get(id);if(item)Object.assign(node.style,{height:item.height+'px',transform:`translate(${item.x}px,${item.y}px)`});}
-    if(s.locatedId&&!boardDrag.dragging&&locatedY!=null){const next=layout.byId.get(s.locatedId);if(next&&Math.abs(next.y-locatedY)>.5)viewport.scrollTop+=next.y-locatedY;}
-    else if(!s.locatedId&&!boardDrag.dragging){
-      if(atBottom)viewport.scrollTop=viewport.scrollHeight;
-      else if(anchor){const next=layout.byId.get(anchor.id);if(next&&Math.abs(next.y-anchor.y)>.5)viewport.scrollTop+=next.y-anchor.y;}
-    }
-    scheduleWindow();
-  }
-  boardMotion.reveal(mounted);
-}
-function metaText(message) {
-  const bits=[];if(message.copied)bits.push('Copied');if(message.exported)bits.push('Exported');if(MosaicModel.isImported(message))bits.push('Imported');
-  if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime()))bits.push(cardTimestampFormat.format(new Date(message.createdAt)));
-  if(message.edited)bits.push('Edited');return bits.join(' · ');
-}
-function renderSearchControls() {
-  renderDateControls();
-  const s=active,selecting=!!s?.view.selecting,filtered=!!s&&(s.view.query||s.view.tag||s.view.pinned);
-  $('search-tags-panel').hidden=!searchOpen||selecting;$('search-button').setAttribute('aria-expanded',String(searchOpen&&!selecting));$('change-filter').setAttribute('aria-expanded',String(searchOpen&&!selecting));
-  if(searchOpen&&!selecting){const header=document.querySelector('.board-toolbar'),panel=$('search-tags-panel');panel.style.top=(header.offsetTop+header.offsetHeight+6)+'px';if(!searchPanelFit)searchPanelFit=imWatchSearchPanel(panel);else searchPanelFit.update();}
-  else if(searchPanelFit){searchPanelFit.destroy();searchPanelFit=null;}
-  $('search-button').hidden=!!filtered||selecting;$('more-button').hidden=!!filtered||selecting;$('filter-pill').hidden=!filtered||selecting;
-  const change=$('change-filter');change.replaceChildren();
-  const symbol=el('span','filter-symbol ui-filter-symbol');
-  if(s?.view.tag&&s.view.tag!=='__untagged__')symbol.textContent=s.view.tag;
-  else symbol.append(s?.view.tag==='__untagged__'?mosaicToolbarIcon('untagged'):s?.view.pinned?mosaicIcon('pin'):mosaicToolbarIcon('searchOnly'));
-  const check=el('span','filter-check ui-filter-check');check.append(mosaicToolbarIcon('check'));symbol.append(check);change.append(symbol);
-}
-function renderDateControls(){
- if(!searchOpen)dateOpen=false;
- $('date-filter-button').setAttribute('aria-expanded',String(dateOpen));
- const holder=$('date-panel');holder.hidden=!dateOpen;
- if(!dateOpen)holder.replaceChildren();
- else if(!holder.firstChild){const session=active;holder.append(imCreateDateJumpPanel({onJump:value=>{
-  if(active!==session)return false;
-  const target=imDateTarget(session.messages,value);if(!target)return false;
-  searchOpen=false;dateOpen=false;
-  jumpTo(MosaicModel.reply(target.message,session.note.uuid));
-  const notice=imDateJumpNotice(target);if(notice)notify(notice);return true;
- },onClose:()=>{dateOpen=false;renderDateControls();}}));holder.firstChild.openPicker();}
-}
-$('date-filter-button').append(mosaicToolbarIcon('calendarSearch'));
-$('date-filter-button').addEventListener('click',()=>{dateOpen=!dateOpen;renderDateControls();});
-function toggleSearch() {searchOpen=!searchOpen;hideMenu();renderSearchControls();if(searchOpen)$('search').focus();}
-function fillEmojiTag(badge,tag){
-  badge.replaceChildren();
-  // The same rounded vector body, pointed tail and transparent hole as IM.
-  for(const [className,markup] of [
-    ['emoji-tag-body','<rect width="100%" height="100%" rx="6"/><rect x="50%" width="50%" height="100%"/>'],
-    ['emoji-tag-tip','<path fill-rule="evenodd" clip-rule="evenodd" d="M0 0H2Q6 0 9 4L18 16Q22 20 18 24L9 36Q6 40 2 40H0ZM13 20a3.5 3.5 0 1 0-7 0a3.5 3.5 0 1 0 7 0Z"/>']]){
-    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('class',className);svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
-    if(className==='emoji-tag-tip')svg.setAttribute('viewBox','0 0 20 40');svg.innerHTML=markup;badge.append(svg);
-  }
-  badge.append(el('span','emoji-tag-emoji',tag));
-}
-function cardNode(message,width) {
-  const s=active,parts=MosaicModel.preview(message),pinned=MosaicModel.pins(s.settings).includes(message.id);
-  const node=el('article','card'+(pinned?' is-pinned':'')+(s.view.selected.has(message.id)?' selected':''));
-  if(s.locatedId===message.id)node.classList.add('located');
-  const color=MosaicModel.color(message);node.style.setProperty('--card-color',color.background);node.style.setProperty('--card-ink',color.ink);
-  node.dataset.id=message.id;node.setAttribute('role','listitem');node.tabIndex=0;node.setAttribute('aria-label',MosaicModel.label(message));
-  if(s.view.selecting){const check=el('span','selection-check');if(s.view.selected.has(message.id))check.append(mosaicIcon('check'));node.append(check);node.setAttribute('aria-label',(s.view.selected.has(message.id)?'Selected: ':'Select: ')+MosaicModel.label(message));}
-  const activate=()=>{if(!menu.hidden)return;s.view.selecting?toggleSelection(message.id):writable(s)?editorDialog(message.id):readCard(message.id);};
-  if(parts.title)node.append(el('h2','card-title',parts.title));
-  if(message.replyTo)node.append(el('div','card-reply',imMarkdown.message(message.replyTo).text.replace(/\s+/g,' ').slice(0,150)||'Quoted message'));
-  if(parts.body){const body=el('div','card-body im-rich-display');imMarkdown.render(body,imMarkdown.bounded(message),index=>{
-    if(active!==s||!writable(s))return;
-    if(s.view.selecting){toggleSelection(message.id);return;}
-    const source=s.messages.find(m=>m.id===message.id);if(source)safeRun(()=>update(s,{messages:s.messages.map(m=>m===source?imFormat.editMessage(m,imMarkdown.toggleCheck(m.text,index)):m)}));
-  });node.append(body);}
-  if(message.reactions.length){
-    const tags=el('div','card-tags');
-    const tagCount=MosaicModel.boardTagCount(message,width,MosaicModel.appearance(s.settings).fontSize);
-    for(const tag of message.reactions.slice(0,tagCount)){
-      const badge=button('Filter messages by '+tag,null,()=>{
-        if(active!==s)return;
-        if(s.view.selecting){toggleSelection(message.id);return;}
-        s.view.tag=tag;s.view.scroll=0;viewport.scrollTop=0;searchOpen=false;hideMenu();renderAll();
-      },'card-tag');
-      fillEmojiTag(badge,tag);tags.append(badge);
-    }
-    const remaining=message.reactions.length-tagCount;
-    if(remaining>0){const more=button('Show '+remaining+' more tag'+(remaining===1?'':'s'),null,activate,'card-tag card-tag-overflow');more.textContent='+'+remaining;tags.append(more);}
-    node.append(tags);
-  }
-  node.addEventListener('click',activate);
-  node.addEventListener('keydown',event=>{
-    if(event.target!==node)return;
-    if(event.altKey&&['ArrowUp','ArrowDown'].includes(event.key)&&!s.view.selecting&&writable(s)){
-      event.preventDefault();
-      if(event.repeat)return;
-      const pinned=new Set(MosaicModel.pins(s.settings)),items=layout.items.filter(item=>pinned.has(item.message.id)===pinned.has(message.id)),i=items.findIndex(item=>item.message.id===message.id),direction=event.key==='ArrowUp'?-1:1,target=items[i+direction];
-      if(target){const before=boardMotion.snapshot(mounted),settings=MosaicModel.moveCard(s.messages,s.settings,message.id,target.message.id,direction>0);safeRun(()=>update(s,{settings}));boardMotion.move(before,mounted);mounted.get(message.id)?.focus({preventScroll:true});}
+  field.addEventListener('compositionstart', () => ime = true);
+  field.addEventListener('compositionend', () => ime = false);
+  field.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    if (event.isComposing || event.keyCode === 229 || ime || composing()) {
+      allowThisEvent();
       return;
     }
-    if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}
-  });
-  bindContextMenu(node,event=>{const current=s.messages.find(m=>m.id===message.id);if(current)cardMenu(current,event);},()=>active===s&&!s.view.selecting&&!boardDrag.placeholder(message.id));
-  return node;
-}
-function toggleSelection(id) {const v=active.view,entering=!v.selecting;v.selecting=true;searchOpen=false;v.selected.has(id)?v.selected.delete(id):v.selected.add(id);rememberSelection();if(entering)renderAll();else{refreshSelectionCards();renderSelection();}}
-function refreshSelectionCards(){for(const [id,node] of mounted){const selected=active.view.selected.has(id);node.classList.toggle('selected',selected);const check=node.querySelector('.selection-check');if(check){check.replaceChildren();if(selected)check.append(mosaicIcon('check'));}const message=layout.byId?.get(id)?.message;if(message)node.setAttribute('aria-label',(selected?'Selected: ':'Select: ')+MosaicModel.label(message));}}
-function startSelection(id) {active.view.selecting=true;searchOpen=false;if(id)active.view.selected.add(id);rememberSelection();renderAll();}
-function cancelSelection() {if(!active)return;active.view.selecting=false;active.view.selected.clear();rememberSelection();renderAll();}
-function selectedRecords() {return active.messages.filter(m=>active.view.selected.has(m.id));}
-function renderSelection() {
-  const bar=$('selection-bar'),toolbar=$('selection-toolbar'),s=active;bar.hidden=toolbar.hidden=!s?.view.selecting;bar.replaceChildren();toolbar.replaceChildren();if(bar.hidden)return;
-  const count=s.view.selected.size,controls=el('div','ui-selection-actions');controls.setAttribute('aria-label','Selected cards');
-  const choices=[['tag','Add tags to selected cards',event=>batchTagMenu(event)],['copy','Copy selected',()=>safeRun(()=>copyRecords(s,selectedRecords()))],
-    ['export','Export selected',()=>safeRun(()=>exportRecords(s,selectedRecords()))],['more','Selection options',event=>selectionMenu(event)],
-    ['delete','Delete selected',()=>deleteCards(s,new Set(s.view.selected))]];
-  for(const [kind,label,action] of choices){const control=button(label,null,action,'ui-selection-action'+(kind==='delete'?' selection-delete':''));control.replaceChildren(mosaicIcon(kind,true));control.disabled=!count||!writable(s);controls.append(control);}
-  toolbar.append(controls);
-  const all=button('Select all','selectAll',()=>{for(const item of layout.items)s.view.selected.add(item.message.id);rememberSelection();refreshSelectionCards();renderSelection();},'selection-all');
-  const description=el('span','selection-description',`${count} / ${s.messages.length} selected`);description.setAttribute('role','status');
-  const cancel=button('Cancel selection',null,cancelSelection,'selection-cancel');cancel.replaceChildren(mosaicIcon('cancel',true));bar.append(all,description,cancel);
-  syncOverlayMetrics();
-}
-function selectionMenu(event){
-  const s=active;if(!writable(s))return;const ids=new Set(s.view.selected),state=imSelectedPinState(s.messages,s.settings,ids);if(!state.count)return;
-  showMenu([[state.allPinned?'Unpin selected':'Pin selected',state.allPinned?'unpin':'pin',()=>{
-    if(active!==s||!writable(s))return;const settings=imToggleSelectedPins(s.messages,s.settings,ids);if(settings!==s.settings)return update(s,{settings});
-  }],['Background options','palette',()=>{
-    if(active!==s||!writable(s))return;colorMenu(ids,{currentTarget:$('selection-toolbar').querySelector('[aria-label="Selection options"]')});
-  }],null,['Merge selected','merge',()=>mergeDialog()],['Clear message statuses','select',()=>statusDialog(ids)]],event);
-}
-function syncOverlayMetrics() {
-  const app=$('app'),capture=$('capture-composer');if(!capture)return;
-  const height=Math.ceil(capture.getBoundingClientRect().height),bottom=parseFloat(getComputedStyle(capture).bottom)||24;
-  const set=(key,value)=>{if(app.style.getPropertyValue(key)!==value)app.style.setProperty(key,value);};
-  set('--notice-height',($('notice').hidden?0:$('notice').offsetHeight)+'px');
-  set('--capture-clearance',(height+bottom+16)+'px');
-  $('selection-bar').style.setProperty('--selection-row-height',Math.max(46,height)+'px');
-  if(searchOpen)renderSearchControls();
-}
-function batchTagMenu(event) {
-  const s=active,ids=new Set(s.view.selected);if(!ids.size||!writable(s))return;
-  const records=s.messages.filter(m=>ids.has(m.id));hideMenu();menu.replaceChildren();menu.className='menu ui-context-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label','Tags for selected cards');
-  const panel=el('section','ui-tag-panel'),grid=el('div','ui-tag-grid');
-  for(const tag of MosaicModel.tags(s.messages,s.settings)){
-    const choice=button('Add '+tag+' to selected cards',null,()=>{
-      hideMenu();if(active!==s||!writable(s))return;
-      const messages=s.messages.map(m=>ids.has(m.id)&&!m.reactions.includes(tag)?{...m,reactions:[...m.reactions,tag]}:m);
-      if(messages.some((m,i)=>m!==s.messages[i]))safeRun(()=>update(s,{messages}));
-    },'ui-tag-choice');choice.textContent=tag;choice.setAttribute('aria-pressed',String(records.every(m=>m.reactions.includes(tag))));grid.append(choice);
-  }
-  panel.append(grid);menu.append(panel);placeMenu(event);
-}
-function togglePin(s,id) {
-  const ids=MosaicModel.pins(s.settings);const next=ids.includes(id)?ids.filter(value=>value!==id):[...ids,id];
-  return update(s,{settings:{...s.settings,pinnedMessageIds:next}});
-}
-function showMenu(items,event,{message,toggleTag}={}) {
-  hideMenu();menu.replaceChildren();menu.className='menu ui-context-menu';menu.setAttribute('role','menu');menu.removeAttribute('aria-label');
-  if(message){
-    const panel=el('section','ui-tag-panel'),grid=el('div','ui-tag-grid');grid.setAttribute('role','group');grid.setAttribute('aria-label','Emoji picker');
-    for(const tag of new Set([...MosaicModel.tags(active.messages,active.settings),...message.reactions])){
-      const choice=button('Tag '+tag,null,()=>{hideMenu();toggleTag(tag);},'ui-tag-choice');choice.textContent=tag;choice.setAttribute('aria-pressed',String(message.reactions.includes(tag)));grid.append(choice);
-    }
-    panel.append(grid);menu.append(panel);
-  }
-  const panel=el('div','ui-action-panel');
-  for(const item of items){if(!item){panel.append(el('hr'));continue;}const [label,icon,action,danger]=item;const b=button(label,icon,()=>{hideMenu();safeRun(action);},danger?'danger':'');b.append(el('span','',label));b.setAttribute('role','menuitem');panel.append(b);}
-  menu.append(panel);
-  placeMenu(event);
-}
-function placeMenu(event) {
-  (modal.open?$('modal-content'):document.body).append(menu);
-  menu.style.maxHeight='';menu.style.maxWidth='';menuFromTouch=event?.touch===true;menuPress=false;
-  menu.hidden=false;$('more-button').setAttribute('aria-expanded',String(event?.currentTarget===$('more-button')));
-  const anchor=(event?.currentTarget||$('more-button')).getBoundingClientRect();
-  const x=event?.clientX||anchor.right,y=event?.clientY||anchor.bottom;
-  const rect=menu.getBoundingClientRect();menu.style.left=Math.max(10,Math.min(x-rect.width+20,innerWidth-rect.width-10))+'px';menu.style.top=Math.max(10,Math.min(y+7,innerHeight-rect.height-10))+'px';
-  if(menuFromTouch){
-    const visual=window.visualViewport,position=imMenuPosition({anchor:event.anchor,point:{x,y},width:rect.width,height:menu.scrollHeight+menu.offsetHeight-menu.clientHeight,viewport:{left:visual?.offsetLeft||0,top:visual?.offsetTop||0,width:visual?.width||innerWidth,height:visual?.height||innerHeight},touch:true});
-    Object.assign(menu.style,{left:position.x+'px',top:position.y+'px',maxWidth:position.maxWidth+'px',maxHeight:position.maxHeight+'px'});
-  }
-  menu.tabIndex=-1;if(event?.currentTarget!==$('more-button'))menu.focus({preventScroll:true});
-}
-function hideMenu(){menu.hidden=true;$('more-button').setAttribute('aria-expanded','false');menuFromTouch=false;menuPress=false;if(menu.parentNode!==document.body)document.body.append(menu);}
-function clearCardMotion(d){
-  if(!d)return;cancelAnimationFrame(d.motionFrame);d.motionFrame=0;
-  cancelAnimationFrame(d.motionStartFrame);d.motionStartFrame=0;
-  d.cardAnimation?.cancel();modal.classList.remove('card-is-moving');
-}
-function settleCardMotion(){
-  if(modalState?.kind==='edit'&&!modalState.root.inert){clearCardMotion(modalState);modalState.prepareBody?.();}
-}
-function colorMenu(id,event) {
-  settleCardMotion();
-  const s=active,ids=id instanceof Set?new Set(id):new Set([id]),records=s?.messages.filter(m=>ids.has(m.id));if(!records?.length||!writable(s))return;
-  hideMenu();menu.replaceChildren();menu.className='menu color-menu';menu.setAttribute('role','group');menu.setAttribute('aria-label',id instanceof Set?'Selected card background colors':'Card background colors');
-  const grid=el('div','color-grid'),first=MosaicModel.color(records[0]).id,current=records.every(m=>MosaicModel.color(m).id===first)?first:null;
-  for(const preset of MosaicModel.colors){
-    const swatch=button(preset.name,preset.id==='default'?'noColor':null,()=>{
-      hideMenu();if(active!==s||!writable(s))return;
-      const messages=MosaicModel.setCardColor(s.messages,ids,preset.id);if(messages!==s.messages)safeRun(()=>update(s,{messages}));
-    },'color-swatch');
-    swatch.setAttribute('aria-pressed',String(preset.id===current));
-    swatch.style.setProperty('--swatch',preset.light||'var(--surface)');
-    if(preset.id===current)swatch.append(mosaicIcon('check'));grid.append(swatch);
-  }
-  menu.append(grid);placeMenu(event);
-}
-function cardMenu(message,event) {
-  settleCardMotion();
-  const s=active,pinned=MosaicModel.pins(s.settings).includes(message.id);
-  const editing=modalState?.kind==='edit'&&modalState.uuid===s.note.uuid&&modalState.id===message.id?modalState:null;
-  const current=()=>s.messages.find(m=>m.id===message.id);
-  const saved=action=>async()=>{if(editing&&!(await editing.commit(false)))return;return action();};
-  showMenu([['Edit','edit',()=>editCard(message.id)],...(imFormat.title(message)?[['Edit title','textSize',()=>{if(editing)editing.unlockTitle();else beginTitle(message.id);}]]:[]),['Reply','reply',saved(()=>replyTo(message.id))],[pinned?'Unpin':'Pin',pinned?'unpin':'pin',()=>togglePin(s,message.id)],
-    ['Copy','copy',saved(()=>copyRecords(s,[current()]))],['Select','select',saved(()=>{closeModal(true);startSelection(message.id);})],null,['Delete','trash',saved(()=>deleteCards(s,new Set([message.id]))),true]],event,{
-    message:editing?{...message,reactions:[...editing.tags]}:message,
-    toggleTag:tag=>{
-      if(editing){editing.toggleTag(tag);return;}
-      const source=current();if(source)safeRun(()=>update(s,{messages:s.messages.map(m=>m.id===source.id?{...m,reactions:m.reactions.includes(tag)?m.reactions.filter(value=>value!==tag):[...m.reactions,tag]}:m)}));
-    }
-  });
-}
-function mainMenu(event) {
-  if(!menu.hidden&&$('more-button').getAttribute('aria-expanded')==='true'){hideMenu();return;}
-  if(!active)return;const s=active;searchOpen=false;renderSearchControls();
-  showMenu([['Import from clipboard','import',()=>importDialog()],['Export all cards','export',()=>exportRecords(s,s.messages)],['Select cards','select',()=>startSelection()],
-    ['Clear message statuses','select',()=>statusDialog(null)],['Clear clipboard','trash',()=>clearClipboardDialog()],null,
-    ['Color palette','palette',()=>appearanceDialog('palette')],['Font size','textSize',()=>appearanceDialog('fontSize')],['Paragraph spacing','textSize',()=>appearanceDialog('paragraphSpacing')],['Arrange tags','tag',()=>arrangeTagsDialog()],null,
-    ...(Array.isArray(s.settings.mosaicCardOrder)?[['Reset card order','mosaic',()=>{const before=boardMotion.snapshot(mounted),settings={...s.settings};delete settings.mosaicCardOrder;safeRun(()=>update(s,{settings}));boardMotion.move(before,mounted);}]]:[]),
-    ...(latestUnfinished(s.note.uuid)?[['Resume unfinished edit','edit',()=>editCard(latestUnfinished(s.note.uuid).id)]]:[]),['About Mosaic','info',()=>aboutDialog()]],event);
-}
-function arrangeTagsDialog(){
-  const s=active,d=openModal('tags','Arrange tags'),list=el('div','tag-arrange-list');d.root.append(list);
-  const form=el('form','tag-add-form'),input=el('input');input.placeholder='Add an emoji';input.maxLength=32;input.required=true;input.setAttribute('aria-label','Add an emoji category');
-  const add=button('Add emoji',null,()=>{},'secondary-button');add.type='submit';form.append(input,add);d.root.append(form);
-  actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
-  const valid=()=>active===s&&modalState===d&&writable(s);
-  async function save(change,filter){
-    if(d.busy||!valid())return;
-    const focusLabel=document.activeElement?.getAttribute('aria-label'),focusInput=document.activeElement===input;
-    d.busy=true;for(const node of d.root.querySelectorAll('button,input'))node.disabled=true;
-    if(filter!==undefined)s.view.tag=filter;
-    try{await update(s,change);if(modalState===d){input.value='';if(d.error){d.error.remove();d.error=null;}}}
-    catch{dialogError(d,'Saving was not confirmed. Your tag changes are retained; close this panel and use Retry save.');}
-    finally{d.busy=false;if(modalState===d){
-      for(const node of d.root.querySelectorAll('button,input'))node.disabled=false;render();
-      const focused=focusInput&&!input.disabled?input:[...d.root.querySelectorAll('button')].find(node=>!node.disabled&&node.getAttribute('aria-label')===focusLabel);
-      (focused||d.root.querySelector('.dialog-actions button'))?.focus({preventScroll:true});
-    }}
-  }
-  function render(){
-    list.replaceChildren();const order=imFilterOrder(MosaicModel.tags(s.messages,s.settings),s.settings.untaggedPosition);
-    for(const [index,tag] of order.entries()){
-      const untagged=tag===imUntagged,label=untagged?'Untagged':tag,row=el('div','tag-arrange-row'+(untagged?' tag-arrange-untagged':''));
-      const symbol=el('span','tag-arrange-symbol');if(untagged){symbol.append(mosaicIcon('untagged'),document.createTextNode('Untagged'));}else symbol.textContent=tag;row.append(symbol);
-      for(const [delta,name,icon] of [[-1,'earlier','back'],[1,'later','arrow']]){
-        const move=button('Move '+label+' '+name,icon,()=>safeRun(()=>save({settings:imEmojiMove(s.messages,s.settings,tag,delta)})),'icon-button');move.disabled=!writable(s)||(delta===-1?index===0:index===order.length-1);row.append(move);
+    if (event.shiftKey) {
+      allowThisEvent();
+      if (newline) {
+        event.preventDefault();
+        newline();
       }
-      if(!untagged)row.append(button('Edit '+tag,'edit',()=>replaceEmojiDialog(tag),'icon-button'),button('Delete '+tag,'trash',()=>{
-        const count=MosaicModel.index(s.messages).counts.get(tag)||0;
-        if(window.confirm(`Remove ${tag} from this note’s menu and ${count} card${count===1?'':'s'}? All cards and their text will be kept.`))safeRun(()=>save(imEmojiChange(s.messages,s.settings,tag),s.view.tag===tag?'':undefined));
-      },'icon-button danger'));
-      if(!writable(s))for(const control of row.querySelectorAll('button'))control.disabled=true;list.append(row);
+      return;
     }
-    input.disabled=add.disabled=!writable(s);
-  }
-  form.addEventListener('submit',event=>{event.preventDefault();try{const settings=imEmojiAdd(s.messages,s.settings,input.value);safeRun(()=>save({settings}));}catch(error){dialogError(d,error.message);}});render();
-}
-function replaceEmojiDialog(from){
-  const s=active,d=openModal('replace-tag','Replace emoji'),form=el('form','tag-replace-form'),label=el('label','',`Replace ${from} with`),input=el('input');input.value=from;input.maxLength=32;input.required=true;input.setAttribute('aria-label','Replacement emoji');label.append(input);form.append(label);
-  const count=MosaicModel.index(s.messages).counts.get(from)||0;form.append(el('p','dialog-help',`Updates tags on ${count} card${count===1?'':'s'}. All text and other tags stay unchanged.`));d.root.append(form);
-  const row=el('div','dialog-actions'),cancel=button('Cancel emoji change',null,()=>arrangeTagsDialog(),'secondary-button'),save=button('Save emoji change',null,()=>{},'primary-button');save.type='submit';row.append(cancel,save);form.append(row);
-  form.addEventListener('submit',event=>{event.preventDefault();safeRun(async()=>{
-    if(d.busy||active!==s||modalState!==d||!writable(s))return;
-    let to,change;try{to=imEmojiValue(input.value);change=imEmojiChange(s.messages,s.settings,from,to);}catch(error){dialogError(d,error.message);return;}d.busy=true;save.disabled=cancel.disabled=input.disabled=true;
-    if(s.view.tag===from)s.view.tag=to;
-    try{await update(s,change);if(active===s&&modalState===d)arrangeTagsDialog();}
-    catch{dialogError(d,'Saving was not confirmed. Your change is retained; close this panel and use Retry save.');}
-    finally{d.busy=false;if(modalState===d){cancel.disabled=false;save.disabled=input.disabled=!writable(s);}}
-  });});input.focus();input.select();
-}
-function appearanceDialog(kind) {
-  if(kind==='paragraphSpacing'){paragraphSpacingDialog();return;}
-  const s=active,key=kind==='palette'?'mosaicPalette':'mosaicFontSize',d=openModal('appearance',kind==='palette'?'Color palette':'Font size');
-  d.root.append(el('p','dialog-help','For this note. Saved through Standard Notes.'));
-  const choices=el('div','appearance-choices'),items=kind==='palette'?MosaicModel.palettes:Object.entries(MosaicModel.fontSizes).map(([id,value])=>({id,...value}));
-  const controls=[];
-  for(const item of items){
-    const choice=button(item.name,null,async()=>{
-      if(d.busy||active!==s||modalState!==d||!writable(s))return;
-      if(MosaicModel.appearance(s.settings)[kind]===item.id)return;
-      d.busy=true;controls.forEach(control=>control.disabled=true);
-      try{await update(s,{settings:{...s.settings,[key]:item.id}});}
-      catch(error){dialogError(d,'Saving was not confirmed. Keep this editor open and retry saving.');}
-      finally{d.busy=false;if(modalState===d)for(const control of controls){control.disabled=!writable(s);control.setAttribute('aria-pressed',String(MosaicModel.appearance(s.settings)[kind]===control.dataset.value));}}
-    },'appearance-choice');
-    choice.replaceChildren();choice.dataset.value=item.id;choice.setAttribute('aria-pressed',String(MosaicModel.appearance(s.settings)[kind]===item.id));choice.disabled=!writable(s);
-    if(kind==='palette'){const preview=el('span','palette-preview '+item.id);preview.setAttribute('aria-hidden','true');preview.append(el('span'));choice.append(preview);}
-    const label=el('span','appearance-choice-label',item.name);if(item.description)label.append(el('small','',item.description));
-    if(kind==='fontSize')label.style.fontSize=item.editBody+'px';
-    choice.append(label);choices.append(choice);controls.push(choice);
-  }
-  d.root.append(choices);actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
-}
-function paragraphSpacingDialog(){
-  const s=active,d=openModal('appearance','Paragraph spacing');
-  d.root.append(el('p','dialog-help','For this note in both editors. Medium adds a chat-like paragraph gap; line breaks stay compact.'));
-  const control=imParagraphSpacing.control(s.settings,async value=>{
-    if(d.busy||active!==s||modalState!==d||!writable(s))return;
-    d.busy=true;control.update(s.settings,true);
-    try{await update(s,{settings:{...s.settings,paragraphSpacing:value}});}
-    catch{dialogError(d,'Saving was not confirmed. Keep this editor open and retry saving.');}
-    finally{d.busy=false;if(modalState===d)control.update(s.settings,!writable(s));}
+    event.preventDefault();
+    if (!event.repeat) submit();
   });
-  control.update(s.settings,!writable(s));d.root.append(control.dom);actions(d,[button('Done',null,()=>closeModal(),'secondary-button')]);
-}
-function openModal(kind,title) {
-  stashEdit();flushCardEdit();closeModal(true);const root=$('modal-content');root.replaceChildren();modal.classList.toggle('card-edit-dialog',kind==='edit');const heading=el('div','dialog-heading'),h=el('h2','',title);h.id='dialog-title';
-  const state={kind,uuid:active?.note.uuid,root,error:null,busy:false};modalState=state;
-  heading.append(h,button('Close','close',()=>closeModal()));root.append(heading);modal.showModal();return state;
-}
-function dialogError(record,text) {
-  if(modalState!==record)return;if(!record.error){record.error=el('p','dialog-error');record.error.setAttribute('role','alert');if(record.bottom)record.bottom.insertBefore(record.error,record.footer);else record.root.append(record.error);}record.error.textContent=text;
-}
-function closeModal(force=false) {
-  cardBackSwipe=null;
-  if(!force&&modalState?.busy)return;
-  if(!force&&modalState?.kind==='edit'&&modalState.commit){safeRun(()=>modalState.commit(true));return;}
-  if(!force)stashEdit();
-  clearTimeout(modalState?.saveTimer);
-  if(modalState?.viewportResize){window.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('resize',modalState.viewportResize);window.visualViewport?.removeEventListener('scroll',modalState.viewportResize);modal.style.removeProperty('--card-view-height');modal.style.removeProperty('--card-view-top');}
-  cancelAnimationFrame(modalState?.caretFrame);if(modalState?.revealCaret)document.removeEventListener('selectionchange',modalState.revealCaret);
-  cancelAnimationFrame(modalState?.bodyFrame);
-  clearCardMotion(modalState);if(modalState?.transitionSource)modalState.transitionSource.style.removeProperty('visibility');$('modal-content').inert=false;
-  modalState?.scrollObserver?.disconnect();modalState?.tagObserver?.disconnect();modalState?.tagBadges?.remove();modal.style.removeProperty('--tag-overhang');
-  modalState?.body?.imRich?.destroy();
-  hideMenu();if(modal.open)modal.close();modalState=null;
-}
-function stashEdit() {
-  const d=modalState;if(!d||d.kind!=='edit'||!active||d.uuid!==active.note.uuid)return;
-  if(cardEditChanged(d))unfinishedEdits.set(editKey(d.uuid,d.id),{noteId:d.uuid,id:d.id,original:d.original,text:d.currentText,title:d.titleValue,originalTitle:d.originalTitle,titleUnlocked:d.titleUnlocked,tags:[...d.tags]});
-}
-function cardEditChanged(d=modalState){return d?.kind==='edit'&&(d.currentText!==d.original||d.titleValue!==d.originalTitle||JSON.stringify([...d.tags])!==JSON.stringify(d.originalTags));}
-function flushCardEdit(){const d=modalState;if(d?.kind==='edit'&&d.commit)safeRun(()=>d.commit(false));}
-function actions(record,items) {const row=el('div','dialog-actions');for(const item of items)row.append(item);record.root.append(row);return row;}
-function confirmAction(title,description,label,action,danger=false) {
-  const d=openModal('confirm',title);d.root.append(el('p','dialog-help',description));
-  const confirm=button(label,null,async()=>{
-    d.busy=true;confirm.disabled=true;cancel.disabled=true;
-    try{await action();if(modalState===d)closeModal(true);}catch(error){dialogError(d,error.message||'Saving was not confirmed. Use Retry save.');}
-    finally{d.busy=false;confirm.disabled=false;cancel.disabled=false;}
-  },danger?'secondary-button danger':'primary-button');
-  const cancel=button('Cancel',null,()=>closeModal(),'secondary-button');actions(d,[cancel,confirm]);cancel.focus();return d;
-}
-function renderEditorTags(d){
-  if(!d.tagBadges)return;
-  d.tagBadges.replaceChildren();d.tagBadges.hidden=!d.tags.size;
-  for(const tag of d.tags){const badge=el('span','card-tag');fillEmojiTag(badge,tag);badge.setAttribute('role','listitem');d.tagBadges.append(badge);}
-  positionEditorTags(d);
-}
-function positionEditorTags(d){
-  if(modalState!==d||!d.tagBadges)return;
-  const extra=isIPhone||d.tagBadges.hidden?0:Math.max(0,Math.ceil(d.tagBadges.offsetHeight)-13),value=extra+'px';
-  if(modal.style.getPropertyValue('--tag-overhang')!==value)modal.style.setProperty('--tag-overhang',value);
-}
-function refreshEditorMetadata() {
-  const d=modalState,s=active;if(d?.kind!=='edit'||d.uuid!==s?.note.uuid||!d.meta)return;
-  const message=s.messages.find(m=>m.id===d.id);if(!message)return;
-  const color=MosaicModel.color(message);modal.style.setProperty('--edit-card-color',color.background);modal.style.setProperty('--edit-card-ink',color.ink);
-  const pinned=MosaicModel.pins(s.settings).includes(message.id);d.pin.setAttribute('aria-label',pinned?'Unpin card':'Pin card');d.pin.title=pinned?'Unpin card':'Pin card';d.pin.setAttribute('aria-pressed',String(pinned));
-  d.meta.replaceChildren();
-  const add=(text,className='')=>{if(d.meta.childNodes.length)d.meta.append(el('span','metadata-separator',' · '));d.meta.append(el('span',className,text));};
-  if(message.copied)add('Copied');if(message.exported)add('Exported');if(MosaicModel.isImported(message))add('Imported');
-  if(message.createdAt&&!Number.isNaN(new Date(message.createdAt).getTime())){
-    const text=cardTimestampFormat.format(new Date(message.createdAt));
-    add(text,'card-timestamp');d.meta.querySelector('.card-timestamp').title=new Date(message.createdAt).toLocaleString();
-  }
-  if(message.edited)add('edited','card-edited');
-  renderEditorTags(d);
-}
-function cardTransitionRect(node){
-  if(!node?.isConnected)return null;
-  const r=node.getBoundingClientRect(),v=viewport.getBoundingClientRect(),bottom=Math.min(v.bottom,$('capture-composer').getBoundingClientRect().top);
-  const left=Math.max(r.left,v.left),top=Math.max(r.top,v.top),right=Math.min(r.right,v.right),end=Math.min(r.bottom,bottom);
-  return right>left&&end>top?{left,top,width:right-left,height:end-top}:null;
-}
-function animateCard(d,closing=false){
-  cancelAnimationFrame(d.motionFrame);d.motionFrame=0;
-  cancelAnimationFrame(d.motionStartFrame);d.motionStartFrame=0;
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return null;
-  if(closing&&!d.motionClosing&&['running','paused'].includes(d.cardAnimation?.playState)){
-    // Closing before playback starts should simply reveal the Board card.
-    if(!d.cardAnimation.currentTime){clearCardMotion(d);return null;}
-    d.motionClosing=true;
-    d.cardAnimation.reverse();return d.cardAnimation;
-  }
-  const node=mounted.get(d.id),source=closing?cardTransitionRect(node):d.sourceRect;
-  const target=modal.getBoundingClientRect();
-  if(!source||!target.width||!target.height)return null;
-  d.cardAnimation?.cancel();modal.classList.add('card-is-moving');
-  if(node){node.style.visibility='hidden';d.transitionSource=node;}
-  const small={transform:`translate(${source.left-target.left}px,${source.top-target.top}px) scale(${source.width/target.width},${source.height/target.height})`},full={transform:'translate(0,0) scale(1,1)'};
-  if(isIPhone){small.borderRadius='16px';full.borderRadius='0px';}
-  d.motionClosing=closing;
-  const animation=d.cardAnimation=modal.animate(closing?[full,small]:[small,full],{duration:320,easing:'cubic-bezier(.22,.8,.24,1)',fill:'both'});
-  // Do not spend animation time rasterizing the first frame. In particular,
-  // a busy first render must not turn the first visible move into an end jump.
-  animation.pause();animation.currentTime=0;
-  d.motionStartFrame=requestAnimationFrame(()=>{d.motionStartFrame=requestAnimationFrame(()=>{
-    d.motionStartFrame=0;
-    if(modalState===d&&d.cardAnimation===animation&&animation.playState==='paused'&&animation.currentTime===0)animation.play();
-  });});
-  // Let the final composited frame settle before releasing its layer.
-  if(!closing)animation.onfinish=()=>{if(modalState!==d||d.cardAnimation!==animation)return;d.motionFrame=requestAnimationFrame(()=>{d.motionFrame=requestAnimationFrame(()=>{if(modalState===d&&d.cardAnimation===animation){clearCardMotion(d);if(d.deferBodyUntilMotion)d.prepareBody();}});});};
-  return animation;
-}
-function finishCard(d){
-  if(modalState!==d)return;
-  if(d.boardDirty){renderAll();d.boardDirty=false;}
-  cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;
-  const animation=animateCard(d,true);
-  if(!animation){closeModal(true);return;}
-  d.busy=true;d.root.inert=true;
-  animation.onfinish=()=>{if(modalState===d)closeModal(true);};
-}
-function cardBodyStart(text,settings){
-  const font=MosaicModel.fontSizes[MosaicModel.appearance(settings).fontSize];
-  const firstLines=Math.ceil(innerHeight/(font.editBody*1.75))+4;
-  return imMarkdown.preview(text,firstLines);
-}
-function editorDialog(id=null) {
-  if(!id){$('capture-input').focus();return;}
-  if(modalState?.kind==='edit'&&modalState.id===id&&modalState.uuid===active?.note.uuid){modalState.body.focus();return;}
-  const s=active;if(s?.titleEntry){notify('Finish or cancel the current title entry first.');return;}if(!writable(s)){notify('This note is read only until the notice above is resolved.');return;}
-  const message=s.messages.find(m=>m.id===id);if(!message)return;
-  let stashed=unfinishedEdits.get(editKey(s.note.uuid,id));
-  if(stashed?.text===message.text&&(stashed.title??imFormat.title(message))===imFormat.title(message)&&JSON.stringify(stashed.tags)===JSON.stringify(message.reactions)){unfinishedEdits.delete(editKey(s.note.uuid,id));stashed=null;}
-  const restored=stashed?.id===id&&stashed.original===message.text&&(stashed.originalTitle??imFormat.title(message))===imFormat.title(message)?stashed:null;
-  const original=message.text,originalTitle=imFormat.title(message),currentTitle=restored?.title??originalTitle;
-  const originalNormalized=MosaicModel.normalized(original),titleNormalized=MosaicModel.normalized(currentTitle),originalNewline=(/\r\n|\n|\r/.exec(original)||['\n'])[0];
-  const sourceRect=cardTransitionRect(mounted.get(id));
-  const initialText=restored?.text??original;
-  const d=openModal('edit','Edit card');d.sourceRect=sourceRect;Object.assign(d,{id,original,originalTitle,titleValue:currentTitle,titleUnlocked:restored?.titleUnlocked||false,tags:new Set(restored?.tags??message.reactions),originalTags:message.reactions,fieldRevision:0,saveSequence:0,wantClose:false});
-  const scroller=el('div','card-detail-scroll');d.scroll=scroller;d.root.append(scroller);
-  if(stashed&&!restored){
-    scroller.append(el('p','dialog-help','This card changed after your unfinished edit. Your earlier edit is available here to copy before you continue.'));
-    const earlier=el('textarea','transfer-text');earlier.readOnly=true;earlier.value=stashed.text;earlier.setAttribute('aria-label','Earlier unfinished edit');scroller.append(earlier);
-  }
-  const title=imWritingTextField(el('textarea','editor-title'));title.rows=1;title.placeholder='Title';title.setAttribute('aria-label','Card title');title.value=currentTitle;title.enterKeyHint='enter';title.hidden=!d.titleUnlocked;
-  const titlePreview=el('h3','detail-title',currentTitle);titlePreview.hidden=!currentTitle||d.titleUnlocked;
-  const startBody=cardBodyStart(initialText,s.settings),bodyEditor=imRichField.create({className:'editor-body',label:'Card body',placeholder:'Text',value:startBody.text,readOnly:!startBody.complete,focusOnCheck:!phoneBoard,onResize:()=>d.updateScroll?.()}),body=bodyEditor.dom;d.body=body;d.bodyReady=startBody.complete;if(!d.bodyReady)body.setAttribute('aria-busy','true');
-  let bodyEdited=false;
-  Object.defineProperty(d,'currentText',{get(){
-    if(!bodyEdited)return initialText;
-    const value=body.value;
-    if(value===originalNormalized)return original;
-    return originalNewline==='\n'?value:value.replace(/\n/g,originalNewline);
-  }});
-  // One scroller owns title, full-height body and trailing metadata. The toolbar
-  // stays outside it; the editor itself never reserves a second scrollbar.
-  // The visual editor is a normal contenteditable block, so CSS owns its
-  // height. Textarea-style zero-height measurement would relayout the entire
-  // Markdown tree repeatedly during opening, typing and width changes.
-  // A bounded first page lets compositor motion start before laying out a
-  // very long visual document. Never expose a partial value to user edits.
-  d.prepareBody=()=>{
-    if(modalState!==d||d.bodyReady)return;
-    cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;
-    const top=scroller.scrollTop,start=body.selectionStart,end=body.selectionEnd,direction=body.selectionDirection;
-    // An opening caret at the preview's end means the end of the full body.
-    const append=d.pendingEndCaret&&start===end&&end===body.value.length;d.pendingEndCaret=false;
-    body.value=d.currentText;body.readOnly=false;body.removeAttribute('aria-busy');d.bodyReady=true;d.deferBodyUntilMotion=false;
-    if(!isIPhone||document.activeElement===body)body.setSelectionRange(append?body.value.length:start,append?body.value.length:end,direction);
-    scroller.scrollTop=top;
-  };
-  const prepareForInput=event=>{if(event.type==='keydown'&&['Escape','Tab','Shift','Control','Alt','Meta'].includes(event.key))return;if(!d.bodyReady){if(d.deferBodyUntilMotion)settleCardMotion();else d.prepareBody();}};
-  for(const event of ['pointerdown','keydown','compositionstart','beforeinput','paste','cut','drop']){body.addEventListener(event,prepareForInput,true);title.addEventListener(event,prepareForInput,true);}
-  const pin=button('Pin card','pin',()=>safeRun(()=>togglePin(s,id)),'icon-button detail-pin');d.pin=pin;
-  const header=el('div','card-detail-heading');header.append(titlePreview,title);scroller.append(header,body);
-  d.unlockTitle=()=>{d.prepareBody();d.titleUnlocked=true;title.hidden=false;titlePreview.hidden=true;title.style.height='auto';title.style.height=title.scrollHeight+'px';hideMenu();title.focus();};
-  d.tagBadges=el('div','card-detail-tags');d.tagBadges.setAttribute('role','list');d.tagBadges.setAttribute('aria-label','Emoji tags');modal.append(d.tagBadges);
-  d.tagObserver=new ResizeObserver(()=>positionEditorTags(d));d.tagObserver.observe(d.tagBadges);
-  d.toggleTag=tag=>{d.tags.has(tag)?d.tags.delete(tag):d.tags.add(tag);d.fieldRevision++;renderEditorTags(d);d.scheduleSave();};
-  d.meta=el('div','card-detail-meta');d.meta.setAttribute('aria-label','Card timestamp and statuses');scroller.append(d.meta);
-  const footer=el('div','card-detail-tools');
-  const palette=button('Background options','palette',event=>colorMenu(id,event));
-  const more=button('Card options','more',event=>cardMenu(s.messages.find(m=>m.id===id),event),'icon-button detail-more');
-  const close=button('Close',null,()=>safeRun(()=>saveEditor(true)),'detail-close');d.submit=close;
-  footer.append(bodyEditor.toggle,pin,palette,more,close);d.footer=footer;d.bottom=el('div','card-detail-bottom');if(isIPhone)d.bottom.append(d.tagBadges);d.bottom.append(bodyEditor.toolbar,footer);d.root.append(d.bottom);
-  d.updateScroll=()=>{if(modalState===d)d.bottom.classList.toggle('has-content-below',scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop>1);};
-  scroller.addEventListener('scroll',d.updateScroll,{passive:true});
-  if(phoneBoard){
-    let touch=null;
-    scroller.addEventListener('touchstart',event=>{
-      const point=event.touches[0];d.selectingText=cardHasTextSelection(d);cancelAnimationFrame(d.caretFrame);
-      touch=event.touches.length===1?{x:point.clientX,y:point.clientY,at:performance.now(),editable:!!event.target.closest('.editor-body,.editor-title')}:null;
-    },{passive:true});
-    scroller.addEventListener('touchmove',event=>{
-      const point=event.touches[0];if(!touch||!point)return;
-      // Blue handles and long-press caret/selection drags belong to the OS.
-      // Native selection may update before ProseMirror's selection state does.
-      if(d.selectingText||cardHasTextSelection(d)||(touch.editable&&performance.now()-touch.at>300)){d.selectingText=true;touch=null;return;}
-      if(Math.hypot(point.clientX-touch.x,point.clientY-touch.y)>10){touch=null;if(modalState===d)dismissCardKeyboard();}
-    },{passive:true});
-    const endTouch=()=>{touch=null;d.selectingText=false;};
-    scroller.addEventListener('touchend',endTouch,{passive:true});scroller.addEventListener('touchcancel',endTouch,{passive:true});
-  }
-  d.scrollObserver=new ResizeObserver(()=>{d.updateScroll();d.revealCaret?.();});for(const element of [scroller,body,header,d.meta])d.scrollObserver.observe(element);
-  const change=event=>{
-    d.fieldRevision++;
-    if(event.target===body){
-      bodyEdited=true;
-      if(!d.bodyReady){cancelAnimationFrame(d.bodyFrame);d.bodyFrame=0;d.bodyReady=true;body.readOnly=false;body.removeAttribute('aria-busy');d.deferBodyUntilMotion=false;}
-    }else{
-      d.titleValue=MosaicModel.normalized(title.value)===titleNormalized?currentTitle:title.value;
-      if(!title.hidden){title.style.height='auto';title.style.height=title.scrollHeight+'px';}
-    }
-    d.scheduleSave();
-  };
-  title.addEventListener('input',change);body.addEventListener('im-markdown-change',change);
-  // Serialize/save only at checkpoints, never rebuild the Board on a keystroke.
-  // Keep the same idle and continuous-typing limits as capture drafts.
-  d.scheduleSave=()=>{
-    clearTimeout(d.saveTimer);if(modalState!==d||!writable(s)||d.composing)return;
-    const now=Date.now();if(d.saveStarted==null)d.saveStarted=now;
-    d.saveTimer=setTimeout(()=>safeRun(()=>saveEditor(false)),Math.max(0,Math.min(imDraftIdleMs,d.saveStarted+imDraftCheckpointMs-now)));
-  };
-  for(const field of [title,body]){
-    field.addEventListener('compositionstart',()=>{d.composing=true;clearTimeout(d.saveTimer);});
-    field.addEventListener('compositionend',()=>{d.composing=false;d.scheduleSave();});
-  }
-  // Enter is ordinary multiline editing here; the capture field has its own send keys.
-  const hasSelection=()=>cardHasTextSelection(d)||hasDOMSelectionIn(d.root);
-  const canHoldCard=()=>active===s&&modalState===d&&!hasSelection();
-  bindContextMenu(d.root,event=>cardMenu(s.messages.find(m=>m.id===id),event),canHoldCard,hasSelection);
-  bindContextMenu(d.tagBadges,event=>cardMenu(s.messages.find(m=>m.id===id),event),canHoldCard,hasSelection);
-  d.commit=saveEditor;
-  async function saveEditor(closeAfter=true) {
-    if(active!==s||modalState!==d)return false;
-    clearTimeout(d.saveTimer);d.saveStarted=null;
-    if(!writable(s)){dialogError(d,'Saving is paused. Your edit is still here; review the saved version before continuing.');return false;}
-    d.wantClose=d.wantClose||closeAfter;
-    const submitted=d.currentText,submittedTitle=d.titleValue,submittedTags=[...d.tags],revision=d.fieldRevision;
-    const source=s.messages.find(m=>m.id===id);if(!source||source.text!==d.original||imFormat.title(source)!==d.originalTitle){dialogError(d,'This card changed since you opened it. Your text is still here; copy it before reopening the card.');return false;}
-    const edited=imFormat.withTitle({...imFormat.editMessage(source,submitted),reactions:submittedTags},submittedTitle);
-    const changed=submitted!==source.text||imFormat.title(edited)!==imFormat.title(source)||JSON.stringify(edited.reactions)!==JSON.stringify(source.reactions);
-    if(!changed&&(!d.wantClose||!s.pending&&!s.error&&!s.dirty)){
-      if(restored)unfinishedEdits.delete(editKey(s.note.uuid,id));if(d.wantClose)finishCard(d);return true;
-    }
-    const tagOrder=[...new Set([...(s.settings.reactionOrder||MosaicModel.tags(s.messages,s.settings)),...d.tags])];
-    const sequence=++d.saveSequence;d.busy=d.wantClose;close.disabled=d.wantClose;close.textContent=d.wantClose?'Saving…':'Close';close.setAttribute('aria-label','Close');
-    if(changed)s.cardSavePending=true;
-    const saving=changed?update(s,{messages:s.messages.map(m=>m.id===id?edited:m),settings:{...s.settings,reactionOrder:tagOrder,deletedEmojis:(s.settings.deletedEmojis||[]).filter(tag=>!d.tags.has(tag))}},false):persist(s);
-    // The local session now owns this snapshot, including while its host save
-    // waits. A newer edit can replace the queued snapshot before an older ack.
-    d.original=submitted;d.originalTitle=imFormat.title(edited);d.originalTags=submittedTags;d.boardDirty=d.boardDirty||changed;
-    const stored=unfinishedEdits.get(editKey(s.note.uuid,id));if(stored?.text===submitted&&(stored.title??originalTitle)===submittedTitle&&JSON.stringify(stored.tags)===JSON.stringify(submittedTags))unfinishedEdits.delete(editKey(s.note.uuid,id));
-    s.intents.add({revision:s.revision,finish:()=>{
-      if(modalState!==d||sequence!==d.saveSequence)return;
-      d.busy=false;close.disabled=false;close.textContent='Close';close.setAttribute('aria-label','Close');
-      if(d.error){d.error.remove();d.error=null;}
-      if(d.wantClose&&d.fieldRevision===revision){finishCard(d);notify('Card updated.');}
-      else{d.wantClose=false;refreshEditorMetadata();}
-    }});
-    try{await saving;return d.fieldRevision===revision;}catch{
-      if(modalState!==d||sequence!==d.saveSequence)return false;
-      d.busy=false;d.wantClose=false;close.disabled=false;close.textContent='Retry save';close.setAttribute('aria-label','Retry save');
-      dialogError(d,'Saving was not confirmed. Your text is still here. Retry save before closing.');return false;
-    }
-  }
-  if(phoneBoard){
-    const caretSpace=el('div','card-caret-space');caretSpace.hidden=true;caretSpace.setAttribute('aria-hidden','true');scroller.append(caretSpace);
-    d.scrollObserver.observe(bodyEditor.toolbar);
-    // Keyboard resizing does not necessarily move a contenteditable's caret
-    // into its nested scroller. Measure after layout, without refocusing or
-    // changing selection, and never scroll the Board/host document.
-    d.revealCaret=()=>{
-      cancelAnimationFrame(d.caretFrame);d.caretFrame=requestAnimationFrame(()=>{
-        if(modalState!==d||!d.bodyReady)return;
-        const view=body.imRich.view;
-        const panel=bodyEditor.toolbar.hidden?null:bodyEditor.toolbar.getBoundingClientRect();
-        // Extend only the scrollable overflow, without changing the card's
-        // intrinsic height when its floating formatting panel is opened.
-        caretSpace.hidden=!panel;caretSpace.style.top=(body.offsetTop+body.offsetHeight+(panel?.height||0)+18)+'px';
-        if(document.activeElement!==body||d.selectingText||cardHasTextSelection(d))return;
-        const caret=view.coordsAtPos(view.state.selection.head),box=scroller.getBoundingClientRect(),visual=window.visualViewport;
-        const top=Math.max(box.top,visual?.offsetTop||0)+12,bottom=Math.min(box.bottom,panel?.top??Infinity,(visual?.offsetTop||0)+(visual?.height||innerHeight))-12;
-        if(bottom<=top)return;
-        if(caret.bottom>bottom)scroller.scrollTop+=caret.bottom-bottom;
-        else if(caret.top<top)scroller.scrollTop+=caret.top-top;
-      });
-    };
-    document.addEventListener('selectionchange',d.revealCaret);
-    for(const event of ['focus','im-markdown-change','keyup','pointerup'])body.addEventListener(event,d.revealCaret);
-    d.viewportResize=()=>{if(modalState!==d)return;const view=window.visualViewport;modal.style.setProperty('--card-view-height',(view?.height||innerHeight)+'px');modal.style.setProperty('--card-view-top',(view?.offsetTop||0)+'px');d.revealCaret();};
-    window.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('resize',d.viewportResize);window.visualViewport?.addEventListener('scroll',d.viewportResize);d.viewportResize();
-  }
-  refreshEditorMetadata();
-  if(!d.bodyReady){
-    const line=parseFloat(getComputedStyle(body).lineHeight);
-    // Only defer when the prefix already exceeds the final viewport. Thus
-    // replacing it with the full value cannot change the card's outer size.
-    if(scroller.scrollHeight<=scroller.clientHeight+2*line||matchMedia('(prefers-reduced-motion: reduce)').matches)d.prepareBody();
-  }
-  // Restore text focus before motion, with new typing appending to the body.
-  if(isIPhone)modal.focus({preventScroll:true});
-  else{d.pendingEndCaret=!d.bodyReady;body.setSelectionRange(body.value.length,body.value.length);body.focus({preventScroll:true});}
-  scroller.scrollTop=0;d.updateScroll();animateCard(d);
-  if(!d.bodyReady){
-    if(d.cardAnimation)d.deferBodyUntilMotion=true;
-    else d.bodyFrame=requestAnimationFrame(()=>{d.bodyFrame=requestAnimationFrame(()=>d.prepareBody());});
-  }
-}
-function editCard(id){editorDialog(id);}
-function readCard(id) {
-  const s=active,message=s?.messages.find(m=>m.id===id);if(!message)return;
-  const d=openModal('read','Card'),parts=MosaicModel.preview(message);
-  if(message.replyTo){const quote=button('Show quoted card',null,()=>{closeModal();jumpTo(message.replyTo);},'reply-preview');quote.textContent=message.replyTo.text||'Quoted message';d.root.append(quote);}
-  const body=el('div','reader-body im-rich-display');imMarkdown.render(body,imMarkdown.message(message).doc);d.root.append(el('h3','reader-title',parts.title),body,el('p','reader-meta',metaText(message)));
-  const tags=el('div','reader-tags');for(const tag of message.reactions)tags.append(el('span','card-tag',tag));d.root.append(tags);
-  actions(d,[button('Copy','copy',()=>safeRun(()=>copyRecords(s,[message])),'secondary-button'),button('Reply','reply',()=>replyTo(id),'secondary-button'),button('Edit','edit',()=>editCard(id),'primary-button')]);
-}
-function replyTo(id) {
-  const s=active,message=s.messages.find(m=>m.id===id);if(!message||!writable(s))return;
-  closeModal(true);safeRun(()=>update(s,{reply:MosaicModel.reply(message,s.note.uuid)},false));$('capture-input').focus();
-}
-function jumpTo(reply) {
-  const s=active,target=MosaicModel.target(s.messages,reply,s.note.uuid);if(!target){notify('The original message is not in this note. The quoted text is still preserved.');return;}
-  s.locatedId=target.id;setTimeout(()=>{if(s.locatedId===target.id)s.locatedId=null;},2200);
-  s.view.query='';s.view.tag='';s.view.pinned=false;$('search').value='';renderAll();
-  const item=layout.byId?.get(target.id);if(!item)return;
-  const origin=board.getBoundingClientRect().top-viewport.getBoundingClientRect().top+viewport.scrollTop;
-  const bounds=viewport.getBoundingClientRect(),top=Math.max(bounds.top,document.querySelector('.board-toolbar').getBoundingClientRect().bottom+12),bottom=Math.min(bounds.bottom,$(s.view.selecting?'selection-bar':'capture-composer').getBoundingClientRect().top-12);
-  viewport.scrollTop=origin+item.y-(top-bounds.top)-Math.max(0,(bottom-top-item.height)/2);renderWindow();
-  const node=mounted.get(target.id);node?.classList.add('located');setTimeout(()=>node?.classList.remove('located'),2100);
-}
-function deleteCards(s,ids) {
-  if(!ids.size||!writable(s))return;
-  confirmAction(`Delete ${ids.size===1?'this card':ids.size+' cards'}?`,'This removes the selected text from this note. There is no trash folder in Mosaic.','Delete',async()=>{
-    const next=s.messages.filter(m=>!ids.has(m.id));const pins=MosaicModel.pins(s.settings).filter(id=>!ids.has(id));
-    for(const id of ids)s.view.selected.delete(id);rememberSelection();
-    await update(s,{messages:next,settings:{...s.settings,pinnedMessageIds:pins}});
-  },true);
-}
-function applyTransferMarks(s){
-  const intents=transferMarks.get(s?.note.uuid);
-  if(!intents||!writable(s)||s.error)return Promise.resolve();
-  const next=s.messages.map(message=>{
-    const intent=intents.get(message.id);if(!intent||intent.text!==message.text)return message;
-    let result=message;for(const flag of intent.flags)if(!message[flag])result={...result,[flag]:true};return result;
+  field.addEventListener('beforeinput', event => {
+    if (!['insertLineBreak', 'insertParagraph'].includes(event.inputType) || allowLineBreak || event
+      .isComposing || ime || composing()) return;
+    event.preventDefault();
+    submit();
   });
-  let pending=Promise.resolve();
-  if(next.some((message,i)=>message!==s.messages[i]))pending=update(s,{messages:next});
-  transferMarks.delete(s.note.uuid);return pending;
-}
-function mark(s,records,flag) {
-  const uuid=s.note.uuid,intents=transferMarks.get(uuid)||new Map();
-  for(const record of records){
-    const old=intents.get(record.id),flags=old?.text===record.text?old.flags:new Set();flags.add(flag);
-    intents.set(record.id,{text:record.text,flags});
-  }
-  transferMarks.set(uuid,intents);
-  return active?.note.uuid===uuid?applyTransferMarks(active):Promise.resolve();
-}
-async function copyRecords(s,records) {
-  if(!records.length)return;
-  const text=records.map(m=>m.text).join('\n\n');
-  if(await imWriteClipboard(text)){notify('Copied to clipboard.');await mark(s,records,'copied');}
-  else manualCopyDialog(s,records,text,'copied');
-}
-async function exportRecords(s,records) {
-  if(!records.length){notify('There are no cards to export.');return;}
-  const text=imTransfer.create(records.map(m=>({...m,exported:true})),s.settings,s.note.uuid);
-  if(await imWriteClipboard(text)){notify('Export copied. Open another note and choose Import from clipboard.');await mark(s,records,'exported');}
-  else manualCopyDialog(s,records,text,'exported');
-}
-function manualCopyDialog(s,records,text,flag) {
-  if(active!==s)return;
-  const d=openModal('copy',flag==='exported'?'Export cards':'Copy');d.root.append(el('p','dialog-help','Automatic copying was blocked. Select and copy the text below, or try the Copy button.'));
-  const field=el('textarea','transfer-text');field.value=text;field.readOnly=true;field.setAttribute('aria-label','Text to copy');d.root.append(field);
-  let marked=false;
-  // Only a successful programmatic clipboard write marks status. A browser's
-  // ordinary copy event cannot prove the system clipboard accepted the text.
-  actions(d,[button('Close',null,()=>closeModal(),'secondary-button'),button('Copy',null,async()=>{if(await imWriteClipboard(text)){if(!marked){marked=true;safeRun(()=>mark(s,records,flag));}notify('Copied to clipboard.');}else dialogError(d,'Clipboard access is still blocked. You can select the text and copy it manually.');},'primary-button')]);
-  field.focus();field.select();
-}
-function importDialog() {
-  const s=active;if(!writable(s))return;
-  const d=openModal('import','Import');d.root.append(el('p','dialog-help','Paste an export from Mosaic or the IM-style editor. Your existing cards will be kept.'));
-  const field=el('textarea','transfer-text');field.placeholder='Paste your exported messages here…';field.setAttribute('aria-label','Import text');d.root.append(field);
-  const summary=el('p','dialog-help','');d.root.append(summary);
-  const apply=async clear=>{
-    const payload=imTransfer.read(field.value);if(!payload.ok){dialogError(d,payload.error);return;}
-    if(active!==s||modalState!==d)return;
-    const merged=imTransfer.merge(s.messages,payload);d.busy=true;normal.disabled=true;combined.disabled=true;
-    try{await update(s,{messages:merged.messages});if(modalState===d){closeModal(true);notify(`${merged.added.length} imported${merged.skipped?', '+merged.skipped+' duplicates skipped':''}.`);if(clear)clearClipboardDialog();}}
-    catch{dialogError(d,'Import saving was not confirmed. The imported text is still available. Keep this editor open and use Retry save.');}
-    finally{d.busy=false;normal.disabled=false;combined.disabled=false;}
-  };
-  const normal=button('Import',null,()=>safeRun(()=>apply(false)),'primary-button');
-  const combined=button('Import and clear clipboard',null,()=>safeRun(()=>apply(true)),'secondary-button danger');
-  actions(d,[button('Cancel',null,()=>closeModal(),'secondary-button'),normal,combined]);
-  const preview=()=>{const parsed=imTransfer.read(field.value);summary.textContent=parsed.ok?`${parsed.messages.length} cards ready to import.`:field.value?'Paste a complete message export.':'';};field.addEventListener('input',preview);
-  // Reading is requested only after the user explicitly opens Import.
-  const initial=field.value;try{navigator.clipboard.readText().then(text=>{if(modalState===d&&field.value===initial){field.value=text;preview();}}).catch(()=>{});}catch{}
-  field.focus();
-}
-function clearClipboardDialog() {
-  confirmAction('Clear your clipboard?','This empties the current clipboard. Clipboard history and other devices are outside Mosaic’s control.','Clear clipboard',async()=>{if(!await imClearClipboard())throw new Error('Clipboard clearing was blocked by this app. Your clipboard has not been confirmed cleared.');notify('Clipboard cleared.');},true);
-}
-function statusDialog(ids) {
-  const s=active;if(!writable(s))return;const d=openModal('statuses','Clear message statuses');
-  d.root.append(el('p','dialog-help',ids?`${ids.size} selected cards.`:'All cards in this note, including cards hidden by filters.'));
-  const options=el('div','status-options'),flags=new Set(),help=el('p','dialog-help',imStatusClearHelp(flags));
-  for(const [key,label] of Object.entries(imClearableStatuses)){
-    const row=el('label'),check=el('input');check.type='checkbox';check.addEventListener('change',()=>{check.checked?flags.add(key):flags.delete(key);save.disabled=!flags.size;help.textContent=imStatusClearHelp(flags);});row.append(check,document.createTextNode(label));options.append(row);
-  }
-  d.root.append(options,help);const save=button('Clear selected statuses',null,async()=>{
-    if(d.busy||active!==s||modalState!==d||!writable(s)||!flags.size)return;
-    d.busy=true;save.disabled=true;options.querySelectorAll('input').forEach(input=>input.disabled=true);
-    try{await update(s,{messages:MosaicModel.clearStatuses(s.messages,flags,ids)});if(modalState===d)closeModal(true);notify('Statuses cleared.');}
-    catch(error){dialogError(d,error.message);}finally{d.busy=false;if(modalState===d){save.disabled=!flags.size||!writable(s);options.querySelectorAll('input').forEach(input=>input.disabled=!writable(s));}}
-  },'primary-button');save.disabled=true;actions(d,[button('Cancel',null,()=>closeModal(),'secondary-button'),save]);
-}
-function mergeDialog() {
-  const s=active,ids=new Set(s.view.selected),records=s.messages.filter(m=>ids.has(m.id));if(records.length<2){notify('Select at least two cards to merge.');return;}
-  const preview=imFormat.mergeText(records),snapshot=JSON.stringify(records);
-  const d=confirmAction(`Merge ${records.length} cards?`,'Text will stay in its original IM order, separated by a blank line. Tags and pins are combined. Copied and Exported reset.','Merge selected',async()=>{
-    if(JSON.stringify(s.messages.filter(m=>ids.has(m.id)))!==snapshot)throw new Error('These cards changed. Open a fresh merge preview.');
-    const result=MosaicModel.merge(s.messages,s.settings,ids,s.note.uuid);s.view.selected=new Set([result.id]);rememberSelection();await update(s,result);
-  });
-  const field=el('textarea','transfer-text');field.readOnly=true;field.value=preview;field.setAttribute('aria-label','Merged card preview');d.root.insertBefore(field,d.root.lastChild);
-}
-function recoveryDialog(s) {
-  flushCapture(s);
-  const d=openModal('recovery','Review your text');d.root.append(el('p','dialog-help','Copy this text somewhere safe before closing the editor. Mosaic will not automatically overwrite a different saved version.'));
-  const field=el('textarea','transfer-text');field.readOnly=true;field.value=s.note.content.text||'';field.setAttribute('aria-label','Current local note text');d.root.append(field);
-  if(s.titleEntry){const title=el('textarea','transfer-text');title.readOnly=true;title.value=s.titleEntry.text;title.setAttribute('aria-label','Unfinished title');d.root.append(title);}
-  for(const entry of unfinishedEdits.values())if(entry.noteId===s.note.uuid){const edit=el('textarea','transfer-text');edit.readOnly=true;edit.value=(entry.title?'title: '+JSON.stringify(entry.title)+'\n\n':'')+entry.text;edit.setAttribute('aria-label','Unfinished card edit');d.root.append(edit);}
-  actions(d,[button('Close',null,()=>closeModal(),'secondary-button'),button('Copy local text',null,async()=>{if(await imWriteClipboard(field.value))notify('Local text copied.');else{field.focus();field.select();dialogError(d,'Automatic copying was blocked. Copy the selected text manually.');}},'primary-button')]);
-  if(s.remote){d.root.append(el('p','dialog-help','Standard Notes also supplied this saved version:'));const remote=el('textarea','transfer-text');remote.value=s.remote.content?.text||'';remote.readOnly=true;remote.setAttribute('aria-label','Standard Notes version');d.root.append(remote);
-    actions(d,[button('Use Standard Notes version',null,()=>confirmAction('Use the saved version?','Copy your local text first. This discards the unconfirmed local changes shown above.','Use saved version',()=>receive(s.remote,true),true),'secondary-button danger')]);}
-}
-function aboutDialog() {
-  const d=openModal('about','Mosaic · '+MOSAIC_VERSION);
-  d.root.append(el('p','about-copy','Each card is the same message your IM-style editor reads. All text is body text unless you explicitly add a title from its context menu. There is no separate copy of your notes.'));
-  d.root.append(el('p','about-copy','Your note content is saved through Standard Notes. Mosaic has no analytics, independent cloud service, or browser-storage copy. Saving still submits a complete note; very large active notes can reach Standard Notes’ sync limits.'));
-  d.root.append(el('p','about-copy','New-card drafts and open-card edits autosave after a 0.7-second typing pause, with checkpoints every 6 seconds of continuous typing. Enter adds a line. Close and leaving the editor submit pending edits immediately. Failed saves remain here for retry; different saved versions require review.'));
-  d.root.append(el('p','about-copy','Drag Board cards to arrange them. On a phone, hold still, then drag; release without moving to open the menu. With a card focused, Alt+Up/Down also changes its position. Pinned cards stay in their section. The arrangement affects Mosaic only and saves once on drop. Reset card order restores newest-first order.'));
-  const p=el('p','about-copy'),a=el('a','','Source, installation & privacy details');a.href='https://github.com/joshuazang/IM-style-editor/tree/main/mosaic';a.target='_blank';a.rel='noopener noreferrer';p.append(a);d.root.append(p);
-}
-function demo() {
-  if(pf.component.sessionKey)return;
-  const thoughts=[
-    ['Reading notes','Start a list of passages to revisit.\nKeep questions alongside the page numbers.',['📓']],
-    ['The evidence exam','Start with the problem, not the pile.\n\nToday: revisit the cases on hearsay. Write one clear example for each exception.',['1️⃣','📚']],
-    ['A cabinet of curiosities','Deep-sea maps, lost observatories, impossible creatures. A place for the questions that lead somewhere unexpected.',['💡']],
-    ['Today','Finish the evidence outline.\nRead the assigned cases.',['📍']],
-    ['Weekend, slowly','Find a quiet café.\nBring the book with the folded corner.\nLeave room for nothing in particular.',['📓']],
-    ['Project notes','Search above the cards.\nUse emoji to group related notes.',['💡']],
-    ['Reading list','The Book of Disquiet\nA Field Guide to Getting Lost\nThe Order of Time',['📚']],
-    ['A question for tomorrow','What is the smallest useful next step?',['2️⃣']],
-    ['Completed','Reading for this week.\nFirst draft of the case summary.',['✅']],
-    ['Ocean, after dark','Lanternfish, silent submarines, a notebook full of half-drawn constellations.',['📓']],
-    ['Essay outline','Introduction\nMain argument\nCounterargument\nConclusion',[]],
-    ['The idea parking lot','A better desk lamp.\nA short essay about attention.\nA walking route with no destination.',['3️⃣','💡']],
-    ['A sentence to keep','“Attention is the beginning of devotion.”',['📍']],
-    ['For the next study session','Open the outline. Read one page. Start with ten minutes.',['1️⃣']]
-  ];
-  const messages=thoughts.map(([title,body,reactions],i)=>({id:imFormat.newId(),text:title+'\n'+body,reactions,createdAt:new Date(Date.now()-(i+1)*36e5).toISOString(),...(i===1?{edited:true}:{})}));
-  const settings={reactionOrder:['1️⃣','2️⃣','3️⃣','📓','📚','✅','💡','📍'],pinnedMessageIds:[messages[3].id,messages[1].id]};
-  receive({uuid:'mosaic-demo',mosaicDemo:true,content_type:'Note',content:{title:'Sample notes',text:imFormat.portable(messages,settings,'')}});
-  active.demo=true;renderAll();
 }
 
-$('pin-filter-icon').append(mosaicIcon('pin'));$('more-button').append(mosaicToolbarIcon('more'));
-$('search-button').append(mosaicToolbarIcon('searchTags'));$('clear-filter').append(mosaicToolbarIcon('cancel'));
-$('search-button').addEventListener('click',toggleSearch);$('change-filter').addEventListener('click',toggleSearch);
-$('clear-filter').addEventListener('click',()=>{if(!active)return;Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';searchOpen=false;renderAll();});
-$('more-button').addEventListener('click',mainMenu);
-captureEditor=imRichField.create({id:'capture-input',label:'Take a note',placeholder:'Take a note…',capture:true,sendButton:true,onSubmit:()=>safeRun(()=>submitCapture())});
-const originalCapture=$('capture-field');originalCapture.replaceWith(captureEditor.wrapper);
-$('capture-input').addEventListener('im-markdown-change',inputCapture);
-$('capture-input').addEventListener('blur',()=>flushCapture());
-$('capture-input').addEventListener('compositionstart',()=>{if(active){active.composing=true;clearTimeout(active.captureTimer);}});
-$('capture-input').addEventListener('compositionend',()=>{
-  const s=active;if(!s)return;s.composing=false;
-  // The final input event may follow compositionend in the same browser task.
-  setTimeout(()=>{
-    if(active!==s)return;
-    if($('capture-input').value!==MosaicModel.normalized(s.titleEntry?.text??s.captureValue))inputCapture();
-    else if(s.captureStarted!=null)scheduleCaptureSave(s);
-    const request=s.submitAfterComposition;s.submitAfterComposition=null;
-    if(request)safeRun(()=>submitCapture(s,request.tag));
-  },0);
-});
-let outsideCapture=null;
-function outsideCaptureTarget(target){
-  return !target.closest('#capture-composer,dialog,#notice,#menu,.im-format-toolbar,.card-tag,#search-button,#change-filter,#search-tags-panel');
+function newView(uuid) {
+  const old = viewMemory.get(uuid);
+  return old || {
+    query: '',
+    tag: '',
+    pinned: false,
+    selecting: false,
+    selected: new Set(selectionPreferences[uuid] || []),
+    scroll: 0
+  };
 }
-function captureHasSelection(){
-  return !captureEditor.view.state.selection.empty||hasDOMSelectionIn(captureEditor.dom);
+
+function rememberSelection() {
+  if (!active) return;
+  if (active.view.selected.size) selectionPreferences[active.note.uuid] = [...active.view.selected];
+  else delete selectionPreferences[active.note.uuid];
+  if (active.demo) return;
+  try {
+    const data = {
+      ...pf.component.data,
+      mosaicSelectionsV1: {
+        ...selectionPreferences
+      }
+    };
+    pf.component.data = data;
+    pf.postMessage('set-component-data', {
+      componentData: data
+    }, reply => {
+      if (reply?.error) notify('Selection preferences could not be saved. Your cards are unchanged.');
+    });
+  } catch {
+    notify('Selection preferences could not be saved. Your cards are unchanged.');
+  }
+}
+$('date-filter-button').append(mosaicToolbarIcon('calendarSearch'));
+$('date-filter-button').addEventListener('click', () => {
+  dateOpen = !dateOpen;
+  renderDateControls();
+});
+
+function demo() {
+  if (pf.component.sessionKey) return;
+  const thoughts = [
+    ['Reading notes', 'Start a list of passages to revisit.\nKeep questions alongside the page numbers.', [
+    '📓']],
+    ['The evidence exam',
+      'Start with the problem, not the pile.\n\nToday: revisit the cases on hearsay. Write one clear example for each exception.',
+      ['1️⃣', '📚']
+    ],
+    ['A cabinet of curiosities',
+      'Deep-sea maps, lost observatories, impossible creatures. A place for the questions that lead somewhere unexpected.',
+      ['💡']
+    ],
+    ['Today', 'Finish the evidence outline.\nRead the assigned cases.', ['📍']],
+    ['Weekend, slowly',
+      'Find a quiet café.\nBring the book with the folded corner.\nLeave room for nothing in particular.', ['📓']
+    ],
+    ['Project notes', 'Search above the cards.\nUse emoji to group related notes.', ['💡']],
+    ['Reading list', 'The Book of Disquiet\nA Field Guide to Getting Lost\nThe Order of Time', ['📚']],
+    ['A question for tomorrow', 'What is the smallest useful next step?', ['2️⃣']],
+    ['Completed', 'Reading for this week.\nFirst draft of the case summary.', ['✅']],
+    ['Ocean, after dark', 'Lanternfish, silent submarines, a notebook full of half-drawn constellations.', [
+      '📓']],
+    ['Essay outline', 'Introduction\nMain argument\nCounterargument\nConclusion', []],
+    ['The idea parking lot',
+      'A better desk lamp.\nA short essay about attention.\nA walking route with no destination.', ['3️⃣', '💡']
+    ],
+    ['A sentence to keep', '“Attention is the beginning of devotion.”', ['📍']],
+    ['For the next study session', 'Open the outline. Read one page. Start with ten minutes.', ['1️⃣']]
+  ];
+  const messages = thoughts.map(([title, body, reactions], i) => ({
+    id: imFormat.newId(),
+    text: title + '\n' + body,
+    reactions,
+    createdAt: new Date(Date.now() - (i + 1) * 36e5).toISOString(),
+    ...(i === 1 ? {
+      edited: true
+    } : {})
+  }));
+  const settings = {
+    reactionOrder: ['1️⃣', '2️⃣', '3️⃣', '📓', '📚', '✅', '💡', '📍'],
+    pinnedMessageIds: [messages[3].id, messages[1].id]
+  };
+  receive({
+    uuid: 'mosaic-demo',
+    mosaicDemo: true,
+    content_type: 'Note',
+    content: {
+      title: 'Sample notes',
+      text: imFormat.portable(messages, settings, '')
+    }
+  });
+  active.demo = true;
+  renderAll();
+}
+
+$('pin-filter-icon').append(mosaicIcon('pin'));
+$('more-button').append(mosaicToolbarIcon('more'));
+$('search-button').append(mosaicToolbarIcon('searchTags'));
+$('clear-filter').append(mosaicToolbarIcon('cancel'));
+$('search-button').addEventListener('click', toggleSearch);
+$('change-filter').addEventListener('click', toggleSearch);
+$('clear-filter').addEventListener('click', () => {
+  if (!active) return;
+  Object.assign(active.view, {
+    query: '',
+    tag: '',
+    pinned: false
+  });
+  $('search').value = '';
+  searchOpen = false;
+  renderAll();
+});
+$('more-button').addEventListener('click', mainMenu);
+captureEditor = imRichField.create({
+  id: 'capture-input',
+  label: 'Take a note',
+  placeholder: 'Take a note…',
+  capture: true,
+  sendButton: true,
+  onSubmit: () => safeRun(() => submitCapture())
+});
+const originalCapture = $('capture-field');
+originalCapture.replaceWith(captureEditor.wrapper);
+$('capture-input').addEventListener('im-markdown-change', inputCapture);
+$('capture-input').addEventListener('blur', () => flushCapture());
+$('capture-input').addEventListener('compositionstart', () => {
+  if (active) {
+    active.composing = true;
+    clearTimeout(active.captureTimer);
+  }
+});
+$('capture-input').addEventListener('compositionend', () => {
+  const s = active;
+  if (!s) return;
+  s.composing = false;
+  // The final input event may follow compositionend in the same browser task.
+  setTimeout(() => {
+    if (active !== s) return;
+    if ($('capture-input').value !== MosaicModel.normalized(s.titleEntry?.text ?? s.captureValue))
+      inputCapture();
+    else if (s.captureStarted != null) scheduleCaptureSave(s);
+    const request = s.submitAfterComposition;
+    s.submitAfterComposition = null;
+    if (request) safeRun(() => submitCapture(s, request.tag));
+  }, 0);
+});
+let outsideCapture = null;
+
+function outsideCaptureTarget(target) {
+  return !target.closest(
+    '#capture-composer,dialog,#notice,#menu,.im-format-toolbar,.card-tag,#search-button,#change-filter,#search-tags-panel'
+    );
+}
+
+function captureHasSelection() {
+  return !captureEditor.view.state.selection.empty || hasDOMSelectionIn(captureEditor.dom);
 }
 // Send on a deliberate outside click. A selection gesture may emit a click
 // outside the input even though its press (or native selection handle) did not.
-document.addEventListener('pointerdown',event=>{
-  outsideCapture=null;
-  if(!active||active.titleEntry||event.button!==0||!event.isPrimary||event.shiftKey||event.ctrlKey||event.metaKey||event.altKey)return;
-  if(document.activeElement!==captureEditor.dom||!outsideCaptureTarget(event.target)||captureHasSelection())return;
-  outsideCapture={session:active,tag:active.view.tag,id:event.pointerId,x:event.clientX,y:event.clientY,released:false};
-},true);
-document.addEventListener('pointercancel',event=>{if(outsideCapture?.id===event.pointerId)outsideCapture=null;},true);
-document.addEventListener('pointermove',event=>{
-  if(outsideCapture?.id===event.pointerId&&Math.hypot(event.clientX-outsideCapture.x,event.clientY-outsideCapture.y)>9)outsideCapture=null;
-},true);
-document.addEventListener('pointerup',event=>{
-  const pending=outsideCapture;
-  if(!pending||pending.id!==event.pointerId)return;
-  if(!outsideCaptureTarget(event.target)||captureHasSelection()){outsideCapture=null;return;}
-  pending.released=true;
-  setTimeout(()=>{if(outsideCapture===pending)outsideCapture=null;},700);
-},true);
-document.addEventListener('click',event=>{
-  const pending=outsideCapture;outsideCapture=null;
-  if(!pending?.released||pending.session!==active||event.detail===0||(event.pointerId!==undefined&&event.pointerId!==pending.id))return;
-  if(active.titleEntry||!menu.hidden||modal.open||!outsideCaptureTarget(event.target)||captureHasSelection())return;
-  safeRun(()=>submitCapture(pending.session,pending.tag));
-},true);
-$('pinned-filter').addEventListener('click',()=>{if(active){active.view.pinned=!active.view.pinned;viewport.scrollTop=0;searchOpen=false;renderAll();}});
-$('search').addEventListener('input',event=>{if(active){active.view.query=event.target.value;viewport.scrollTop=0;renderAll();}});
-$('search').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing){event.preventDefault();searchOpen=false;renderSearchControls();viewport.focus();}});
-$('empty-action').addEventListener('click',()=>{if(!active)return;if(active.view.query||active.view.tag||active.view.pinned){Object.assign(active.view,{query:'',tag:'',pinned:false});$('search').value='';renderAll();}else editorDialog();});
-$('preview-button').addEventListener('click',demo);
+document.addEventListener('pointerdown', event => {
+  outsideCapture = null;
+  if (!active || active.titleEntry || event.button !== 0 || !event.isPrimary || event.shiftKey || event
+    .ctrlKey || event.metaKey || event.altKey) return;
+  if (document.activeElement !== captureEditor.dom || !outsideCaptureTarget(event.target) ||
+    captureHasSelection()) return;
+  outsideCapture = {
+    session: active,
+    tag: active.view.tag,
+    id: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    released: false
+  };
+}, true);
+document.addEventListener('pointercancel', event => {
+  if (outsideCapture?.id === event.pointerId) outsideCapture = null;
+}, true);
+document.addEventListener('pointermove', event => {
+  if (outsideCapture?.id === event.pointerId && Math.hypot(event.clientX - outsideCapture.x, event.clientY -
+      outsideCapture.y) > 9) outsideCapture = null;
+}, true);
+document.addEventListener('pointerup', event => {
+  const pending = outsideCapture;
+  if (!pending || pending.id !== event.pointerId) return;
+  if (!outsideCaptureTarget(event.target) || captureHasSelection()) {
+    outsideCapture = null;
+    return;
+  }
+  pending.released = true;
+  setTimeout(() => {
+    if (outsideCapture === pending) outsideCapture = null;
+  }, 700);
+}, true);
+document.addEventListener('click', event => {
+  const pending = outsideCapture;
+  outsideCapture = null;
+  if (!pending?.released || pending.session !== active || event.detail === 0 || (event.pointerId !==
+      undefined && event.pointerId !== pending.id)) return;
+  if (active.titleEntry || !menu.hidden || modal.open || !outsideCaptureTarget(event.target) ||
+    captureHasSelection()) return;
+  safeRun(() => submitCapture(pending.session, pending.tag));
+}, true);
+$('pinned-filter').addEventListener('click', () => {
+  if (active) {
+    active.view.pinned = !active.view.pinned;
+    viewport.scrollTop = 0;
+    searchOpen = false;
+    renderAll();
+  }
+});
+$('search').addEventListener('input', event => {
+  if (active) {
+    active.view.query = event.target.value;
+    viewport.scrollTop = 0;
+    renderAll();
+  }
+});
+$('search').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.isComposing) {
+    event.preventDefault();
+    searchOpen = false;
+    renderSearchControls();
+    viewport.focus();
+  }
+});
+$('empty-action').addEventListener('click', () => {
+  if (!active) return;
+  if (active.view.query || active.view.tag || active.view.pinned) {
+    Object.assign(active.view, {
+      query: '',
+      tag: '',
+      pinned: false
+    });
+    $('search').value = '';
+    renderAll();
+  } else editorDialog();
+});
+$('preview-button').addEventListener('click', demo);
 // Scrolling is navigation, not an intention to hover a card. A fresh mouse
 // movement restores hover after scrolling; a stationary cursor never lights up
 // whichever card happens to move underneath it. No timers or saves are needed.
-let boardScrollAt=0,boardMousePoint=null;
-function suppressBoardHover(){boardScrollAt=performance.now();board.classList.add('is-scrolling');}
-viewport.addEventListener('scroll',()=>{suppressBoardHover();scheduleWindow();},{passive:true});
-viewport.addEventListener('wheel',suppressBoardHover,{passive:true});
-viewport.addEventListener('pointerdown',event=>{if(event.pointerType==='touch')suppressBoardHover();},{passive:true});
-viewport.addEventListener('pointermove',event=>{
-  if(event.pointerType!=='mouse')return;
+let boardScrollAt = 0,
+  boardMousePoint = null;
+
+function suppressBoardHover() {
+  boardScrollAt = performance.now();
+  board.classList.add('is-scrolling');
+}
+viewport.addEventListener('scroll', () => {
+  suppressBoardHover();
+  scheduleWindow();
+}, {
+  passive: true
+});
+viewport.addEventListener('wheel', suppressBoardHover, {
+  passive: true
+});
+viewport.addEventListener('pointerdown', event => {
+  if (event.pointerType === 'touch') suppressBoardHover();
+}, {
+  passive: true
+});
+viewport.addEventListener('pointermove', event => {
+  if (event.pointerType !== 'mouse') return;
   // movementX/Y can both be zero when entering an iframe. Client coordinates
   // distinguish a deliberate move from a stationary pointer during scrolling.
-  const moved=!boardMousePoint||event.clientX!==boardMousePoint.x||event.clientY!==boardMousePoint.y;
-  boardMousePoint={x:event.clientX,y:event.clientY};
-  if(moved&&performance.now()-boardScrollAt>120)board.classList.remove('is-scrolling');
-},{passive:true});
-let lastWidth=0;const overlayObserver=new ResizeObserver(()=>{if(board.clientWidth!==lastWidth){lastWidth=board.clientWidth;rebuildLayout();}syncOverlayMetrics();});
-for(const node of [viewport,$('capture-composer'),$('notice')])overlayObserver.observe(node);
-menu.addEventListener('pointerdown',event=>{event.stopPropagation();menuPress=true;});
-menu.addEventListener('click',event=>{if(menuFromTouch&&!menuPress&&event.detail!==0){event.preventDefault();event.stopImmediatePropagation();return;}menuPress=false;},true);
-document.addEventListener('contextmenu',event=>{if(matchMedia('(pointer:coarse)').matches&&event.target.closest('button,[role="button"],.ui-selection-status'))event.preventDefault();},true);
-document.addEventListener('pointerdown',event=>{
-  if(!menu.hidden&&!menu.contains(event.target)&&!event.target.closest('#more-button,.more-card,.palette-card,.detail-more'))hideMenu();
-  if(searchOpen&&!event.target.closest('#search-tags-panel,.board-toolbar')){searchOpen=false;renderSearchControls();}
+  const moved = !boardMousePoint || event.clientX !== boardMousePoint.x || event.clientY !== boardMousePoint.y;
+  boardMousePoint = {
+    x: event.clientX,
+    y: event.clientY
+  };
+  if (moved && performance.now() - boardScrollAt > 120) board.classList.remove('is-scrolling');
+}, {
+  passive: true
 });
-document.addEventListener('keydown',event=>{
-  if(!event.defaultPrevented&&!event.isComposing&&active&&!modal.open&&!active.view.selecting&&(event.metaKey||event.ctrlKey)&&!event.altKey&&!event.shiftKey&&event.key.toLowerCase()==='f'){
-    event.preventDefault();searchOpen=true;hideMenu();renderSearchControls();$('search').focus();$('search').select();return;
+let lastWidth = 0;
+const overlayObserver = new ResizeObserver(() => {
+  if (board.clientWidth !== lastWidth) {
+    lastWidth = board.clientWidth;
+    rebuildLayout();
   }
-  if(event.key==='Escape'){
-    if(active?.titleEntry&&menu.hidden&&!modal.open){event.preventDefault();active.titleEntry=null;renderCapture();return;}
-    if(!menu.hidden){event.preventDefault();hideMenu();return;}
-    if(modal.open)return;
-    if(searchOpen){event.preventDefault();searchOpen=false;renderSearchControls();return;}
-    if(active?.view.selecting){event.preventDefault();cancelSelection();}
+  syncOverlayMetrics();
+});
+for (const node of [viewport, $('capture-composer'), $('notice')]) overlayObserver.observe(node);
+menu.addEventListener('pointerdown', event => {
+  event.stopPropagation();
+  menuPress = true;
+});
+menu.addEventListener('click', event => {
+  if (menuFromTouch && !menuPress && event.detail !== 0) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
   }
-  if(!menu.hidden&&['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
-    event.preventDefault();const items=[...menu.querySelectorAll('button')],i=items.indexOf(document.activeElement);
-    const next=event.key==='Home'?0:event.key==='End'?items.length-1:(i+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;items[next]?.focus();
+  menuPress = false;
+}, true);
+document.addEventListener('contextmenu', event => {
+  if (matchMedia('(pointer:coarse)').matches && event.target.closest(
+      'button,[role="button"],.ui-selection-status')) event.preventDefault();
+}, true);
+document.addEventListener('pointerdown', event => {
+  if (!menu.hidden && !menu.contains(event.target) && !event.target.closest(
+      '#more-button,.more-card,.palette-card,.detail-more')) hideMenu();
+  if (searchOpen && !event.target.closest('#search-tags-panel,.board-toolbar')) {
+    searchOpen = false;
+    renderSearchControls();
+  }
+});
+document.addEventListener('keydown', event => {
+  if (!event.defaultPrevented && !event.isComposing && active && !modal.open && !active.view.selecting && (
+      event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'f') {
+    event.preventDefault();
+    searchOpen = true;
+    hideMenu();
+    renderSearchControls();
+    $('search').focus();
+    $('search').select();
+    return;
+  }
+  if (event.key === 'Escape') {
+    if (active?.titleEntry && menu.hidden && !modal.open) {
+      event.preventDefault();
+      active.titleEntry = null;
+      renderCapture();
+      return;
+    }
+    if (!menu.hidden) {
+      event.preventDefault();
+      hideMenu();
+      return;
+    }
+    if (modal.open) return;
+    if (searchOpen) {
+      event.preventDefault();
+      searchOpen = false;
+      renderSearchControls();
+      return;
+    }
+    if (active?.view.selecting) {
+      event.preventDefault();
+      cancelSelection();
+    }
+  }
+  if (!menu.hidden && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+    event.preventDefault();
+    const items = [...menu.querySelectorAll('button')],
+      i = items.indexOf(document.activeElement);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (i + (event.key ===
+      'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items[next]?.focus();
   }
 });
 // Escape clears a selection first; a subsequent press follows the same
 // guarded save-and-close path as Close. Capture it before ProseMirror prevents
 // the browser's native dialog action, while allowing IME cancellation to work.
-function clearCardSelection(event){
-  const field=document.activeElement;
-  if(modal.contains(field)&&field.matches('textarea,input')&&field.selectionStart!==null&&field.selectionStart!==field.selectionEnd){
-    const head=field.selectionDirection==='backward'?field.selectionStart:field.selectionEnd;field.setSelectionRange(head,head);return true;
+function clearCardSelection(event) {
+  const field = document.activeElement;
+  if (modal.contains(field) && field.matches('textarea,input') && field.selectionStart !== null && field
+    .selectionStart !== field.selectionEnd) {
+    const head = field.selectionDirection === 'backward' ? field.selectionStart : field.selectionEnd;
+    field.setSelectionRange(head, head);
+    return true;
   }
-  const body=modalState.body,view=body?.imRich?.view,selection=window.getSelection();
-  const inBody=selection?.rangeCount&&body.contains(selection.anchorNode)&&body.contains(selection.focusNode);
-  if(view&&(inBody&&!selection.isCollapsed||!view.state.selection.empty&&(body.contains(event.target)||event.target.closest('.im-format-toolbar')))){
-    const head=inBody&&!selection.isCollapsed?view.posAtDOM(selection.focusNode,selection.focusOffset):view.state.selection.head;
-    view.dispatch(view.state.tr.setSelection(imRichDeps.state.TextSelection.near(view.state.doc.resolve(head))));view.focus();return true;
+  const body = modalState.body,
+    view = body?.imRich?.view,
+    selection = window.getSelection();
+  const inBody = selection?.rangeCount && body.contains(selection.anchorNode) && body.contains(selection
+  .focusNode);
+  if (view && (inBody && !selection.isCollapsed || !view.state.selection.empty && (body.contains(event.target) ||
+      event.target.closest('.im-format-toolbar')))) {
+    const head = inBody && !selection.isCollapsed ? view.posAtDOM(selection.focusNode, selection.focusOffset) :
+      view.state.selection.head;
+    view.dispatch(view.state.tr.setSelection(imRichDeps.state.TextSelection.near(view.state.doc.resolve(head))));
+    view.focus();
+    return true;
   }
-  if(selection?.rangeCount&&!selection.isCollapsed&&modal.contains(selection.anchorNode)&&modal.contains(selection.focusNode)){
-    selection.collapse(selection.focusNode,selection.focusOffset);return true;
+  if (selection?.rangeCount && !selection.isCollapsed && modal.contains(selection.anchorNode) && modal.contains(
+      selection.focusNode)) {
+    selection.collapse(selection.focusNode, selection.focusOffset);
+    return true;
   }
   return false;
 }
-modal.addEventListener('keydown',event=>{
-  if(event.key==='Escape'&&!event.isComposing&&event.keyCode!==229&&!event.defaultPrevented&&modalState?.kind==='edit'&&!modalState.body?.imRich?.view.composing){
-    event.preventDefault();event.stopPropagation();if(!event.repeat&&!clearCardSelection(event))closeModal();
+modal.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !event.isComposing && event.keyCode !== 229 && !event.defaultPrevented &&
+    modalState?.kind === 'edit' && !modalState.body?.imRich?.view.composing) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.repeat && !clearCardSelection(event)) closeModal();
   }
-},true);
-modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});
+}, true);
+modal.addEventListener('cancel', event => {
+  event.preventDefault();
+  closeModal();
+});
 // Handle only gestures delivered inside Mosaic. The enclosing Standard Notes
 // app owns gestures that begin outside this iframe; its navigation is not ours.
-modal.addEventListener('touchstart',event=>{
-  cardBackSwipe=null;const d=modalState,point=event.touches[0];
-  if(!isIPhone||d?.kind!=='edit'||d.busy||d.motionClosing||event.touches.length!==1||!point||point.clientX>24||cardHasTextSelection(d)||event.target.closest('.editor-body,.editor-title,button'))return;
-  cardBackSwipe={dialog:d,x:point.clientX,y:point.clientY,dx:0,dy:0,claimed:false};
-},{capture:true,passive:true});
-modal.addEventListener('touchmove',event=>{
-  const gesture=cardBackSwipe,point=event.touches[0];if(!gesture)return;
-  if(event.touches.length!==1||!point||modalState!==gesture.dialog||cardHasTextSelection(gesture.dialog)){cardBackSwipe=null;return;}
-  gesture.dx=point.clientX-gesture.x;gesture.dy=point.clientY-gesture.y;
-  if(gesture.dx< -12||(Math.abs(gesture.dy)>12&&Math.abs(gesture.dy)>Math.abs(gesture.dx))){cardBackSwipe=null;return;}
-  if(gesture.dx>20&&Math.abs(gesture.dy)<gesture.dx*.6)gesture.claimed=true;
-  if(gesture.claimed){if(event.cancelable)event.preventDefault();event.stopPropagation();}
-},{capture:true,passive:false});
-modal.addEventListener('touchend',event=>{
-  const gesture=cardBackSwipe;cardBackSwipe=null;
-  if(!gesture?.claimed||modalState!==gesture.dialog)return;
-  if(event.cancelable)event.preventDefault();event.stopPropagation();
-  if(gesture.dx>=Math.max(60,Math.min(120,innerWidth*.25))&&Math.abs(gesture.dy)<gesture.dx*.6)closeModal();
-},{capture:true,passive:false});
-modal.addEventListener('touchcancel',()=>{cardBackSwipe=null;},{capture:true,passive:true});
-function hasDOMSelectionIn(node){
-  const selection=window.getSelection();
-  return !!(node&&selection&&!selection.isCollapsed&&(node.contains(selection.anchorNode)||node.contains(selection.focusNode)));
+modal.addEventListener('touchstart', event => {
+  cardBackSwipe = null;
+  const d = modalState,
+    point = event.touches[0];
+  if (!isIPhone || d?.kind !== 'edit' || d.busy || d.motionClosing || event.touches.length !== 1 || !point ||
+    point.clientX > 24 || cardHasTextSelection(d) || event.target.closest('.editor-body,.editor-title,button'))
+    return;
+  cardBackSwipe = {
+    dialog: d,
+    x: point.clientX,
+    y: point.clientY,
+    dx: 0,
+    dy: 0,
+    claimed: false
+  };
+}, {
+  capture: true,
+  passive: true
+});
+modal.addEventListener('touchmove', event => {
+  const gesture = cardBackSwipe,
+    point = event.touches[0];
+  if (!gesture) return;
+  if (event.touches.length !== 1 || !point || modalState !== gesture.dialog || cardHasTextSelection(gesture
+      .dialog)) {
+    cardBackSwipe = null;
+    return;
+  }
+  gesture.dx = point.clientX - gesture.x;
+  gesture.dy = point.clientY - gesture.y;
+  if (gesture.dx < -12 || (Math.abs(gesture.dy) > 12 && Math.abs(gesture.dy) > Math.abs(gesture.dx))) {
+    cardBackSwipe = null;
+    return;
+  }
+  if (gesture.dx > 20 && Math.abs(gesture.dy) < gesture.dx * .6) gesture.claimed = true;
+  if (gesture.claimed) {
+    if (event.cancelable) event.preventDefault();
+    event.stopPropagation();
+  }
+}, {
+  capture: true,
+  passive: false
+});
+modal.addEventListener('touchend', event => {
+  const gesture = cardBackSwipe;
+  cardBackSwipe = null;
+  if (!gesture?.claimed || modalState !== gesture.dialog) return;
+  if (event.cancelable) event.preventDefault();
+  event.stopPropagation();
+  if (gesture.dx >= Math.max(60, Math.min(120, innerWidth * .25)) && Math.abs(gesture.dy) < gesture.dx * .6)
+    closeModal();
+}, {
+  capture: true,
+  passive: false
+});
+modal.addEventListener('touchcancel', () => {
+  cardBackSwipe = null;
+}, {
+  capture: true,
+  passive: true
+});
+
+function hasDOMSelectionIn(node) {
+  const selection = window.getSelection();
+  return !!(node && selection && !selection.isCollapsed && (node.contains(selection.anchorNode) || node.contains(
+    selection.focusNode)));
 }
-function cardHasTextSelection(d){
-  if(d?.kind!=='edit')return false;
-  const field=document.activeElement;
-  return hasDOMSelectionIn(d.body)||
-    !!(field?.matches('.editor-title')&&modal.contains(field)&&field.selectionStart!==field.selectionEnd)||
-    !!(d.body?.imRich&&!d.body.imRich.view.state.selection.empty);
+
+function cardHasTextSelection(d) {
+  if (d?.kind !== 'edit') return false;
+  const field = document.activeElement;
+  return hasDOMSelectionIn(d.body) ||
+    !!(field?.matches('.editor-title') && modal.contains(field) && field.selectionStart !== field.selectionEnd) ||
+    !!(d.body?.imRich && !d.body.imRich.view.state.selection.empty);
 }
-function dismissCardKeyboard(){
-  if(!phoneBoard||modalState?.kind!=='edit')return false;
-  const field=document.activeElement;
-  if(modal.contains(field)&&field.matches('.editor-body,.editor-title')){field.blur();return true;}return false;
+
+function dismissCardKeyboard() {
+  if (!phoneBoard || modalState?.kind !== 'edit') return false;
+  const field = document.activeElement;
+  if (modal.contains(field) && field.matches('.editor-body,.editor-title')) {
+    field.blur();
+    return true;
+  }
+  return false;
 }
-function isOutsideModal(event){const box=modal.getBoundingClientRect();return event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom;}
-modal.addEventListener('pointerdown',event=>{
-  if(modalState)modalState.outsidePress=event.isPrimary&&event.button===0&&event.target===modal&&isOutsideModal(event)?{pointerId:event.pointerId}:null;
-  const selecting=event.pointerType==='touch'&&cardHasTextSelection(modalState)&&(modalState?.scroll?.contains(event.target)||(event.target===modal&&!isOutsideModal(event)));
-  if(!selecting&&!event.target.closest('.editor-body,.editor-title,.im-format-toolbar,.im-format-toggle')&&dismissCardKeyboard())modalState.outsidePress=null;
-},true);
-modal.addEventListener('pointercancel',()=>{if(modalState)modalState.outsidePress=null;},true);
-modal.addEventListener('click',event=>{
-  const d=modalState,press=d?.outsidePress;if(d)d.outsidePress=null;
+
+function isOutsideModal(event) {
+  const box = modal.getBoundingClientRect();
+  return event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box
+    .bottom;
+}
+modal.addEventListener('pointerdown', event => {
+  if (modalState) modalState.outsidePress = event.isPrimary && event.button === 0 && event.target === modal &&
+    isOutsideModal(event) ? {
+      pointerId: event.pointerId
+    } : null;
+  const selecting = event.pointerType === 'touch' && cardHasTextSelection(modalState) && (modalState?.scroll
+    ?.contains(event.target) || (event.target === modal && !isOutsideModal(event)));
+  if (!selecting && !event.target.closest('.editor-body,.editor-title,.im-format-toolbar,.im-format-toggle') &&
+    dismissCardKeyboard()) modalState.outsidePress = null;
+}, true);
+modal.addEventListener('pointercancel', () => {
+  if (modalState) modalState.outsidePress = null;
+}, true);
+modal.addEventListener('click', event => {
+  const d = modalState,
+    press = d?.outsidePress;
+  if (d) d.outsidePress = null;
   // A selection can start inside the card and produce a click on its backdrop.
   // Dismiss only when this same pointer also began outside this modal session.
-  if(press&&event.detail>0&&(event.pointerId===undefined||event.pointerId===press.pointerId)&&event.target===modal&&isOutsideModal(event))closeModal();
+  if (press && event.detail > 0 && (event.pointerId === undefined || event.pointerId === press.pointerId) &&
+    event.target === modal && isOutsideModal(event)) closeModal();
 });
-window.addEventListener('beforeunload',event=>{if(active?.captureStarted!=null||retainedSessions.size||unfinishedEdits.size||cardEditChanged()){event.preventDefault();event.returnValue='';}});
-function flushEditorChanges(){flushCapture();flushCardEdit();}
-window.addEventListener('blur',flushEditorChanges);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushEditorChanges();});
-window.addEventListener('pagehide',event=>{flushEditorChanges();if(!event.persisted)imFlushNoteSaves();});
+window.addEventListener('beforeunload', event => {
+  if (active?.captureStarted != null || retainedSessions.size || unfinishedEdits.size || cardEditChanged()) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+});
+
+function flushEditorChanges() {
+  flushCapture();
+  flushCardEdit();
+}
+window.addEventListener('blur', flushEditorChanges);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushEditorChanges();
+});
+window.addEventListener('pagehide', event => {
+  flushEditorChanges();
+  if (!event.persisted) imFlushNoteSaves();
+});
 renderAll();
-if(window.parent===window&&new URLSearchParams(location.search).get('preview')==='1')demo();
+if (window.parent === window && new URLSearchParams(location.search).get('preview') === '1') demo();

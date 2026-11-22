@@ -21,7 +21,7 @@ function imMergeSelected(messages,settings,selected,noteId){
 
 function imMessagesByDay(messages){
   const days=new Map();
-  for(const message of messages){const day=Ed(message.createdAt);if(!days.has(day))days.set(day,[]);days.get(day).push(message.id);}
+  for(const message of messages){const day=messageDayKey(message.createdAt);if(!days.has(day))days.set(day,[]);days.get(day).push(message.id);}
   return days;
 }
 function ImDayDivider({label,ids,selected,select,continuation}){

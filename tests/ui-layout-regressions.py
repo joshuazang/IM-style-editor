@@ -33,13 +33,17 @@ try:
     e.get_by_role('button',name='More options',exact=True).click()
     e.get_by_role('menuitem' if mosaic else 'button',name='Clear message statuses' if mosaic else 'Clear message statuses…',exact=True).click()
     dialog=e.get_by_role('dialog');checks=dialog.get_by_role('checkbox')
+    statuses=['Copied','Exported','Imported','Edited','Reply']
+    expect(checks).to_have_count(len(statuses))
     rows=checks.evaluate_all('ns=>ns.map(n=>n.parentElement.getBoundingClientRect().toJSON())')
     assert all(r['height']>=44 for r in rows),rows
     assert all(a['bottom']<=b['top'] for a,b in zip(rows,rows[1:])),rows
-    for index in range(checks.count()):
-     row=checks.nth(index).locator('..');box=row.bounding_box();row.click(position={'x':box['width']-6,'y':box['height']/2})
-     assert checks.evaluate_all('ns=>ns.map(n=>n.checked)')==[i==index for i in range(4)]
-     row.click(position={'x':box['width']-6,'y':box['height']/2});expect(checks.nth(index)).not_to_be_checked()
+    for status in statuses:
+     checkbox=dialog.get_by_role('checkbox',name=status,exact=True)
+     row=checkbox.locator('..');box=row.bounding_box();row.click(position={'x':box['width']-6,'y':box['height']/2})
+     expect(checkbox).to_be_checked()
+     expect(dialog.get_by_role('checkbox',checked=True)).to_have_count(1)
+     row.click(position={'x':box['width']-6,'y':box['height']/2});expect(checkbox).not_to_be_checked()
     dialog.get_by_role('button',name='Cancel',exact=True).click()
     if mosaic:
      card=e.locator('[data-id="'+data['messages'][2]['id']+'"]');more=card.get_by_role('button',name='Show 2 more tags',exact=True)

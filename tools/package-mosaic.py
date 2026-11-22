@@ -9,8 +9,13 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / 'mosaic'
 VERSION = release_config()['mosaic_version']
 BASE = 'https://joshuazang.github.io/IM-style-editor/'
+SOURCE_FILES = [
+    'relay.js', 'model.js', 'icons.js', 'board-motion.js',
+    'note-session.js', 'capture.js', 'board.js', 'menus.js',
+    'card-view.js', 'card-actions.js', 'app.js',
+]
 script = ('"use strict";\nconst MOSAIC_VERSION=' + json.dumps(VERSION) + ';\n' + core_source() + ui_script() + '\n' +
-          '\n'.join((TARGET / 'src' / name).read_text() for name in ['relay.js','model.js','icons.js','board-motion.js','app.js'])).encode()
+          '\n'.join((TARGET / 'src' / name).read_text() for name in SOURCE_FILES)).encode()
 style = ((TARGET / 'src/styles.css').read_text()+'\n'+ui_styles('mosaic')).encode()
 files = {}
 for data, suffix in [(script,'.js'),(style,'.css')]:
