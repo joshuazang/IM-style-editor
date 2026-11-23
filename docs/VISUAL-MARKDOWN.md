@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.35 / Mosaic 1.5.43.
+Status: implemented for IM 4.4.36 / Mosaic 1.5.44.
 
 ## Agreed behavior
 
@@ -191,6 +191,8 @@ SHA-256. The optional compiler uses Playwright 1.62.1's Babel TypeScript/CommonJ
 transform; supply its `babelBundle.js` path as the second argument if it is not in
 Node's normal module path. The serializer is the ProseMirror Markdown serializer;
 the parser bundle contains Marked's lexer, without its HTML rendering path.
+The build applies a small ProseMirror view patch for desktop Chromium caret
+placement when Mosaic Card view inserts a line break with Shift+Enter.
 
 No registry or remote CDN access is needed by the installed plugins. There is no
 new note encryption, storage location, telemetry or network permission.

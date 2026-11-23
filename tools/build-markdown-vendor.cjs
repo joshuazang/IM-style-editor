@@ -31,6 +31,17 @@ function visit(id){
   // Normalize trailing spaces in upstream triple-slash documentation comments.
   // Keep executable code and literal contents unchanged.
   code=code.replace(/^([\t ]*\/\/\/[^\r\n]*?)[\t ]+$/gm,'$1');
+  if(id==='prosemirror-view/src/viewdesc.ts'){
+    const anchor='    let domSelExtended = false;';
+    if(code.split(anchor).length!==2)throw Error('ProseMirror caret patch no longer matches');
+    code=code.replace(anchor,`    // Avoid collapse's extra caret work for opted-in Chromium line breaks.
+    if (anchor == head && browser.chrome && !browser.safari && !browser.ios && !browser.android &&
+        domSel.setBaseAndExtent && view.someProp("preferSelectionExtent", enabled => enabled())) {
+      domSel.setBaseAndExtent(anchorDOM.node, anchorDOM.offset, anchorDOM.node, anchorDOM.offset);
+      return;
+    }
+${anchor}`);
+  }
   code=code.replace(/\brequire\((["'])([^"']+)\1\)/g,(whole,q,request)=>{
     const target=resolve(request,id);visit(target);return '__require('+JSON.stringify(target)+')';
   });

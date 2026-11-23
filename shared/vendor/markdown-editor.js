@@ -20802,6 +20802,12 @@ class ViewDesc {
     // Selection.extend can be used to create an 'inverted' selection
     // (one where the focus is before the anchor), but not all
     // browsers support it yet.
+    // Avoid collapse's extra caret work for opted-in Chromium line breaks.
+    if (anchor == head && browser.chrome && !browser.safari && !browser.ios && !browser.android &&
+        domSel.setBaseAndExtent && view.someProp("preferSelectionExtent", enabled => enabled())) {
+      domSel.setBaseAndExtent(anchorDOM.node, anchorDOM.offset, anchorDOM.node, anchorDOM.offset);
+      return;
+    }
     let domSelExtended = false;
     if ((domSel.extend || anchor == head) && !(brKludge && browser.gecko)) {
       domSel.collapse(anchorDOM.node, anchorDOM.offset);

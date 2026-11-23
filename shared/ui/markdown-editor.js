@@ -8,6 +8,7 @@ const imRichField=(()=>{
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
+    let preferSelectionExtent=false;
     // The live document owns edits. Read and cache the text when a caller
     // needs it, including fields with a synchronous onChange callback.
     function value(){
@@ -62,7 +63,10 @@ const imRichField=(()=>{
       if(event.key!=='Enter')return false;
       if(disabled||readOnly)return false;
       if(event.metaKey||event.ctrlKey){execute(K.exitFormat);return true;}
-      if(event.shiftKey){execute(K.lineBreak);return true;}
+      if(event.shiftKey){
+        K.lineBreak(view.state,tr=>view.dispatch(tr.setMeta('im-line-break',true)));
+        return true;
+      }
       if(!plain&&execute(K.dividerLine))return true;
       if(config.capture&&!K.structural(view.state)){if(!event.repeat)config.onSubmit?.();return true;}
       execute(K.enter);return true;
@@ -120,8 +124,12 @@ const imRichField=(()=>{
     function newState(value){return EditorState.create({schema,doc:plain?plainDoc(value):imMarkdown.parse(value),plugins:[history.history({depth:100}),...(!plain?[typingRules()]:[]),imRichDeps.keymap.keymap(shortcuts),imRichDeps.keymap.keymap(baseKeys),...(!plain?[imRichDeps.tables.tableEditing(),imMarkdownTables.plugin()]:[])]});}
     function attrs(){return {id:config.id||'',class:(config.className||'')+' im-rich-input',role:'textbox','aria-label':config.label||'Text','aria-multiline':'true','aria-readonly':String(readOnly),'aria-disabled':String(disabled),tabindex:disabled?'-1':'0',...imWritingTextAttributes,enterkeyhint:config.capture?'send':'enter','data-placeholder':config.placeholder||''};}
     view=new EditorView({mount:dom},{state:newState(source),attributes:attrs,editable:()=>!disabled&&!readOnly,
+      preferSelectionExtent:()=>preferSelectionExtent,
       dispatchTransaction:transaction=>{
-        const before=view.state.doc,result=view.state.applyTransaction(transaction);view.updateState(result.state);refresh();
+        const before=view.state.doc,result=view.state.applyTransaction(transaction);
+        preferSelectionExtent=!!options.preferLineBreakSelectionExtent&&transaction.getMeta('im-line-break')===true;
+        try{view.updateState(result.state);}finally{preferSelectionExtent=false;}
+        refresh();
         if(!before.eq(result.state.doc)){
           source=transaction.getMeta('im-paste-source')??null;
           config.onChange?.(value());dom.dispatchEvent(new CustomEvent('im-markdown-change',{bubbles:true}));config.onResize?.();

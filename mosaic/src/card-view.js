@@ -380,6 +380,7 @@ function editorDialog(id = null) {
       value: startBody.text,
       readOnly: !startBody.complete,
       focusOnCheck: !phoneBoard,
+      preferLineBreakSelectionExtent: true,
       onResize: () => d.updateScroll?.()
     }),
     body = bodyEditor.dom;
