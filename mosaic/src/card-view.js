@@ -380,8 +380,7 @@ function editorDialog(id = null) {
       value: startBody.text,
       readOnly: !startBody.complete,
       focusOnCheck: !phoneBoard,
-      preferLineBreakSelectionExtent: true,
-      onResize: () => d.updateScroll?.()
+      preferLineBreakSelectionExtent: true
     }),
     body = bodyEditor.dom;
   d.body = body;
@@ -528,6 +527,8 @@ function editorDialog(id = null) {
       passive: true
     });
   }
+  // Measure after layout when the editor resizes, instead of reading the
+  // scroll height synchronously on every keystroke.
   d.scrollObserver = new ResizeObserver(() => {
     d.updateScroll();
     d.revealCaret?.();

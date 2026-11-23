@@ -32,11 +32,34 @@ const imMarkdownCommands=(()=>{
   function lineBreak(state,dispatch){
     if(dispatch){const marks=state.storedMarks||state.selection.$from.marks();dispatch(state.tr.replaceSelectionWith(schema.nodes.hard_break.create(),false).ensureMarks(marks).scrollIntoView());}return true;
   }
+  function liftBlankListItem(state,dispatch){
+    const {$cursor}=state.selection;
+    const list=$cursor.node(-2),parent=$cursor.node(-3),nextIndex=$cursor.index(-2)+1;
+    return L.liftListItem(schema.nodes.list_item)(state,dispatch&&(tr=>{
+      if(parent.type===schema.nodes.list_item){
+        const lifted=ancestor(tr,schema.nodes.list_item);
+        const checked=parent.attrs.checked===null?null:false;
+        if(lifted&&lifted.node.attrs.checked!==checked)tr.setNodeMarkup(lifted.pos,null,{checked});
+      }else if(list.type===schema.nodes.ordered_list&&nextIndex<list.childCount){
+        const after=tr.selection.$from.after();
+        // Keep the original number of the first item after the new paragraph.
+        if(tr.doc.nodeAt(after)?.type===list.type)tr.setNodeMarkup(after,null,{order:list.attrs.order+nextIndex});
+      }
+      dispatch(tr);
+    }));
+  }
   function enter(state,dispatch){
     if(ancestor(state,schema.nodes.table))return lineBreak(state,dispatch);
-    const item=ancestor(state,schema.nodes.list_item),marks=state.storedMarks||state.selection.$from.marks();
-    const apply=tr=>dispatch?.(tr.ensureMarks(marks));
-    if(item&&L.splitListItem(schema.nodes.list_item,{checked:item.node.attrs.checked===null?null:false})(state,apply))return true;
+    const {$cursor,$from}=state.selection,item=ancestor(state,schema.nodes.list_item);
+    const marks=state.storedMarks||$from.marks();
+    const apply=dispatch&&(tr=>dispatch(tr.ensureMarks(marks)));
+    if(item){
+      // A blank paragraph can contain a soft break or invisible pasted space.
+      const blank=$cursor&&item.node.childCount===1&&$cursor.parent===item.node.firstChild&&
+        !$cursor.parent.content.content.some(node=>node.isText&&/[^\s\u200b]/u.test(node.text));
+      if(blank&&liftBlankListItem(state,apply))return true;
+      if(L.splitListItem(schema.nodes.list_item,{checked:item.node.attrs.checked===null?null:false})(state,apply))return true;
+    }
     if(C.liftEmptyBlock(state,apply))return true;
     return C.splitBlockAs(()=>({type:schema.nodes.paragraph}))(state,apply);
   }

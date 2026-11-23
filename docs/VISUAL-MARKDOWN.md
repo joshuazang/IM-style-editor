@@ -1,6 +1,6 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.36 / Mosaic 1.5.44.
+Status: implemented for IM 4.4.37 / Mosaic 1.5.45.
 
 ## Agreed behavior
 
@@ -135,8 +135,9 @@ the Markdown body are body content. Pinned previews use 6x on phones and 8x on c
   Close, note switches and editor departures submit the latest pending edits
   through the existing acknowledgment flow.
 - In both contexts, Enter in a bullet list, numbered list, or checklist continues
-  the list. A new checklist item starts unchecked; Enter on an empty item exits
-  the list and creates ordinary text.
+  the list. A new checklist item starts unchecked. Enter on a blank item leaves
+  the list at its current indentation. At the outermost level it starts an
+  ordinary paragraph, or a quoted paragraph when the list is inside a quote.
 - Enter in a quotation creates another quoted paragraph. Enter in an empty
   quotation paragraph exits the quotation and creates ordinary text.
 - Enter in a heading creates ordinary text below it, without heading appearance.

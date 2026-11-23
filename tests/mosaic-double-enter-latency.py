@@ -9,9 +9,15 @@ try:
    data['messages'][0]['text']=text;data['note']['content']['text']=subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(f.portable(d.messages,d.settings,''));"],cwd=ROOT,input=json.dumps(data),text=True)
    page=b.new_page(viewport={'width':1100,'height':900},user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/537.36 Chrome/130 Electron/33 Safari/537.36');page.add_init_script("Object.defineProperty(navigator,'platform',{get:()=> 'MacIntel'})");page.goto(f'http://127.0.0.1:{server.server_port}/tests/mosaic-host.html');page.evaluate('note=>{notes.a=note;openEditor("a","/mosaic/index.html",false)}',data['note']);e=page.frame_locator('#editor');e.locator('.card').first.click();body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_editable();e.locator('dialog').evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}');body.press('Control+End')
    body.evaluate('''n=>{
-     window.latencies=[];window.transactions=[];window.editSerializations=0;
+     window.latencies=[];window.transactions=[];window.editSerializations=0;window.editScrollMeasurements=0;
      const view=n.imRich.view,dispatch=view.dispatch,serialize=imMarkdown.serialize;
      let editDepth=0;
+     const scroller=n.closest('.card-detail-scroll');
+     const getScrollHeight=Object.getOwnPropertyDescriptor(Element.prototype,'scrollHeight').get;
+     Object.defineProperty(scroller,'scrollHeight',{get(){
+       if(editDepth)editScrollMeasurements++;
+       return getScrollHeight.call(this);
+     }});
      view.dispatch=function(...args){
        const start=performance.now();editDepth++;
        try{return dispatch.apply(this,args)}finally{editDepth--;transactions.push(performance.now()-start)}
@@ -27,12 +33,21 @@ try:
      },true);
    }''')
    cdp=page.context.new_cdp_session(next(f for f in page.frames if f.parent_frame));cdp.send('Emulation.setCPUThrottlingRate',{'rate':4})
-   for key in ['Enter','Shift+Enter']*3:
-    body.press(key);body.press(key);body.type('a regular thought');page.wait_for_timeout(40)
+   for index,key in enumerate(['Enter','Shift+Enter']*3):
+    body.press(key)
+    if kind=='tasks' and index==0:
+     expect(body.locator('li')).to_have_count(1801)
+     expect(body.locator('li').last.get_by_role('checkbox')).to_have_attribute('aria-checked','false')
+    body.press(key)
+    if kind=='tasks' and index==0:
+     expect(body.locator('li')).to_have_count(1800)
+     expect(body.locator(':scope > p')).to_have_count(1)
+    body.type('a regular thought');page.wait_for_timeout(40)
    body.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
-   stats=body.evaluate('()=>({latencies,max:Math.max(...latencies),maxTransaction:Math.max(...transactions),editSerializations})')
+   stats=body.evaluate('()=>({latencies,max:Math.max(...latencies),maxTransaction:Math.max(...transactions),editSerializations,editScrollMeasurements})')
    assert len(stats['latencies'])==12,stats
    assert stats['editSerializations']==0,('Card keystrokes must not serialize the whole document',stats)
+   assert stats['editScrollMeasurements']==0,('Card keystrokes must not measure the scroll shadow',stats)
    assert stats['max']<400,(kind,stats)
    assert body.evaluate('n=>n.imRich.view.state.doc.textContent.endsWith("a regular thought".repeat(6))')
    value=body.evaluate('n=>n.value');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text']==value

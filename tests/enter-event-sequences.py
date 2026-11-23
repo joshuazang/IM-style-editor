@@ -26,6 +26,18 @@ try:
    for _ in range(2):field.evaluate("n=>n.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertParagraph',bubbles:true,cancelable:true}))")
    expect(field.locator('p')).to_have_count(3)
    capture=page.get_by_role('textbox',name='Capture',exact=True);fill_field(capture,'send once');capture.press('Control+End');before=page.evaluate('sends.length');capture.press('Enter');page.wait_for_timeout(300);assert page.evaluate('sends.length')==before+1
+   for editor in [field,capture]:
+    for source in ['- Item','5. Item','- [x] Item']:
+     for invisible_content in [False,True]:
+      fill_field(editor,source);editor.press('Control+End');editor.press('Enter')
+      expect(editor.locator('li')).to_have_count(2)
+      if invisible_content:
+       editor.press('Shift+Enter');editor.evaluate('n=>n.imRich.insertText("\u00a0")')
+      editor.press('Enter')
+      expect(editor.locator('li')).to_have_count(1)
+      expect(editor.locator(':scope > p')).to_have_count(1)
+      assert editor.evaluate('n=>n.imRich.view.state.selection.$from.depth')==1
+   assert page.evaluate('sends.length')==before+1
    fill_field(field,'Chinese 中文');field.press('Control+End');field.dispatch_event('compositionstart',{});field.dispatch_event('keydown',{'key':'Enter','keyCode':229,'isComposing':True,'bubbles':True});field.evaluate("n=>n.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertParagraph',isComposing:true,bubbles:true,cancelable:true}))");expect(field.locator('p')).to_have_count(1);field.dispatch_event('compositionend',{})
    if not ios:
     fill_field(field,'Long line text\n'*3000);field.press('Control+End');page.evaluate('''()=>{window.enterTimes=[];const dispatch=detail.view.dispatch;detail.view.dispatch=tr=>{const start=performance.now();dispatch(tr);enterTimes.push(performance.now()-start)}}''');field.press('Enter');assert len(page.evaluate('enterTimes'))==1;elapsed=page.evaluate('enterTimes[0]');assert elapsed<500,elapsed;print('Desktop Enter transaction ms:',elapsed,flush=True)

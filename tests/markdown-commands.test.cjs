@@ -16,9 +16,35 @@ for(const text of ['ordinary','**bold**','~~struck~~','# Heading','> quote','- o
 const quote=run(state('> quote','quo'),c.exitFormat);assert.equal(quote.doc.child(0).type.name,'blockquote');assert.equal(quote.doc.child(0).textContent,'quo');assert.equal(quote.doc.child(1).type.name,'paragraph');assert.equal(quote.doc.child(1).textContent,'te');
 const heading=run(state('# Heading'),c.enter);assert.equal(heading.doc.lastChild.type.name,'paragraph');
 const checked=run(state('- [x] done'),c.enter);assert.equal(checked.doc.firstChild.childCount,2);assert.equal(checked.doc.firstChild.lastChild.attrs.checked,false);
+for(const [source,kind] of [['- Item','bullet'],['5. Item','ordered'],['- [x] Item','checklist']]){
+ const initial=state(source),added=run(initial,c.enter);
+ assert.equal(c.listKind(added),kind);
+ assert.equal(added.doc.firstChild.childCount,2);
+ for(const blank of [added,added.apply(added.tr.insertText(' \u00a0\u200b')),run(added,c.lineBreak)]){
+  const content=blank.selection.$from.parent.content,exited=run(blank,c.enter);
+  assert.equal(c.listKind(exited),null,kind);
+  assert.equal(exited.doc.firstChild.childCount,1);
+  assert.ok(exited.doc.firstChild.eq(initial.doc.firstChild));
+  assert.ok(exited.selection.$from.parent.content.eq(content),'Soft breaks and spaces survive the lift');
+ }
+}
+const numbered=state('5. Before\n6.\n7. After');
+const blankNumberedItem=numbered.doc.firstChild.child(0).nodeSize+3;
+const splitNumbered=run(numbered.apply(numbered.tr.setSelection(d.state.TextSelection.create(numbered.doc,blankNumberedItem))),c.enter);
+assert.equal(splitNumbered.doc.child(0).attrs.order,5);
+assert.equal(splitNumbered.doc.child(1).type,s.nodes.paragraph);
+assert.equal(splitNumbered.doc.child(2).attrs.order,7);
+assert.equal(splitNumbered.doc.child(2).textContent,'After');
+const nestedTask=run(run(state('- [x] Outer\n  - Nested bullet'),c.enter),c.enter);
+assert.equal(c.listKind(nestedTask),'checklist');
+assert.equal(nestedTask.doc.firstChild.childCount,2);
+assert.equal(nestedTask.doc.firstChild.lastChild.attrs.checked,false);
+const quoteExit=run(run(state('> - Quoted bullet'),c.enter),c.enter);
+assert.equal(c.listKind(quoteExit),null);
+assert.equal(c.quoteActive(quoteExit),true);
 const bold=state('**bold**'),br=run(bold,c.lineBreak);assert.equal(br.doc.lastChild.lastChild.type.name,'hard_break');assert.equal(br.storedMarks[0].type.name,'strong');
 assert.equal(c.structural(state('ordinary')),false);assert.equal(c.structural(state('> quote')),true);assert.equal(c.structural(state('- item')),true);assert.equal(c.structural(state('# H')),true);
-console.log('PASS: universal format exit preserves text and creates a root paragraph; lists/checked state; heading split; soft line breaks retain inline marks');
+console.log('PASS: format exit, blank list items, numbering and nested states, heading split, soft line breaks and inline marks');
 
 const multi=state('one\n\ntwo');
 const selected=multi.apply(multi.tr.setSelection(new d.state.AllSelection(multi.doc)));
