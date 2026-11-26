@@ -1,17 +1,12 @@
 /* Local reply references and SVG controls. Quotes are text, never HTML. */
 function imReplySnapshot(message,noteId){
-  // Keep the immediate quote and one level of its context. Deeper quoted
-  // history is represented by IDs instead of repeatedly copying all its text.
+  // Keep the immediate quote and one level of its context.
   // Existing records are never rewritten by this constructor.
   const {id,text,createdAt,replyTo,...rest}=imFormat.normalizeMessage(message);
   const metadata=JSON.parse(JSON.stringify(rest));
   if(replyTo&&typeof replyTo==='object'){
     const {metadata:priorMetadata,...quote}=replyTo;
-    const prior={...priorMetadata};
-    if(prior.replyTo&&typeof prior.replyTo==='object'){
-      prior.replyToReference={id:prior.replyTo.id,noteId:prior.replyTo.noteId};
-      delete prior.replyTo;
-    }
+    const {replyTo:earlierQuote,...prior}=priorMetadata??{};
     metadata.replyTo={...JSON.parse(JSON.stringify(quote)),...(Object.keys(prior).length?{metadata:JSON.parse(JSON.stringify(prior))}:{})};
   }
   if(!metadata.reactions?.length)delete metadata.reactions;

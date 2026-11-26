@@ -12,6 +12,16 @@ assert.equal(m.moveCard(messages,moved,messages[7].id,messages[3].id,true),moved
 const pinned={...moved,pinnedMessageIds:[messages[2].id]};assert.equal(m.moveCard(messages,pinned,messages[7].id,messages[2].id),pinned);
 const dirty={mosaicCardOrder:[messages[1].id,messages[1].id,'missing',null,messages[0].id]};
 assert.deepEqual(ids(m.ordered(messages,dirty)),[7,6,5,4,3,2,1,0].map(i=>messages[i].id));
+const pruned=f.inspect(f.portable(messages,dirty)).settings;
+assert.deepEqual(Array.from(pruned.mosaicCardOrder),[messages[1].id,messages[0].id]);
+assert.deepEqual(ids(m.ordered(messages,pruned)),ids(m.ordered(messages,dirty)));
+const legacyOrder={content:{text:f.portable(messages,{}).replace('@@IM:END-SETTINGS',`extra-settings: ${JSON.stringify(dirty)}\n@@IM:END-SETTINGS`)}};
+assert.ok(f.isCurrent(legacyOrder,f.readMessages(legacyOrder),f.readSettings(legacyOrder)),'Ignored entries do not trigger a save on open');
+const reduced=messages.filter((_,i)=>i!==1),note={content:{text:f.portable(messages,dirty)}};
+f.write(note,reduced,f.readSettings(note));
+assert.deepEqual(Array.from(f.readSettings(note).mosaicCardOrder),[messages[0].id]);
+assert.ok(f.isCurrent(note,f.readMessages(note),dirty));
+assert.equal(f.inspect(f.portable(reduced,{mosaicCardOrder:[messages[1].id]})).settings.mosaicCardOrder,undefined);
 const added={id:f.newId(),text:'New capture',reactions:[]};assert.equal(m.ordered([...messages,added],moved)[0].id,added.id);
 const encoded=f.portable(messages,moved,'Unsent draft'),parsed=f.inspect(encoded);
 assert.deepEqual(ids(parsed.messages),messages.map(x=>x.id));assert.equal(parsed.draft,'Unsent draft');

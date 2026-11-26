@@ -4,6 +4,7 @@ const imTransfer = (() => {
   const clone = value => JSON.parse(JSON.stringify(value));
   const object = value => value && typeof value === 'object' && !Array.isArray(value);
   const stable = value => JSON.stringify(value, function(key, item) {
+    if(key==='sourceRefs'&&Array.isArray(item))return item.map(pair=>JSON.stringify(pair)).sort();
     if (!object(item)) return item;
     if(typeof item.id==='string'&&typeof item.text==='string'){item={...item};delete item.copied;delete item.exported;delete item.imported;}
     return Object.fromEntries(Object.keys(item).sort().map(name => [name, item[name]]));
@@ -11,11 +12,15 @@ const imTransfer = (() => {
   function create(messages, settings, sourceNoteId) {
     const appearance = Object.fromEntries(['bubbleTheme','backgroundTheme','wallpaper','artwork','scale','reactionOrder']
       .filter(key => key in settings).map(key => [key, settings[key]]));
-    const records = clone(messages).map(imFormat.normalizeMessage);
-    for (const message of records) if (Array.isArray(message.reactions) && message.reactions.length === 0) delete message.reactions;
+    const records=messages.map(message=>{
+      const encoded=imFormat.encodeMessage(message);
+      if(!Array.isArray(encoded.reactions)||encoded.reactions.length)return encoded;
+      const {reactions,...record}=encoded;
+      return record;
+    });
     return header + '\n' + JSON.stringify({ format: 'im-style-forward', version: 2,
       sourceNoteId, messages: records, settings: appearance
-    }, null, 2) + '\n';
+    }) + '\n';
   }
   function read(text) {
     const raw = typeof text === 'string' ? text : '';

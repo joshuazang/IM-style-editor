@@ -43,3 +43,27 @@ assert.equal(target(imported,{id:messages[3].id,noteId:'note'},'destination'),im
 assert.throws(()=>merge(messages,settings,new Set([messages[0].id]),'note'),/at least two/);
 assert.deepEqual(plain([...days(messages)]),messages.map((m,i)=>[`2026-10-${i+1}`,[m.id]]));
 console.log('PASS: noncontiguous merge order, exact text, sparse statuses, immutable sources, tags, pins, quoted metadata, nested reply destinations, note isolation and format round trip');
+
+const sourceNoteId='a0000000-b000-c000-d000-000000000000';
+const six=Array.from({length:6},(_,i)=>({id:f.newId(),text:`Short card ${i}`,createdAt:'2026-11-11T03:20:10.584Z',reactions:[]}));
+const fresh=merge(six,{},new Set(six.map(message=>message.id)),sourceNoteId).messages[0];
+const {sourceRefs,lastEditedAt,...base}=fresh;
+const plainMerged=f.portable([base],{});
+const withExtra=metadata=>plainMerged.replace('@@IM:CONTENT',`extra-metadata: ${JSON.stringify({lastEditedAt,...metadata})}\n@@IM:CONTENT`);
+const historical=withExtra({mergeSources:six.map(({id,createdAt})=>({id,createdAt,noteId:sourceNoteId}))});
+const flat=withExtra({sourceRefs});
+const compact=f.portable([fresh],{});
+assert.ok(compact.length<flat.length&&compact.length<historical.length/2);
+assert.equal(compact.split(sourceNoteId).length,2,'One note ID for all six aliases');
+for(const savedText of [historical,flat,compact]){
+ const document={content:{text:savedText}},records=f.readMessages(document);
+ assert.equal(document.content.text,savedText,'Reading alone never rewrites a note');
+ assert.equal(records[0].text,fresh.text);
+ for(const message of six)assert.equal(target(records,{id:message.id,noteId:sourceNoteId,text:'old quote'},'another-note'),records[0]);
+ f.write(document,records,{});
+ assert.equal(document.content.text,compact);
+}
+const clipboard=transfer.create([fresh],{},sourceNoteId);
+assert.equal(clipboard.trim().split('\n').length,2,'Clipboard payload has no redundant indentation');
+assert.deepEqual(plain(transfer.read(clipboard).messages[0].sourceRefs),plain(sourceRefs));
+console.log(`PASS: six-message merge ${Buffer.byteLength(historical)} → ${Buffer.byteLength(flat)} → ${Buffer.byteLength(compact)} bytes, exact old links and text, compact clipboard round trip`);

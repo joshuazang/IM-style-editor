@@ -45,19 +45,27 @@ const imFormat = (() => {
   const statuses = ['edited','copied','exported'];
   const editDate = value => typeof value==='string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) && Number.isFinite(Date.parse(value)) ? value : undefined;
   const validSourceRef = pair => Array.isArray(pair)&&pair.length===2&&typeof pair[0]==='string'&&typeof pair[1]==='string'&&!!pair[1];
-  function uniqueSourceRefs(refs) {
-    const unique=new Map();
+  function groupSourceRefs(refs) {
+    const groups=new Map();
     for(const pair of refs){
       if(!validSourceRef(pair))continue;
-      unique.set(JSON.stringify(pair),pair);
+      const [noteId,messageId]=pair;
+      if(!groups.has(noteId))groups.set(noteId,new Set());
+      groups.get(noteId).add(messageId);
     }
-    return Array.from(unique.values());
+    return groups;
+  }
+  const uniqueSourceRefs = refs => Array.from(groupSourceRefs(refs)).flatMap(([noteId,ids])=>Array.from(ids,id=>[noteId,id]));
+  function readSourceRefs(value){
+    if(Array.isArray(value))return value.every(validSourceRef)?value:value.filter(validSourceRef);
+    if(!object(value))return [];
+    return Object.entries(value).flatMap(([noteId,ids])=>Array.isArray(ids)?ids.filter(id=>typeof id==='string'&&id).map(id=>[noteId,id]):[]);
   }
   const hasLegacySources = message => ['forwarding','mergeSources','importedStatusCleared'].some(key=>Object.hasOwn(message,key));
   const isImported = message => !message.importedStatusCleared && (message.imported===true || !!message.forwarding);
   function sourceRefs(message) {
-    const refs=Array.isArray(message.sourceRefs)?message.sourceRefs:[];
-    if(!hasLegacySources(message))return refs.every(validSourceRef)?refs:refs.filter(validSourceRef);
+    const refs=readSourceRefs(message.sourceRefs);
+    if(!hasLegacySources(message))return refs;
     const all=[...refs],seen=new Set();
     function addForwarding(source){
       while(object(source)&&!seen.has(source)){
@@ -68,23 +76,31 @@ const imFormat = (() => {
     if(Array.isArray(message.mergeSources))for(const record of message.mergeSources){
       if(!object(record))continue;
       all.push([record.noteId,record.id]);addForwarding(record.forwarding);
-      if(Array.isArray(record.sourceRefs))for(const ref of record.sourceRefs)all.push(ref);
+      for(const ref of readSourceRefs(record.sourceRefs))all.push(ref);
     }
     return uniqueSourceRefs(all);
   }
   function normalizeReply(reply) {
     if(!object(reply?.metadata))return reply;
-    const metadata=normalizeMessage(reply.metadata);
+    let metadata=normalizeMessage(reply.metadata);
+    // Historical snapshots emitted this link beyond the saved quote depth.
+    if(Object.hasOwn(metadata,'replyToReference')){
+      const {replyToReference,...rest}=metadata;
+      if(!Object.keys(rest).length){const {metadata:empty,...quote}=reply;return quote;}
+      metadata=rest;
+    }
     return metadata===reply.metadata?reply:{...reply,metadata};
   }
   const normalizeMessage = message => {
-    const legacySources=hasLegacySources(message),reply=normalizeReply(message.replyTo);
-    if(!legacySources&&reply===message.replyTo&&!Object.hasOwn(message,'editedAt')&&statuses.every(flag=>!Object.hasOwn(message,flag)||message[flag]===true))return message;
+    const legacySources=hasLegacySources(message),grouped=object(message.sourceRefs),reply=normalizeReply(message.replyTo);
+    if(!legacySources&&!grouped&&reply===message.replyTo&&!Object.hasOwn(message,'editedAt')&&statuses.every(flag=>!Object.hasOwn(message,flag)||message[flag]===true))return message;
     const result = {...message};
     if(reply!==message.replyTo)result.replyTo=reply;
-    if(legacySources){
+    if(legacySources||grouped){
       const refs=sourceRefs(message);
       if(refs.length)result.sourceRefs=refs;else delete result.sourceRefs;
+    }
+    if(legacySources){
       if(isImported(message))result.imported=true;else delete result.imported;
       delete result.forwarding;delete result.mergeSources;delete result.importedStatusCleared;
     }
@@ -122,6 +138,24 @@ const imFormat = (() => {
   }
   const bubbleFields = { id: 'id', createdAt: 'created', title:'title', edited: 'edited', copied:'copied', exported:'exported', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding', replyTo: 'reply-to' };
   const settingsFields = { bubbleTheme: 'bubble-theme', backgroundTheme: 'background-theme', wallpaper: 'wallpaper', artwork: 'artwork', scale: 'scale', reactionOrder: 'reaction-order', deletedEmojis: 'deleted-emojis' };
+  function encodeReply(reply){
+    if(!object(reply?.metadata))return reply;
+    const metadata=encodeSourceGroups(reply.metadata);
+    return metadata===reply.metadata?reply:{...reply,metadata};
+  }
+  function encodeSourceGroups(message){
+    const reply=encodeReply(message.replyTo),refs=message.sourceRefs;
+    if(!Array.isArray(refs)&&reply===message.replyTo)return message;
+    const encoded={...message};
+    if(reply!==message.replyTo)encoded.replyTo=reply;
+    if(Array.isArray(refs)){
+      const groups=groupSourceRefs(refs);
+      if(groups.size)encoded.sourceRefs=Object.fromEntries(Array.from(groups,([noteId,ids])=>[noteId,Array.from(ids)]));
+      else delete encoded.sourceRefs;
+    }
+    return encoded;
+  }
+  const encodeMessage = record => encodeSourceGroups(normalizeMessage(record));
   const valueText = value => typeof value === 'string' && /^[A-Za-z0-9_.:+-]+$/.test(value) && !/^(?:true|false|null|[-+]?\d)/.test(value) ? value : JSON.stringify(value);
   function fields(record, mapping, extrasName) {
     const lines = [], extras = Object.create(null);
@@ -137,10 +171,26 @@ const imFormat = (() => {
     if (Object.keys(extras).length) lines.push(extrasName + ': ' + JSON.stringify(extras));
     return lines;
   }
-  const messageText = new WeakMap(), bubbleText = new WeakMap(), settingText = new WeakMap();
+  const messageText = new WeakMap(), bubbleText = new WeakMap(), settingText = new WeakMap(), orderCache = new WeakMap();
+  function compactBoardOrder(messages,settings){
+    const order=settings?.mosaicCardOrder;
+    if(!object(settings)||!Array.isArray(order))return settings;
+    const cached=orderCache.get(settings);
+    if(cached?.messages===messages)return cached.settings;
+    const remaining=new Set(messages.map(message=>message.id));
+    const liveOrder=order.filter(id=>remaining.delete(id));
+    let result=settings;
+    if(!liveOrder.length||liveOrder.length!==order.length){
+      result={...settings};
+      if(liveOrder.length)result.mosaicCardOrder=liveOrder;else delete result.mosaicCardOrder;
+    }
+    orderCache.set(settings,{messages,settings:result});
+    if(result!==settings)orderCache.set(result,{messages,settings:result});
+    return result;
+  }
   function bubble(original) {
     if (!bubbleText.has(original)) {
-      const message=normalizeMessage(original);
+      const message=encodeMessage(original);
       bubbleText.set(original,['@@IM:BUBBLE', ...fields(message,bubbleFields,'extra-metadata'),
         '@@IM:CONTENT','','',encodeBody(message.text),'',''].join('\n')+'\n');
     }
@@ -161,8 +211,8 @@ const imFormat = (() => {
   }
   function portable(messages,settings,draft='',reply=null) {
     if(typeof draft!=='string')throw new Error('Draft must be text');
-    let prefix=settingsText(settings);
-    if(reply!==null){validateReply(reply);prefix+='@@IM:REPLY\n'+JSON.stringify(normalizeReply(reply))+'\n@@IM:END-REPLY\n\n';}
+    let prefix=settingsText(compactBoardOrder(messages,settings));
+    if(reply!==null){validateReply(reply);prefix+='@@IM:REPLY\n'+JSON.stringify(encodeReply(normalizeReply(reply)))+'\n@@IM:END-REPLY\n\n';}
     if(draft.length)prefix+=['@@IM:DRAFT','','',encodeBody(draft),'','','@@IM:END-DRAFT',''].join('\n')+'\n';
     return prefix+bubbles(messages)+'@@IM:END\n';
   }
@@ -327,13 +377,15 @@ const imFormat = (() => {
   const readReply=note=>state(note).reply;
   const isCurrent=(note,messages,settings)=>{
     const saved=state(note);
-    return saved.kind==='portable' && saved.messages===messages && JSON.stringify(saved.settings)===JSON.stringify(settings);
+    return saved.kind==='portable' && saved.messages===messages &&
+      JSON.stringify(compactBoardOrder(messages,saved.settings))===JSON.stringify(compactBoardOrder(messages,settings));
   };
   function write(note,messages,settings,draft=readDraft(note),reply=readReply(note)) {
     const previous=state(note);
     if(previous.kind==='damaged')throw new Error('Malformed records: original text was not changed');
     if(messages!==previous.messages)messages=messages.map(normalizeMessage);
     reply=normalizeReply(reply);
+    settings=compactBoardOrder(messages,settings);
     const text=portable(messages,settings,draft,reply);
     const content={...note.content,text};
     // Delete only this editor's obsolete mirrors; retain title, references and other editors' data.
@@ -347,5 +399,5 @@ const imFormat = (() => {
   }
   const recover=()=>null;
   const restore=()=>{throw new Error('Damaged format 3 records require manual repair');};
-  return {validateReply,title,withTitle,mergeText,mergeContent,readReply,normalizeMessage,uniqueSourceRefs,sourceRefs,isImported,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readSettings,isCurrent,write,recover,restore};
+  return {validateReply,title,withTitle,mergeText,mergeContent,readReply,normalizeMessage,encodeMessage,uniqueSourceRefs,sourceRefs,isImported,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readSettings,isCurrent,write,recover,restore};
 })();

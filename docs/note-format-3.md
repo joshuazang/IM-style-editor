@@ -4,8 +4,8 @@ The modern parser and writer now live in `shared/core/note-format.js` and are
 compiled into both IM-style-editor 4.1.6 and Mosaic 1.0.1. The format is unchanged;
 both views edit the same `content.text`, including draft, settings and metadata.
 See [shared maintenance](shared-editors.md). New replies retain a direct quote
-and one level of quoted context, using references for deeper context rather than
-repeatedly embedding the full chain. Existing saved replies are preserved.
+and one level of quoted context. Existing saved quote text and context are
+preserved.
 
 The reader accepts format 3 only. Format 2 remains in **IM-style-editor Archive**; neither plugin rewrites the other's format. Ordinary `#!im-style-forward 2` message exports remain a shared clipboard interchange protocol. This is not a format-2 note reader or an automatic note migration.
 
@@ -13,13 +13,15 @@ The header is `#!im-style-editor 3`, followed by `#!encoding utf-8`. Settings, o
 
 Body and title edits replace the bubble's optional `lastEditedAt` extra metadata with a UTC timestamp at minute precision. Historical timestamps in `edited:` or `editedAt` remain readable. The `edited` status is independent of the timestamp, so clearing that status preserves the date. Mosaic Card View shows creation and edit times in local time at minute precision.
 
-Imported bubbles keep a single `imported` flag. Clearing Imported deletes that flag. The optional `sourceRefs` array stores unique `[noteId, messageId]` pairs for duplicate imports and reply navigation. The reader recognizes legacy forwarding chains and merge sources and writes those relationships in the compact format on the next save.
+Imported bubbles keep a single `imported` flag. Clearing Imported deletes that flag. The optional `sourceRefs` field groups message IDs by source note ID for duplicate imports and reply navigation. The reader also accepts flat pairs, legacy forwarding chains and legacy merge sources. The next save writes each source note ID once per bubble. Reply snapshots use the same compact groups and preserve the saved quotes. Clipboard exports use compact JSON in the same clipboard protocol.
 
 Each bubble starts with `@@IM:BUBBLE`, contains its metadata and `@@IM:CONTENT`, and ends at the next **unescaped** `@@IM:BUBBLE` or final `@@IM:END`. There is no structural `@@IM:END-BUBBLE`. A literal old end-marker in message text is ordinary content.
 
 As in format 2, two empty lines precede the exact message payload, and a line terminator plus two empty lines follow it. The next bubble marker immediately follows that framing; no additional separator line is inserted. Leading/trailing whitespace and message newlines are never trimmed. Literal reserved control lines and leading backslashes are escaped using a backslash. Draft and reply sections keep their explicit end markers.
 
 The complete note content (messages, note settings, draft and pending reply) is saved once in `content.text`. Selection preferences are separate UI state. Standard Notes title, references, previews and unrelated application data remain. The editor does not write `appendEditorMessageData`, `appendEditorSettings` or `clientData.imStyleEditor` mirrors. If those obsolete owned fields accompany a valid new-format note, its next save removes them while preserving unrelated fields.
+
+Saving the Mosaic board order drops IDs that are absent from the current note and repeated entries. The order of surviving cards stays the same.
 
 The working-memory caches are not saved copies. Message/settings records are immutable: changes create new records/arrays. A note is decoded again only when unfamiliar text arrives. Draft-only saves reuse the serialized bubble section; Standard Notes still receives a complete note snapshot. No delay is added to draft persistence. Existing acknowledgment, ordered-save, failure/retry and malformed-document protections remain.
 
