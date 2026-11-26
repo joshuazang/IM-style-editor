@@ -5,7 +5,7 @@ const {f,m,t}=load(),other=load().f,plain=x=>JSON.parse(JSON.stringify(x));
 const bodies=['','One line','\nAn empty first line','  Title  \r\n\r\nBody\r\n','标题🙂\n@@IM:BUBBLE\n@@IM:END\n','<img src=x onerror=alert(1)>\n<script>secret()</script>','\r\n','\n\n','\\literal\n\\@@IM:BUBBLE'];
 const messages=bodies.map((text,i)=>({id:f.newId(),text,reactions:i%2?['📓']:[],createdAt:'2026-11-06T12:00:00Z',...(i===1?{edited:true,copied:true,exported:true,custom:{keep:true}}:{})}));
 messages[2].replyTo=m.reply(messages[1],'fixture');
-messages[3].forwarding={sourceMessageId:messages[0].id,sourceNoteId:'source',forwardedAt:'2026-11-01T12:00:00Z'};
+messages[3].sourceRefs=[['source',messages[0].id]];messages[3].imported=true;
 messages[1].cardColor='iris';
 const settings={bubbleTheme:'iris',reactionOrder:['📓','📍'],pinnedMessageIds:[messages[1].id],untaggedPosition:2,unrelated:{keep:true}};
 const draft='  Draft\r\n\r\n🙂\n',reply=m.reply(messages[1],'fixture');
@@ -38,7 +38,7 @@ for(let i=0;i<500;i++){
 }
 console.log('PASS: 500 Unicode, whitespace, CRLF, escaping and literal-marker round trips');
 const cleared=m.clearStatuses(messages,['copied','exported','edited','imported'],new Set(messages.map(x=>x.id)));
-assert.ok(!cleared[1].copied&&!cleared[1].edited&&!cleared[1].exported);assert.equal(cleared[3].importedStatusCleared,true);assert.deepEqual(cleared[3].forwarding,messages[3].forwarding);
+assert.ok(!cleared[1].copied&&!cleared[1].edited&&!cleared[1].exported);assert.ok(!Object.hasOwn(cleared[3],'imported'));assert.deepEqual(cleared[3].sourceRefs,messages[3].sourceRefs);
 const payload=t.read(t.create(messages,settings,'source'));assert.equal(payload.ok,true);
 const imported=t.merge([],payload);assert.equal(imported.added.length,messages.length);assert.ok(!imported.messages[1].exported);assert.ok(m.isImported(imported.messages[1]));
 assert.equal(t.merge(imported.messages,payload).added.length,0);

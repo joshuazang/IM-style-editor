@@ -5,7 +5,7 @@ const imTransfer = (() => {
   const object = value => value && typeof value === 'object' && !Array.isArray(value);
   const stable = value => JSON.stringify(value, function(key, item) {
     if (!object(item)) return item;
-    if(typeof item.id==='string'&&typeof item.text==='string'){item={...item};delete item.copied;delete item.exported;delete item.importedStatusCleared;}
+    if(typeof item.id==='string'&&typeof item.text==='string'){item={...item};delete item.copied;delete item.exported;delete item.imported;}
     return Object.fromEntries(Object.keys(item).sort().map(name => [name, item[name]]));
   });
   function create(messages, settings, sourceNoteId) {
@@ -48,7 +48,7 @@ const imTransfer = (() => {
       return { ok: false, error: 'This is not a complete IM message export. Use Export in the source note, then paste it here. Nothing has been changed.' };
     }
   }
-  function merge(existing, payload, now = new Date().toISOString()) {
+  function merge(existing, payload) {
     if (!payload.ok) throw new Error('Invalid import');
     // Existing format-3 records are immutable; retain their identities so the
     // serializer can reuse their blocks. Only incoming records need cloning.
@@ -57,38 +57,32 @@ const imTransfer = (() => {
     const append=(index,key,message)=>{if(!index.has(key))index.set(key,[]);index.get(key).push(message);};
     const index=message=>{
       append(byId,message.id,message);
-      const forwarded=message.forwarding;
-      if(object(forwarded)&&forwarded.sourceNoteId===payload.sourceNoteId)append(bySource,forwarded.sourceMessageId,message);
+      for(const [noteId,id] of imFormat.sourceRefs(message))if(noteId===payload.sourceNoteId)append(bySource,id,message);
     };
     const comparable=message=>{
-      if(!comparisons.has(message))comparisons.set(message,stable(message));
+      if(!comparisons.has(message)){
+        const {id,sourceRefs,imported,copied,exported,...content}=imFormat.normalizeMessage(message);
+        comparisons.set(message,stable(content));
+      }
       return comparisons.get(message);
     };
+    const lineage=message=>JSON.stringify(imFormat.sourceRefs(message).map(pair=>JSON.stringify(pair)).sort());
     messages.forEach(index);
     let skipped = 0;
     for (const source of payload.messages) {
-      // IDs only narrow the candidates. Full metadata/content equality is still
-      // required, including when the same ID belongs to different message text.
-      const candidates=new Set([...(byId.get(source.id)||[]),...(bySource.get(source.id)||[])]);
-      const duplicate = [...candidates].some(candidate => {
-        if (candidate.id === source.id && comparable(candidate) === comparable(source)) return true;
-        const forwarded = candidate.forwarding;
-        if (!object(forwarded) || forwarded.sourceMessageId !== source.id ||
-            forwarded.sourceNoteId !== payload.sourceNoteId) return false;
-        const original = { ...candidate, id: forwarded.sourceMessageId };
-        if ('previous' in forwarded) original.forwarding = forwarded.previous;
-        else delete original.forwarding;
-        return stable(original) === comparable(source);
-      });
+      // An origin identifies a possible match. Compare saved content too so an
+      // edited copy or an ID collision cannot silently discard an import.
+      const duplicate = (byId.get(source.id)||[]).some(candidate=>lineage(candidate)===lineage(source)&&comparable(candidate)===comparable(source)) ||
+        (bySource.get(source.id)||[]).some(candidate=>comparable(candidate)===comparable(source));
       if (duplicate) { skipped++; continue; }
-      const message = clone(source);
-      delete message.exported;delete message.importedStatusCleared;
+      const message = clone(imFormat.normalizeMessage(source));
+      delete message.exported;
       if (used.has(message.id)) {
         do { message.id = imFormat.newId(); }
         while (used.has(message.id));
       }
-      message.forwarding = { sourceMessageId: source.id, sourceNoteId: payload.sourceNoteId, forwardedAt: now,
-        ...('forwarding' in source ? { previous: clone(source.forwarding) } : {}) };
+      message.sourceRefs = imFormat.uniqueSourceRefs([...imFormat.sourceRefs(message),[payload.sourceNoteId,source.id]]);
+      message.imported = true;
       used.add(message.id);
       messages.push(message); added.push(message);index(message);
     }

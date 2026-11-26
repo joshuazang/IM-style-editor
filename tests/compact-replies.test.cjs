@@ -13,7 +13,7 @@ for(let i=1;i<messages.length;i++){
 const source=JSON.stringify(messages);const quote=snapshot(messages[99],'same-note');assert.equal(JSON.stringify(messages),source);
 assert.equal(record(quote).replyTo.text,messages[98].text);
 const exported=t.read(t.create(messages,{},'same-note'));assert.ok(exported.ok);const imported=t.merge([],exported);
-assert.equal(imported.added.length,100);assert.equal(target(imported.messages,messages[99].replyTo,'other-note').forwarding.sourceMessageId,messages[98].id);
+assert.equal(imported.added.length,100);assert.equal(target(imported.messages,messages[99].replyTo,'other-note').sourceRefs[0][1],messages[98].id);
 const malformed={id:f.newId(),text:'Preserve extra metadata',reactions:[],mergeSources:'not-an-array',forwarding:{previous:null}};
 const match={id:f.newId(),text:'Target',reactions:[]};
 assert.equal(target([malformed,null].filter(Boolean),{id:match.id,noteId:'here'},'here'),undefined);

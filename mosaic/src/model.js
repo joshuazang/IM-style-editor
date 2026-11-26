@@ -56,7 +56,7 @@ const MosaicModel = (() => {
     return title + (nextBody || parts.separator ? separator + nextBody : '');
   }
   const pins = settings => {if(!pinCache.has(settings))pinCache.set(settings,[...new Set(Array.isArray(settings.pinnedMessageIds)?settings.pinnedMessageIds:[])]);return pinCache.get(settings);};
-  const isImported = message => !!message.forwarding && !message.importedStatusCleared;
+  const isImported = imFormat.isImported;
   function prepare(message,previous){
     if(prepared.has(message))return prepared.get(message);
     const sameText=previous?.message.text===message.text&&imFormat.title(previous.message)===imFormat.title(message);
@@ -101,17 +101,7 @@ const MosaicModel = (() => {
   function merge(messages, settings, ids, noteId) {
     const sources=messages.filter(m=>ids.has(m.id));
     if(sources.length<2)throw new Error('Select at least two cards.');
-    const first=sources[0],combined={...imFormat.editMessage(first,imFormat.mergeText(sources)),reactions:[...new Set(sources.flatMap(m=>m.reactions))],edited:true};
-    delete combined.copied;delete combined.exported;delete combined.editedAt;
-    const origins=new Map();
-    for(const m of sources){
-      const {text,reactions,copied,exported,edited,editedAt,lastEditedAt,mergeSources,...metadata}=m;
-      for(const origin of [{...metadata,noteId},...(Array.isArray(mergeSources)?mergeSources:[])]) {
-        const key=JSON.stringify([origin?.noteId,origin?.id]);
-        if(!origins.has(key))origins.set(key,origin);
-      }
-    }
-    combined.mergeSources=[...origins.values()];
+    const first=sources[0],combined=imFormat.mergeContent(sources,noteId);
     return {messages:messages.flatMap(m=>m.id===first.id?[combined]:ids.has(m.id)?[]:[m]),
       settings:{...settings,pinnedMessageIds:[...new Set(pins(settings).map(id=>ids.has(id)?first.id:id))]},id:first.id};
   }

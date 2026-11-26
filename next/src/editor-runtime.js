@@ -1365,7 +1365,7 @@ function ImEditor() {
                 onPointerLeave: cancelMessageHold,
                 children: [x.jsxs("div", {
                   className: `message-bubble${h.reactions.length?" has-reactions":" no-reactions"}`,
-                  children: [h.forwarding && !h.importedStatusCleared && x
+                  children: [imFormat.isImported(h) && x
                     .jsx("div", {
                       className: "forwarded-label",
                       children: "↪ Imported"

@@ -27,7 +27,7 @@ function ImVirtualMessages({messages,scroller,render,revision,scale=1,paragraphS
       else {
         const lines=message.text.split('\n').reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/chars)),0);
         const day=!previous||messageDayKey(previous.createdAt)!==messageDayKey(message.createdAt);
-        height=Math.max(44,lines*23*scale+28+(message.reactions.length?18:0)+(message.replyTo?55:0)+(message.forwarding?18:0)+(day?(previous?66:49):0));
+        height=Math.max(44,lines*23*scale+28+(message.reactions.length?18:0)+(message.replyTo?55:0)+(imFormat.isImported(message)?18:0)+(day?(previous?66:49):0));
       }
       offsets.push(offsets[index]+height);
     });

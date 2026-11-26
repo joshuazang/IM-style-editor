@@ -17,7 +17,9 @@ function imClearStatuses(messages,flags,ids=null){
     let next=message;
     const copy=()=>{if(next===message)next={...message};changed=true;};
     for(const flag of selected){
-      if(flag==='imported'){if(next.forwarding&&!next.importedStatusCleared){copy();next.importedStatusCleared=true;}}
+      if(flag==='imported'){if(imFormat.isImported(next)){
+        next={...imFormat.normalizeMessage(next)};changed=true;delete next.imported;
+      }}
       else if(Object.hasOwn(imClearableStatuses,flag)){
         const key=flag==='reply'?'replyTo':flag;if(Object.hasOwn(next,key)){copy();delete next[key];}
       }

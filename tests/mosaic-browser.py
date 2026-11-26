@@ -219,7 +219,7 @@ readText:async()=>window.__incomingClipboard||''}});
     exported=frame(page).evaluate('window.__copied');assert exported.startswith('#!im-style-forward 2')
     page.evaluate('switchNote("b")');open_more(e);e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
     fill_field(e.get_by_role('textbox',name='Import text',exact=True),exported);e.get_by_role('button',name='Import',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
-    parsed=parse(page.evaluate('notes.b.content.text'));assert len(parsed['messages'])==20 and all(m.get('forwarding') and not m.get('exported') for m in parsed['messages'])
+    parsed=parse(page.evaluate('notes.b.content.text'));assert len(parsed['messages'])==20 and all(m.get('imported') and m.get('sourceRefs') and not m.get('exported') for m in parsed['messages'])
     open_more(e);e.get_by_role('menuitem',name='Import from clipboard',exact=True).click()
     fill_field(e.get_by_role('textbox',name='Import text',exact=True),exported);page.evaluate('holdAck=true')
     e.get_by_role('button',name='Import and clear clipboard',exact=True).click()

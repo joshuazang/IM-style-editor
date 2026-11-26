@@ -3,7 +3,7 @@ function imReplySnapshot(message,noteId){
   // Keep the immediate quote and one level of its context. Deeper quoted
   // history is represented by IDs instead of repeatedly copying all its text.
   // Existing records are never rewritten by this constructor.
-  const {id,text,createdAt,replyTo,...rest}=message;
+  const {id,text,createdAt,replyTo,...rest}=imFormat.normalizeMessage(message);
   const metadata=JSON.parse(JSON.stringify(rest));
   if(replyTo&&typeof replyTo==='object'){
     const {metadata:priorMetadata,...quote}=replyTo;
@@ -23,13 +23,7 @@ function imReplyTarget(messages,reply,noteId){
   if(!reply||typeof reply!=='object')return;
   return messages.find(message=>{
     if(message.id===reply.id&&(reply.noteId===noteId||(message.text===reply.text&&message.createdAt===reply.createdAt)))return true;
-    const sources=[message,...(Array.isArray(message.mergeSources)?message.mergeSources:[])];
-    for(const record of sources){
-      if(!record||typeof record!=='object')continue;
-      if(record.id===reply.id&&record.noteId===reply.noteId)return true;
-      let source=record.forwarding;const seen=new Set();
-      while(source&&typeof source==='object'&&!seen.has(source)){seen.add(source);if(source.sourceMessageId===reply.id&&source.sourceNoteId===reply.noteId)return true;source=source.previous;}
-    }
-    return false;
+    if(message.id===reply.id&&message.noteId===reply.noteId)return true;
+    return imFormat.sourceRefs(message).some(([sourceNoteId,id])=>sourceNoteId===reply.noteId&&id===reply.id);
   });
 }

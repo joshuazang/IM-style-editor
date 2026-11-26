@@ -8,7 +8,7 @@ globals().update(scope)
 data=scope['fixture'](4)
 for i,message in enumerate(data['messages']):
  message['text']=['Original **bold** text.','Reply with *italic*.','Another reply.','Standalone.'][i]
- message.update(copied=True,edited=True,exported=True,forwarding={'sourceNoteId':'source','sourceMessageId':message['id']})
+ message.update(copied=True,edited=True,exported=True,sourceRefs=[['source',message['id']]],imported=True)
  message.pop('replyTo',None)
 for index,target in [(1,0),(2,1)]:
  data['messages'][index]['replyTo']={'id':data['messages'][target]['id'],'noteId':'a','text':data['messages'][target]['text']}
@@ -31,6 +31,15 @@ try:
      else:e.get_by_role('button',name='More options',exact=True).click()
      e.get_by_role('menuitem' if not im or selected else 'button',name='Clear message statuses…' if im else 'Clear message statuses',exact=True).click()
      return e.get_by_role('dialog',name='Clear message statuses',exact=True)
+    expected=copy.deepcopy(data['messages'])
+    dialog=open_status(False);dialog.get_by_role('checkbox',name='Imported',exact=True).check()
+    if im:page.once('dialog',lambda d:d.accept())
+    dialog.get_by_role('button',name='Clear selected statuses',exact=True).click();expect(dialog).not_to_be_visible()
+    for message in expected:message.pop('imported')
+    compact_text=page.evaluate('notes.a.content.text')
+    assert 'importedStatusCleared' not in compact_text and '"imported"' not in compact_text
+    assert scope['parse'](compact_text)['messages']==expected
+    expect(row.locator(quote)).to_have_count(1)
     dialog=open_status(True);expect(dialog.get_by_role('checkbox',name='Reply',exact=True)).not_to_be_checked();expect(dialog.get_by_role('button',name='Clear selected statuses',exact=True)).to_be_disabled()
     dialog.get_by_role('checkbox',name='Reply',exact=True).check();expect(dialog).to_contain_text('Reply links and quoted previews are removed')
     before=page.evaluate('notes.a.content.text');baseline=scope['parse'](before);dialog.get_by_role('button',name='Cancel',exact=True).click();assert page.evaluate('notes.a.content.text')==before
@@ -43,7 +52,7 @@ try:
      page.once('dialog',cancel_confirmation);dialog.get_by_role('button',name='Clear selected statuses',exact=True).click();expect(dialog).to_be_visible();assert 'Reply links and quoted previews are removed' in confirmations[-1];assert page.evaluate('notes.a.content.text')==before
      page.once('dialog',lambda d:d.accept())
     dialog.get_by_role('button',name='Clear selected statuses',exact=True).click();expect(dialog).not_to_be_visible();expect(row.locator(quote)).to_have_count(0)
-    selected=scope['parse'](page.evaluate('notes.a.content.text'));expected=copy.deepcopy(data['messages']);expected[1].pop('replyTo')
+    selected=scope['parse'](page.evaluate('notes.a.content.text'));expected[1].pop('replyTo')
     assert selected['messages']==expected;assert selected['settings']==data['settings'];assert selected['draft']==baseline['draft'];assert selected['reply']==data['reply']
     # Leave selection using the visible cancel control, then clear the whole note.
     if im:e.locator('.selection-status').get_by_role('button',name='Cancel',exact=True).click()

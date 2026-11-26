@@ -44,9 +44,50 @@ const imFormat = (() => {
     line.startsWith('\\\\') || (line.startsWith('\\') && controls.has(logical(line.slice(1)))) ? line.slice(1) : line).join('\n');
   const statuses = ['edited','copied','exported'];
   const editDate = value => typeof value==='string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) && Number.isFinite(Date.parse(value)) ? value : undefined;
+  const validSourceRef = pair => Array.isArray(pair)&&pair.length===2&&typeof pair[0]==='string'&&typeof pair[1]==='string'&&!!pair[1];
+  function uniqueSourceRefs(refs) {
+    const unique=new Map();
+    for(const pair of refs){
+      if(!validSourceRef(pair))continue;
+      unique.set(JSON.stringify(pair),pair);
+    }
+    return Array.from(unique.values());
+  }
+  const hasLegacySources = message => ['forwarding','mergeSources','importedStatusCleared'].some(key=>Object.hasOwn(message,key));
+  const isImported = message => !message.importedStatusCleared && (message.imported===true || !!message.forwarding);
+  function sourceRefs(message) {
+    const refs=Array.isArray(message.sourceRefs)?message.sourceRefs:[];
+    if(!hasLegacySources(message))return refs.every(validSourceRef)?refs:refs.filter(validSourceRef);
+    const all=[...refs],seen=new Set();
+    function addForwarding(source){
+      while(object(source)&&!seen.has(source)){
+        seen.add(source);all.push([source.sourceNoteId,source.sourceMessageId]);source=source.previous;
+      }
+    }
+    addForwarding(message.forwarding);
+    if(Array.isArray(message.mergeSources))for(const record of message.mergeSources){
+      if(!object(record))continue;
+      all.push([record.noteId,record.id]);addForwarding(record.forwarding);
+      if(Array.isArray(record.sourceRefs))for(const ref of record.sourceRefs)all.push(ref);
+    }
+    return uniqueSourceRefs(all);
+  }
+  function normalizeReply(reply) {
+    if(!object(reply?.metadata))return reply;
+    const metadata=normalizeMessage(reply.metadata);
+    return metadata===reply.metadata?reply:{...reply,metadata};
+  }
   const normalizeMessage = message => {
-    if (!Object.hasOwn(message,'editedAt') && statuses.every(flag => !Object.hasOwn(message,flag) || message[flag]===true)) return message;
+    const legacySources=hasLegacySources(message),reply=normalizeReply(message.replyTo);
+    if(!legacySources&&reply===message.replyTo&&!Object.hasOwn(message,'editedAt')&&statuses.every(flag=>!Object.hasOwn(message,flag)||message[flag]===true))return message;
     const result = {...message};
+    if(reply!==message.replyTo)result.replyTo=reply;
+    if(legacySources){
+      const refs=sourceRefs(message);
+      if(refs.length)result.sourceRefs=refs;else delete result.sourceRefs;
+      if(isImported(message))result.imported=true;else delete result.imported;
+      delete result.forwarding;delete result.mergeSources;delete result.importedStatusCleared;
+    }
     if(Object.hasOwn(result,'editedAt')) {
       result.edited=true;
       const legacy=editDate(result.editedAt);
@@ -71,6 +112,14 @@ const imFormat = (() => {
     return result;
   };
   const mergeText = messages => messages.map((message,index)=>index&&title(message)?title(message)+'\n'+message.text:message.text).join('\n\n');
+  function mergeContent(messages,noteId){
+    const first=normalizeMessage(messages[0]);
+    const combined={...editMessage(first,mergeText(messages)),reactions:[...new Set(messages.flatMap(message=>message.reactions))],edited:true};
+    combined.sourceRefs=uniqueSourceRefs(messages.flatMap(message=>[[noteId,message.id],[message.noteId,message.id],...sourceRefs(message)]));
+    if(messages.some(isImported))combined.imported=true;
+    delete combined.copied;delete combined.exported;
+    return combined;
+  }
   const bubbleFields = { id: 'id', createdAt: 'created', title:'title', edited: 'edited', copied:'copied', exported:'exported', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding', replyTo: 'reply-to' };
   const settingsFields = { bubbleTheme: 'bubble-theme', backgroundTheme: 'background-theme', wallpaper: 'wallpaper', artwork: 'artwork', scale: 'scale', reactionOrder: 'reaction-order', deletedEmojis: 'deleted-emojis' };
   const valueText = value => typeof value === 'string' && /^[A-Za-z0-9_.:+-]+$/.test(value) && !/^(?:true|false|null|[-+]?\d)/.test(value) ? value : JSON.stringify(value);
@@ -113,7 +162,7 @@ const imFormat = (() => {
   function portable(messages,settings,draft='',reply=null) {
     if(typeof draft!=='string')throw new Error('Draft must be text');
     let prefix=settingsText(settings);
-    if(reply!==null){validateReply(reply);prefix+='@@IM:REPLY\n'+JSON.stringify(reply)+'\n@@IM:END-REPLY\n\n';}
+    if(reply!==null){validateReply(reply);prefix+='@@IM:REPLY\n'+JSON.stringify(normalizeReply(reply))+'\n@@IM:END-REPLY\n\n';}
     if(draft.length)prefix+=['@@IM:DRAFT','','',encodeBody(draft),'','','@@IM:END-DRAFT',''].join('\n')+'\n';
     return prefix+bubbles(messages)+'@@IM:END\n';
   }
@@ -196,7 +245,7 @@ const imFormat = (() => {
         }
         if(rows[i]?.line==='@@IM:REPLY'){
           if(reply!==null||draftSeen||messages.length)throw new Error('Reply must appear once, before draft and bubbles');
-          i++;reply=JSON.parse(rows[i++]?.line);validateReply(reply);
+          i++;reply=JSON.parse(rows[i++]?.line);validateReply(reply);reply=normalizeReply(reply);
           if(rows[i++]?.line!=='@@IM:END-REPLY')throw new Error('Missing reply end');continue;
         }
         if(rows[i]?.line==='@@IM:DRAFT'){
@@ -284,6 +333,7 @@ const imFormat = (() => {
     const previous=state(note);
     if(previous.kind==='damaged')throw new Error('Malformed records: original text was not changed');
     if(messages!==previous.messages)messages=messages.map(normalizeMessage);
+    reply=normalizeReply(reply);
     const text=portable(messages,settings,draft,reply);
     const content={...note.content,text};
     // Delete only this editor's obsolete mirrors; retain title, references and other editors' data.
@@ -297,5 +347,5 @@ const imFormat = (() => {
   }
   const recover=()=>null;
   const restore=()=>{throw new Error('Damaged format 3 records require manual repair');};
-  return {validateReply,title,withTitle,mergeText,readReply,normalizeMessage,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readSettings,isCurrent,write,recover,restore};
+  return {validateReply,title,withTitle,mergeText,mergeContent,readReply,normalizeMessage,uniqueSourceRefs,sourceRefs,isImported,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readSettings,isCurrent,write,recover,restore};
 })();

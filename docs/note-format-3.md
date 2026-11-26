@@ -13,6 +13,8 @@ The header is `#!im-style-editor 3`, followed by `#!encoding utf-8`. Settings, o
 
 Body and title edits replace the bubble's optional `lastEditedAt` extra metadata with a UTC timestamp at minute precision. Historical timestamps in `edited:` or `editedAt` remain readable. The `edited` status is independent of the timestamp, so clearing that status preserves the date. Mosaic Card View shows creation and edit times in local time at minute precision.
 
+Imported bubbles keep a single `imported` flag. Clearing Imported deletes that flag. The optional `sourceRefs` array stores unique `[noteId, messageId]` pairs for duplicate imports and reply navigation. The reader recognizes legacy forwarding chains and merge sources and writes those relationships in the compact format on the next save.
+
 Each bubble starts with `@@IM:BUBBLE`, contains its metadata and `@@IM:CONTENT`, and ends at the next **unescaped** `@@IM:BUBBLE` or final `@@IM:END`. There is no structural `@@IM:END-BUBBLE`. A literal old end-marker in message text is ordinary content.
 
 As in format 2, two empty lines precede the exact message payload, and a line terminator plus two empty lines follow it. The next bubble marker immediately follows that framing; no additional separator line is inserted. Leading/trailing whitespace and message newlines are never trimmed. Literal reserved control lines and leading backslashes are escaped using a backslash. Draft and reply sections keep their explicit end markers.

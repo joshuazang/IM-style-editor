@@ -26,16 +26,16 @@ for(const message of messages.filter(m=>selection.has(m.id))){
  assert.equal(target(result.messages,{id:message.id,noteId:'wrong-note',text:'wrong'},'note'),undefined);
 }
 assert.equal(target(result.messages,{id:messages[3].forwarding.sourceMessageId,noteId:'archive'},'note'),result.messages[0]);
-assert.equal(result.messages[0].mergeSources[1].replyTo.text,messages[1].text);
-assert.equal(result.messages[0].mergeSources[2].custom.precious,'metadata');
-assert.ok(result.messages[0].mergeSources.every(m=>!Object.hasOwn(m,'text')));
+assert.equal(result.messages[0].imported,true);
+assert.ok(!Object.hasOwn(result.messages[0],'mergeSources'));
+assert.ok(result.messages[0].sourceRefs.every(pair=>pair.length===2));
 const text=f.portable(result.messages,result.settings,'unchanged draft');
 const note={content:{text}};
 assert.deepEqual(plain(f.readMessages(note)),plain(result.messages));
 assert.equal(f.readDraft(note),'unchanged draft');
 const again=merge(result.messages,result.settings,new Set(result.messages.map(m=>m.id)),'note');
 assert.equal(target(again.messages,{id:messages[3].id,noteId:'note'},'note'),again.messages[0]);
-assert.equal(again.messages[0].mergeSources.length,4,'repeated merges do not accumulate duplicate origin metadata');
+assert.equal(again.messages[0].sourceRefs.length,5,'repeated merges keep each origin only once');
 const transfer=vm.runInContext('imTransfer',context);
 const exported=transfer.read(transfer.create(again.messages,again.settings,'note'));
 const imported=transfer.merge([],exported).messages;

@@ -5,8 +5,8 @@ const stable=value=>JSON.stringify(value,function(key,item){
   if(typeof item.id==='string'&&typeof item.text==='string'){item={...item};delete item.copied;delete item.exported;delete item.importedStatusCleared;}
   return Object.fromEntries(Object.keys(item).sort().map(name=>[name,item[name]]));
 });
-// The original full scan is the behavioral reference, including ID collisions
-// and recursively forwarded metadata. Only its search strategy is being replaced.
+// Compare insertion and collision decisions against the previous implementation
+// for direct imports and immediate forwarding from the same source.
 function reference(existing,payload,newId){
   const messages=clone(existing),added=[],used=new Set(messages.map(message=>message.id));let skipped=0;
   for(const source of payload.messages){
@@ -27,8 +27,10 @@ function reference(existing,payload,newId){
 }
 let sequence=0,checks=0;
 const source=fs.readFileSync('shared/core/message-transfer.js','utf8');
-const context={imFormat:{newId:()=>`generated-${sequence++}`},count:()=>checks++};
-const transfer=vm.runInNewContext(source.replace('const forwarded = candidate.forwarding;','count();const forwarded = candidate.forwarding;')+';imTransfer',context);
+const context={count:()=>checks++};
+const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',context);
+f.newId=()=>`generated-${sequence++}`;
+const transfer=vm.runInNewContext(source.replace('const comparable=message=>{','const comparable=message=>{count();')+';imTransfer',context);
 let seed=4567;
 const random=n=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n;};
 for(let iteration=0;iteration<150;iteration++){
@@ -39,7 +41,10 @@ for(let iteration=0;iteration<150;iteration++){
   const before=JSON.stringify({existing,payload});
   sequence=0;const expected=reference(existing,payload,()=>`generated-${sequence++}`);
   sequence=0;const result=transfer.merge(existing,payload,'fixed');
-  assert.deepEqual(clone(result),expected);assert.equal(JSON.stringify({existing,payload}),before);
+  assert.equal(result.skipped,expected.skipped);
+  assert.deepEqual(Array.from(result.added,m=>m.id),expected.added.map(m=>m.id));
+  assert.equal(JSON.stringify({existing,payload}),before);
+  assert.ok(result.added.every(m=>m.imported===true&&!Object.hasOwn(m,'forwarding')));
   assert.equal(transfer.merge(result.messages,payload,'fixed').added.length,0);
 }
 checks=0;
