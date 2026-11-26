@@ -1,5 +1,5 @@
 """Legacy title editing remains available; new content uses body headings."""
-import functools,http.server,threading
+import functools,http.server,re,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 from browser_engine import chromium_options,fill_field
@@ -46,7 +46,8 @@ try:
     fill_field(title,'Newer title after submission');page.evaluate('holdAck=false;releaseAcks()');expect(title).to_have_js_property('value','Newer title after submission')
     title.press('Enter');expect(capture).to_have_js_property('value','Capture draft that must survive\nSecond line')
     saved=parse(page.evaluate('notes.a.content.text'));assert saved['messages'][2]['title']=='Newer title after submission' and len(saved['messages'])==20
-    assert {k:v for k,v in saved['messages'][2].items() if k!='title'}=={k:v for k,v in data['messages'][2].items() if k!='title'}
+    assert re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z',saved['messages'][2]['lastEditedAt'])
+    assert {k:v for k,v in saved['messages'][2].items() if k not in ('title','lastEditedAt')}=={k:v for k,v in data['messages'][2].items() if k!='title'}
     assert saved['draft']=='Capture draft that must survive\nSecond line'
     title=title_menu('Edit title');fill_field(title,'Discard this title');e.get_by_role('button',name='Cancel title entry',exact=True).click();expect(capture).to_have_js_property('value',saved['draft']);assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['title']=='Newer title after submission'
     title=title_menu('Edit title');fill_field(title,'Retry multiline\nKept after switching');page.evaluate('rejectSaves=true');title.press('Enter');expect(title).to_have_js_property('value','Retry multiline\nKept after switching')

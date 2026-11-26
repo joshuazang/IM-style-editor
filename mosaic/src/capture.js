@@ -199,7 +199,7 @@ function submitTitle(s) {
   entry.pending = true;
   entry.submitted = text.trim() ? text : '';
   const saving = update(s, {
-    messages: s.messages.map(m => m.id === entry.id ? imFormat.withTitle(m, text) : m)
+    messages: s.messages.map(m => m.id === entry.id ? imFormat.editMessage(m, m.text, text) : m)
   });
   s.intents.add({
     revision: s.revision,

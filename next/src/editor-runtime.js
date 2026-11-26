@@ -451,7 +451,7 @@ function ImEditor() {
       return;
     }
     sessions.submitTitle(note.uuid, edit.text);
-    saveMessages(readNoteMessages(note).map(m => m.id === edit.id ? imFormat.withTitle(m, edit.text) : m),
+    saveMessages(readNoteMessages(note).map(m => m.id === edit.id ? imFormat.editMessage(m, m.text, edit.text) : m),
       readEditorSettings(note))?.catch(() => {});
   };
   const cancelEdit = () => {

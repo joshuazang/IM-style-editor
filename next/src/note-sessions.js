@@ -255,7 +255,7 @@ class ImNoteSessions {
     if (heading) {
       const messages = imFormat.readMessages(s.note);
       if (messages.some(m => m.id === heading.id)) {
-        imFormat.write(s.note, messages.map(m => m.id === heading.id ? imFormat.withTitle(m, heading.text) : m),
+        imFormat.write(s.note, messages.map(m => m.id === heading.id ? imFormat.editMessage(m, m.text, heading.text) : m),
           imFormat.readSettings(s.note));
         heading.submittedText = heading.text;
       }

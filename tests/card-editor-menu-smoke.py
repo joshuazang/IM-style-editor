@@ -8,6 +8,7 @@ ROOT=Path(__file__).resolve().parents[1]
 scope={'__file__':str(ROOT/'tests/mosaic-browser.py')}
 exec((ROOT/'tests/mosaic-browser.py').read_text().split('server=http.server.ThreadingHTTPServer',1)[0],scope)
 fixture,parse=scope['fixture'],scope['parse'];data=fixture()
+data['note']['content']['text']=data['note']['content']['text'].replace('\nedited\n','\nedited: 2026-11-07T21:42:53.123Z\n',1)
 class Handler(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
  def end_headers(self):self.send_header('Access-Control-Allow-Origin','*');super().end_headers()
@@ -20,7 +21,7 @@ try:
  with sync_playwright() as p:
   browser=p.chromium.launch(**chromium_options())
   for width in [int(value) for value in os.environ.get('MOSAIC_TEST_WIDTHS','320,390,1100').split(',')]:
-   context=browser.new_context(viewport={'width':width,'height':844},is_mobile=width<600,has_touch=width<600)
+   context=browser.new_context(viewport={'width':width,'height':844},is_mobile=width<600,has_touch=width<600,timezone_id='UTC')
    context.add_init_script("Object.defineProperty(navigator,'clipboard',{value:{writeText:async text=>window.__copied=text,readText:async()=>''}})")
    page=context.new_page();errors=[];outside=[];page.on('pageerror',lambda e:errors.append(str(e)))
    page.on('request',lambda r:outside.append(r.url) if not r.url.startswith(BASE+'/') else None)
@@ -41,7 +42,13 @@ try:
    assert dialog.get_by_role('textbox',name='New label',exact=True).count()==0
    expect(dialog.get_by_role('button',name='Background options',exact=True)).to_be_visible()
    body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_focused()
-   expect(e.locator('.card-timestamp')).to_have_text(re.compile('Nov'))
+   created=dialog.locator('.card-created-time');last_edited=dialog.locator('.card-last-edited-time')
+   expect(created).to_have_text('2026-11-06 12:00 PM');expect(created).to_be_visible()
+   expect(last_edited).to_be_hidden()
+   if width>=600:
+    dialog.locator('.card-timestamp').hover()
+    expect(last_edited).to_have_text('Last edited 2026-11-07 9:42 PM');expect(last_edited).to_be_visible()
+    expect(created).to_be_hidden();body.hover();expect(created).to_be_visible()
    expect(e.locator('.card-edited')).to_have_text('edited')
    expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();title=body.bounding_box();title['height']=44
    assert dialog.locator('.card-detail-tools>button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==['Text formatting','Pin card','Background options','Card options','Close']
@@ -53,6 +60,7 @@ try:
    saved=parse(page.evaluate('notes.a.content.text'));first=saved['messages'][0]
    assert first['text'].endswith('New typing during acknowledgment') and first['edited'] and not first.get('copied') and not first.get('exported')
    assert first['createdAt']==data['messages'][0]['createdAt'] and 'editedAt' not in first
+   assert re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z',first['lastEditedAt'])
    fill_search(e,'New typing during acknowledgment')
    # No-op Close never changes text or starts another save.
    before=page.evaluate('notes.a.content.text');count=page.evaluate('saves.length');card.click();e.get_by_role('button',name='Close',exact=True).click()
@@ -113,6 +121,21 @@ try:
    im.get_by_role('button',name='Export',exact=True).click()
    page.wait_for_function('notes.a.content.text.includes("exported")')
    assert parse(page.evaluate('notes.a.content.text'))['messages'][-1]['exported']
+   if width>=600:
+    last_id=data['messages'][-1]['id']
+    im.get_by_role('button',name='Cancel',exact=True).click()
+    im.locator('.message-wrap').last.click(button='right');imenu.get_by_role('menuitem',name='Edit',exact=True).click()
+    fill_field(im.get_by_role('textbox',name='Edit message',exact=True),'Changed in IM')
+    im.get_by_role('button',name='Save changes',exact=True).click()
+    page.wait_for_function('notes.a.content.text.includes("Changed in IM")')
+    saved_im=parse(page.evaluate('notes.a.content.text'))['messages'][-1]
+    assert saved_im['id']==last_id and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z',saved_im['lastEditedAt'])
+    expect(im.get_by_text(re.compile(r'^Last edited '))).to_have_count(0)
+    page.evaluate('openEditor("a","/mosaic/index.html",false)')
+    fill_search(e,'Changed in IM');e.locator(f'[data-id="{last_id}"]').click()
+    dialog.locator('.card-timestamp').hover()
+    expect(last_edited).to_be_visible()
+    expect(last_edited).to_have_text(re.compile(r'^Last edited \d{4}-\d{2}-\d{2} \d{1,2}:\d{2} [AP]M$'))
    assert not errors,errors;assert not outside,outside
    print(f'PASS {width}px: direct editing, multiline Enter, bottom Close/metadata, no board timestamps, ack/failure retention, modal palette/tags, bottom capture and identical functional IM/Mosaic menus',flush=True)
    if width==390:page.screenshot(path='/tmp/shared-message-menu.png')

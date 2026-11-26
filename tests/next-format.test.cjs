@@ -85,6 +85,31 @@ assert.equal(f.inspect(corrupt).kind,'damaged');assert.throws(()=>f.write(bad,me
 for(const broken of [text.replace('@@IM:END\n',''),text.replace('@@IM:BUBBLE\n',''),text.replace('@@IM:END-SETTINGS',''),text.replace(/id: [^\n]+/,'id: invalid')])assert.equal(f.inspect(broken).kind,'damaged');
 const current=messages[1];assert.equal(f.editMessage(current,current.text),current);
 const edited=f.editMessage(current,'A real change');assert.equal(edited.edited,true);assert.ok(!('copied' in edited));assert.ok(!('exported' in edited));
+const legacyStamp='2026-11-06T14:23:45.678Z';
+for(const field of [`edited: ${legacyStamp}`,`edited: "${legacyStamp}"`,`extra-metadata: {"editedAt":"${legacyStamp}"}`]){
+ const legacy=f.inspect(minimal.replace('@@IM:CONTENT',`${field}\n@@IM:CONTENT`)).messages[0];
+ assert.equal(legacy.edited,true);
+ assert.equal(legacy.lastEditedAt,legacyStamp);
+ assert.equal(f.inspect(f.portable([legacy],{})).messages[0].lastEditedAt,legacyStamp);
+}
+const statusOnly=f.inspect(minimal.replace('@@IM:CONTENT','edited: 0\n@@IM:CONTENT')).messages[0];
+assert.equal(statusOnly.edited,true);assert.equal(statusOnly.lastEditedAt,undefined);
+let now=Date.parse('2026-11-25T21:42:59.999Z');
+class FixedDate extends Date { static now(){return now;} }
+const timed=vm.runInNewContext(source+';imFormat',{crypto,btoa,Date:FixedDate});
+const firstEdit=timed.editMessage(current,'First edit');
+assert.equal(firstEdit.lastEditedAt,'2026-11-25T21:42Z');
+now+=60000;
+assert.equal(timed.editMessage(firstEdit,firstEdit.text),firstEdit);
+const secondEdit=timed.editMessage(firstEdit,'Latest edit');
+const savedEdit=timed.portable([secondEdit],{});
+assert.equal(secondEdit.lastEditedAt,'2026-11-25T21:43Z');
+assert.equal(secondEdit.createdAt,current.createdAt);
+assert.equal((savedEdit.match(/"lastEditedAt"/g)||[]).length,1);
+assert.ok(!savedEdit.includes(firstEdit.lastEditedAt));
+const titled=timed.editMessage(plainMessage,plainMessage.text,'New title');
+assert.equal(titled.lastEditedAt,secondEdit.lastEditedAt);assert.equal(titled.edited,undefined);
+assert.equal(timed.inspect(timed.portable([titled],{})).messages[0].edited,undefined);
 console.log('PASS: malformed structure still blocks saving; unchanged edits preserve status and genuine edits reset copy/export');
 
 // The clipboard protocol is shared; no format-2 note reader is added to the new plugin.

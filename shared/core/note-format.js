@@ -43,24 +43,32 @@ const imFormat = (() => {
   const decodeBody = text => text.split('\n').map(line =>
     line.startsWith('\\\\') || (line.startsWith('\\') && controls.has(logical(line.slice(1)))) ? line.slice(1) : line).join('\n');
   const statuses = ['edited','copied','exported'];
+  const editDate = value => typeof value==='string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) && Number.isFinite(Date.parse(value)) ? value : undefined;
   const normalizeMessage = message => {
     if (!Object.hasOwn(message,'editedAt') && statuses.every(flag => !Object.hasOwn(message,flag) || message[flag]===true)) return message;
     const result = {...message};
-    if(Object.hasOwn(result,'editedAt')) result.edited=true;
+    if(Object.hasOwn(result,'editedAt')) {
+      result.edited=true;
+      const legacy=editDate(result.editedAt);
+      if(legacy&&!editDate(result.lastEditedAt))result.lastEditedAt=legacy;
+    }
     delete result.editedAt;
     for(const flag of statuses) if(Object.hasOwn(result,flag)) result[flag]=true;
     return result;
-  };
-  const editMessage = (message,text) => {
-    if(message.text===text)return message;
-    const result={...normalizeMessage(message),text,edited:true};
-    delete result.copied;delete result.exported;return result;
   };
   const title = message => typeof message?.title==='string'?message.title:'';
   const withTitle = (message,value) => {
     if(typeof value!=='string')throw new Error('Title must be text');
     if(!value.trim()){if(!Object.hasOwn(message,'title'))return message;const next={...message};delete next.title;return next;}
     return message.title===value?message:{...message,title:value};
+  };
+  const editMessage = (message,text,nextTitle) => {
+    const titled=nextTitle===undefined?message:withTitle(message,nextTitle);
+    const textChanged=message.text!==text;
+    if(!textChanged&&titled===message)return message;
+    const result={...normalizeMessage(titled),text,lastEditedAt:new Date(Date.now()).toISOString().slice(0,16)+'Z'};
+    if(textChanged){result.edited=true;delete result.copied;delete result.exported;}
+    return result;
   };
   const mergeText = messages => messages.map((message,index)=>index&&title(message)?title(message)+'\n'+message.text:message.text).join('\n\n');
   const bubbleFields = { id: 'id', createdAt: 'created', title:'title', edited: 'edited', copied:'copied', exported:'exported', reactions: 'reactions', separatorAfter: 'separator-after', forwarding: 'forwarding', replyTo: 'reply-to' };
@@ -117,7 +125,15 @@ const imFormat = (() => {
       // Optional punctuation is decoration, never the start/end of message text.
       if (decoration(line)) continue;
       const status=extrasName==='extra-metadata' && /^(edited|copied|exported)(?::.*)?$/.exec(line);
-      if(status){if(seen.has(status[1]))throw new Error('Duplicate status');seen.add(status[1]);record[status[1]]=true;continue;}
+      if(status){
+        if(seen.has(status[1]))throw new Error('Duplicate status');
+        seen.add(status[1]);record[status[1]]=true;
+        if(status[1]==='edited'){
+          const stamp=editDate(line.slice(7).trim().replace(/^"|"$/g,''));
+          if(stamp&&!Object.hasOwn(record,'editedAt'))record.editedAt=stamp;
+        }
+        continue;
+      }
       const match = /^([a-z][a-z-]*): ([\s\S]*)$/.exec(line);
       if (!match) throw new Error('Malformed metadata field or prose outside message text');
       if (!Object.hasOwn(inverse, match[1]) && match[1] !== extrasName) throw new Error('Unknown metadata field; use ' + extrasName);
@@ -132,7 +148,7 @@ const imFormat = (() => {
       if (label === extrasName) {
         if (!object(value)) throw new Error('Extra metadata must be an object');
         for (const [key, item] of Object.entries(value)) {
-          if(extrasName==='extra-metadata'&&(statuses.includes(key)||key==='editedAt')){if(Object.hasOwn(record,key))throw new Error('Duplicate status');record[key]=true;continue;}
+          if(extrasName==='extra-metadata'&&statuses.includes(key)){if(Object.hasOwn(record,key))throw new Error('Duplicate status');record[key]=true;continue;}
           if (Object.hasOwn(mapping,key) || (extrasName === 'extra-metadata' && key === 'text')) throw new Error('Extra metadata shadows a reserved field');
           Object.defineProperty(record, key, { value: item, enumerable: true, writable: true, configurable: true });
         }

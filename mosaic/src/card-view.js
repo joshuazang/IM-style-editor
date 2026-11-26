@@ -159,6 +159,20 @@ function positionEditorTags(d) {
   if (modal.style.getPropertyValue('--tag-overhang') !== value) modal.style.setProperty('--tag-overhang', value);
 }
 
+const detailTimestampFormat = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric', month: '2-digit', day: '2-digit', hour: 'numeric', minute: '2-digit', hour12: true
+});
+
+function detailTimestamp(value) {
+  if (typeof value !== 'string') return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  const { year, month, day, hour, minute, dayPeriod } = Object.fromEntries(
+    detailTimestampFormat.formatToParts(date).map(({ type, value }) => [type, value])
+  );
+  return `${year}-${month}-${day} ${hour}:${minute} ${dayPeriod}`;
+}
+
 function refreshEditorMetadata() {
   const d = modalState,
     s = active;
@@ -175,15 +189,22 @@ function refreshEditorMetadata() {
   d.meta.replaceChildren();
   const add = (text, className = '') => {
     if (d.meta.childNodes.length) d.meta.append(el('span', 'metadata-separator', ' · '));
-    d.meta.append(el('span', className, text));
+    const span = el('span', className, text);
+    d.meta.append(span);
+    return span;
   };
   if (message.copied) add('Copied');
   if (message.exported) add('Exported');
   if (MosaicModel.isImported(message)) add('Imported');
-  if (message.createdAt && !Number.isNaN(new Date(message.createdAt).getTime())) {
-    const text = cardTimestampFormat.format(new Date(message.createdAt));
-    add(text, 'card-timestamp');
-    d.meta.querySelector('.card-timestamp').title = new Date(message.createdAt).toLocaleString();
+  const created = detailTimestamp(message.createdAt), lastEdited = detailTimestamp(message.lastEditedAt);
+  if (created || lastEdited) {
+    const timestamp = add('', 'card-timestamp');
+    timestamp.append(el('span', 'card-created-time', created ?? 'Creation time unavailable'));
+    if (lastEdited) {
+      timestamp.classList.add('has-edit-time');
+      timestamp.tabIndex = 0;
+      timestamp.append(el('span', 'card-last-edited-time', `Last edited ${lastEdited}`));
+    }
   }
   if (message.edited) add('edited', 'card-edited');
   renderEditorTags(d);
@@ -603,10 +624,10 @@ function editorDialog(id = null) {
         'This card changed since you opened it. Your text is still here; copy it before reopening the card.');
       return false;
     }
-    const edited = imFormat.withTitle({
-      ...imFormat.editMessage(source, submitted),
+    const edited = {
+      ...imFormat.editMessage(source, submitted, submittedTitle),
       reactions: submittedTags
-    }, submittedTitle);
+    };
     const changed = submitted !== source.text || imFormat.title(edited) !== imFormat.title(source) || JSON
       .stringify(edited.reactions) !== JSON.stringify(source.reactions);
     if (!changed && (!d.wantClose || !s.pending && !s.error && !s.dirty)) {

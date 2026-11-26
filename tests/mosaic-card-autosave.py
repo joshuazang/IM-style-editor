@@ -1,5 +1,5 @@
 """Open-card edits checkpoint and survive departures without pressing Close."""
-import copy,functools,http.server,json,subprocess,threading
+import copy,functools,http.server,json,re,subprocess,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 from browser_engine import chromium_options,fill_field
@@ -39,11 +39,16 @@ try:
     body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_editable();return body
    def saved():return parse(page.evaluate('notes.a.content.text'))
    def wait_saved(text):page.wait_for_function('text=>notes.a.content.text.includes(text)',arg=text)
+   def verify_timestamp(result,expected,index=0):
+    stamp=result['messages'][index]['lastEditedAt']
+    assert re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z',stamp)
+    expected[index]['lastEditedAt']=stamp
+    assert result['messages']==expected,(result['messages'],expected)
    def verify(text,index=0):
     result=saved();expected=copy.deepcopy(data['messages']);expected[index]['text']=text
     # A genuine edit resets copied/exported flags and marks the body edited.
     expected[index].pop('copied',None);expected[index].pop('exported',None);expected[index]['edited']=True
-    assert result['messages']==expected,(result['messages'],expected)
+    verify_timestamp(result,expected,index)
     assert result['draft']==data['draft'];assert result['settings']==data['settings']
     assert page.evaluate('notes.b')==other
    e=start();body=open_card(e);field=body.element_handle();body.evaluate('n=>{window.boardBuilds=0;const f=rebuildLayout;rebuildLayout=(...a)=>{boardBuilds++;return f(...a)}}')
@@ -85,7 +90,7 @@ try:
 
    e=start();body=open_card(e);e.get_by_role('button',name='Card options',exact=True).click();e.get_by_role('menuitem',name='Edit title',exact=True).click()
    fill_field(e.get_by_role('textbox',name='Card title',exact=True),'New title\nSecond line');e.get_by_role('button',name='Card options',exact=True).click();e.get_by_role('button',name='Tag 📍',exact=True).click();page.evaluate('switchNote("b")');wait_saved('New title')
-   result=saved();expected=copy.deepcopy(data['messages']);expected[0].update(title='New title\nSecond line',reactions=[*expected[0]['reactions'],'📍']);assert result['messages']==expected;assert result['draft']==data['draft'];assert result['settings']==data['settings'];assert page.evaluate('notes.b')==other
+   result=saved();expected=copy.deepcopy(data['messages']);expected[0].update(title='New title\nSecond line',reactions=[*expected[0]['reactions'],'📍']);verify_timestamp(result,expected);assert result['draft']==data['draft'];assert result['settings']==data['settings'];assert page.evaluate('notes.b')==other
    print(f'PASS {mobile=}: unsaved title and tags survive direct note switching without altering body/statuses',flush=True)
 
    # A genuine remote body change pauses saving; local text remains available.

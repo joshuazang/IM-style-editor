@@ -101,11 +101,11 @@ const MosaicModel = (() => {
   function merge(messages, settings, ids, noteId) {
     const sources=messages.filter(m=>ids.has(m.id));
     if(sources.length<2)throw new Error('Select at least two cards.');
-    const first=sources[0],combined={...first,text:imFormat.mergeText(sources),reactions:[...new Set(sources.flatMap(m=>m.reactions))],edited:true};
+    const first=sources[0],combined={...imFormat.editMessage(first,imFormat.mergeText(sources)),reactions:[...new Set(sources.flatMap(m=>m.reactions))],edited:true};
     delete combined.copied;delete combined.exported;delete combined.editedAt;
     const origins=new Map();
     for(const m of sources){
-      const {text,reactions,copied,exported,edited,editedAt,mergeSources,...metadata}=m;
+      const {text,reactions,copied,exported,edited,editedAt,lastEditedAt,mergeSources,...metadata}=m;
       for(const origin of [{...metadata,noteId},...(Array.isArray(mergeSources)?mergeSources:[])]) {
         const key=JSON.stringify([origin?.noteId,origin?.id]);
         if(!origins.has(key))origins.set(key,origin);

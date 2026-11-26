@@ -11,6 +11,8 @@ The reader accepts format 3 only. Format 2 remains in **IM-style-editor Archive*
 
 The header is `#!im-style-editor 3`, followed by `#!encoding utf-8`. Settings, optional pending reply and optional unsent draft precede bubbles, as in the existing document structure. IDs, timestamps, presence-based statuses, omitted empty reactions, extra metadata/settings and reserved-line escaping retain their meanings.
 
+Body and title edits replace the bubble's optional `lastEditedAt` extra metadata with a UTC timestamp at minute precision. Historical timestamps in `edited:` or `editedAt` remain readable. The `edited` status is independent of the timestamp, so clearing that status preserves the date. Mosaic Card View shows creation and edit times in local time at minute precision.
+
 Each bubble starts with `@@IM:BUBBLE`, contains its metadata and `@@IM:CONTENT`, and ends at the next **unescaped** `@@IM:BUBBLE` or final `@@IM:END`. There is no structural `@@IM:END-BUBBLE`. A literal old end-marker in message text is ordinary content.
 
 As in format 2, two empty lines precede the exact message payload, and a line terminator plus two empty lines follow it. The next bubble marker immediately follows that framing; no additional separator line is inserted. Leading/trailing whitespace and message newlines are never trimmed. Literal reserved control lines and leading backslashes are escaped using a backslash. Draft and reply sections keep their explicit end markers.

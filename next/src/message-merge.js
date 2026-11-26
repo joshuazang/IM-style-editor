@@ -2,12 +2,12 @@
 function imMergeSelected(messages,settings,selected,noteId){
   const sources=messages.filter(message=>selected.has(message.id));
   if(sources.length<2)throw new Error('Select at least two messages to merge.');
-  const first=sources[0],merged={...first,text:imFormat.mergeText(sources),
+  const first=sources[0],merged={...imFormat.editMessage(first,imFormat.mergeText(sources)),
     reactions:[...new Set(sources.flatMap(message=>message.reactions))],edited:true};
   delete merged.copied;delete merged.exported;delete merged.editedAt;
   const origins=new Map();
   for(const message of sources){
-    const {text,reactions,copied,exported,edited,editedAt,mergeSources,...metadata}=message;
+    const {text,reactions,copied,exported,edited,editedAt,lastEditedAt,mergeSources,...metadata}=message;
     for(const source of [{...metadata,noteId},...(Array.isArray(mergeSources)?mergeSources:[])]){
       const key=source&&typeof source==='object'?JSON.stringify([source.noteId,source.id]):JSON.stringify(source);
       if(!origins.has(key))origins.set(key,source);
