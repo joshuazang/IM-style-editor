@@ -208,6 +208,7 @@ readText:async()=>window.__incomingClipboard||''}});
     e.get_by_role('button',name='Merge selected',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()
     parsed=parse(page.evaluate('notes.a.content.text'));combined=next(m for m in parsed['messages'] if m['id']==small['messages'][4]['id'])
     assert combined['edited'] and combined['text']==small['messages'][4]['text']+'\n\n'+small['messages'][5]['text']
+    assert all(key not in combined for key in ['sourceRefs','mergeSources','forwarding'])
     e.get_by_role('button',name='Copy selected',exact=True).click();e.get_by_role('button',name='Selection options',exact=True).click()
     e.get_by_role('menuitem',name='Clear message statuses',exact=True).click();e.get_by_role('checkbox',name='Copied',exact=True).check()
     e.get_by_role('button',name='Clear selected statuses',exact=True).click();expect(e.locator('dialog')).not_to_be_visible()

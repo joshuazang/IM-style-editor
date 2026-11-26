@@ -1,8 +1,8 @@
 /* Merge immutable records in note order. Text is stored once; source metadata keeps reply destinations. */
-function imMergeSelected(messages,settings,selected,noteId){
+function imMergeSelected(messages,settings,selected){
   const sources=messages.filter(message=>selected.has(message.id));
   if(sources.length<2)throw new Error('Select at least two messages to merge.');
-  const first=sources[0],merged=imFormat.mergeContent(sources,noteId);
+  const first=sources[0],merged=imFormat.mergeContent(sources);
   const result=messages.flatMap(message=>message.id===first.id?[merged]:selected.has(message.id)?[]:[message]);
   const pins=imPinIds(settings).map(id=>selected.has(id)?first.id:id);
   return {messages:result,settings:imPinSettings({...settings,pinnedMessageIds:[...new Set(pins)]},result),id:first.id};
@@ -33,7 +33,7 @@ function imUseMessageMerge({noteRef,selected,save,select,notify}){
     const note=noteRef.current,messages=imFormat.readMessages(note),ids=new Set(dialog.sources.map(message=>message.id));
     const current=messages.filter(message=>ids.has(message.id));
     if(JSON.stringify(current)!==JSON.stringify(dialog.sources))throw new Error('These messages changed. Close this preview and select them again.');
-    const result=imMergeSelected(messages,imFormat.readSettings(note),ids,dialog.uuid);
+    const result=imMergeSelected(messages,imFormat.readSettings(note),ids);
     const pending=save(result.messages,result.settings);
     if(!pending)throw new Error('Saving is paused. Your original messages have been kept.');
     // Once the combined record exists, retain that selection even if the host rejects the save.
@@ -53,7 +53,7 @@ function ImMergeDialog({controller}){
         if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
     },children:[
       x.jsx('h2',{id:'merge-title',children:`Merge ${controller.dialog.sources.length} messages?`}),
-      x.jsx('p',{children:'Combine them in their current order, with a blank line between each. Keep the first message’s position and date, combine tags, and keep pins and reply links. Copied and exported statuses will reset.'}),
+      x.jsx('p',{children:'Combine the text in note order and keep the first message’s position and date. Tags and pins are combined. Copied and Exported reset. Saved quotes stay visible, and links to the other selected messages may stop jumping.'}),
       x.jsx('div',{className:'merge-preview',tabIndex:0,'aria-label':'Combined message preview',children:controller.dialog.text}),
       error&&x.jsx('p',{role:'alert',children:error}),
       x.jsxs('div',{className:'transfer-actions',children:[

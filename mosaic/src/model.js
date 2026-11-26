@@ -98,10 +98,10 @@ const MosaicModel = (() => {
   function target(messages, reply, noteId) {
     return imReplyTarget(messages,reply,noteId)||null;
   }
-  function merge(messages, settings, ids, noteId) {
+  function merge(messages, settings, ids) {
     const sources=messages.filter(m=>ids.has(m.id));
     if(sources.length<2)throw new Error('Select at least two cards.');
-    const first=sources[0],combined=imFormat.mergeContent(sources,noteId);
+    const first=sources[0],combined=imFormat.mergeContent(sources);
     return {messages:messages.flatMap(m=>m.id===first.id?[combined]:ids.has(m.id)?[]:[m]),
       settings:{...settings,pinnedMessageIds:[...new Set(pins(settings).map(id=>ids.has(id)?first.id:id))]},id:first.id};
   }

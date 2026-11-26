@@ -44,7 +44,8 @@ const imported=t.merge([],payload);assert.equal(imported.added.length,messages.l
 assert.equal(t.merge(imported.messages,payload).added.length,0);
 const merged=m.merge(messages,settings,new Set([messages[0].id,messages[1].id]),'fixture');
 assert.equal(merged.messages[0].text,messages[0].text+'\n\n'+messages[1].text);assert.ok(merged.messages[0].edited&&!merged.messages[0].copied&&!merged.messages[0].exported);
-assert.equal(m.target(merged.messages,{id:messages[1].id,noteId:'fixture'},'fixture').id,messages[0].id);
+assert.equal(m.target(merged.messages,{id:messages[1].id,noteId:'fixture'},'fixture'),null);
+assert.ok(!Object.hasOwn(merged.messages[0],'sourceRefs'));
 assert.equal(merged.settings.pinnedMessageIds[0],messages[0].id);
 const many=Array.from({length:5000},(_,i)=>({id:f.newId(),text:`Title ${i}\n${'An idea. '.repeat(i%20+1)}`,reactions:i%3?[]:['📓']}));
 for(const width of [280,350,700,1300]){

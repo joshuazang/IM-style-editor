@@ -68,6 +68,17 @@ try:
     expected[2].pop('replyTo');saved=scope['parse'](page.evaluate('notes.a.content.text'));assert saved['messages']==expected;assert saved['draft']==baseline['draft'];assert saved['reply']==data['reply'];assert saved['settings']==data['settings']
     for reload_path in [path,'/mosaic/index.html' if im else '/next/index.html']:
      page.evaluate('path=>openEditor("a",path,true)',reload_path);other=page.frame_locator('#editor');expect(other.get_by_role('textbox',name='Take a note' if reload_path.startswith('/mosaic') else 'Message',exact=True)).to_be_visible();expect(other.locator('.card-reply,.bubble-reply-quote')).to_have_count(0)
+    page.evaluate('path=>openEditor("a",path,true)',path);expect(capture).to_be_visible()
+    first_id=expected[0]['id'];first=e.locator(f'[data-message-id="{first_id}"]' if im else f'.card[data-id="{first_id}"]')
+    first.click(button='right');e.get_by_role('menuitem',name='Select',exact=True).click();row.click()
+    e.get_by_role('button',name='More selection options' if im else 'Selection options',exact=True).click()
+    e.get_by_role('menuitem',name='Merge selected',exact=True).click()
+    dialog=e.get_by_role('dialog');dialog.get_by_role('button',name='Merge selected',exact=True).click();expect(dialog).not_to_be_visible()
+    merged=scope['parse'](page.evaluate('notes.a.content.text'))
+    assert [record['id'] for record in merged['messages']]==[first_id,expected[2]['id'],expected[3]['id']]
+    assert merged['messages'][0]['text']==expected[0]['text']+'\n\n'+expected[1]['text']
+    assert all(key not in merged['messages'][0] for key in ['sourceRefs','forwarding','mergeSources','noteId'])
+    assert merged['messages'][1:]==expected[2:] and merged['draft']==saved['draft']
     assert not errors,errors;print(f'PASS {width}px {path}: Reply choice/cancellation, selected-only and whole-note clearing, exact metadata/text/draft preservation, failed-save retry, quoted preview removal and cross-editor reload',flush=True);context.close()
   browser.close()
 finally:server.shutdown()

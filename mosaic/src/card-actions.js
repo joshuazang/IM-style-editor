@@ -279,11 +279,11 @@ function mergeDialog() {
   const preview = imFormat.mergeText(records),
     snapshot = JSON.stringify(records);
   const d = confirmAction(`Merge ${records.length} cards?`,
-    'Text will stay in its original IM order, separated by a blank line. Tags and pins are combined. Copied and Exported reset.',
+    'Text stays in note order. Tags and pins are combined. Copied and Exported reset. Saved quotes stay visible, and links to the other selected cards may stop jumping.',
     'Merge selected', async () => {
       if (JSON.stringify(s.messages.filter(m => ids.has(m.id))) !== snapshot) throw new Error(
         'These cards changed. Open a fresh merge preview.');
-      const result = MosaicModel.merge(s.messages, s.settings, ids, s.note.uuid);
+      const result = MosaicModel.merge(s.messages, s.settings, ids);
       s.view.selected = new Set([result.id]);
       rememberSelection();
       await update(s, result);

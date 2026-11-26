@@ -18,7 +18,7 @@ assert.equal(imported.added.length,100);assert.equal(target(imported.messages,me
 const malformed={id:f.newId(),text:'Preserve extra metadata',reactions:[],mergeSources:'not-an-array',forwarding:{previous:null}};
 const match={id:f.newId(),text:'Target',reactions:[]};
 assert.equal(target([malformed,null].filter(Boolean),{id:match.id,noteId:'here'},'here'),undefined);
-malformed.mergeSources=[null,17,'str',{id:match.id,noteId:'here'}];assert.equal(target([malformed],{id:match.id,noteId:'here'},'here').id,malformed.id);
+malformed.mergeSources=[null,17,'str',{id:match.id,noteId:'here'}];assert.equal(target([malformed],{id:match.id,noteId:'here'},'here'),undefined);
 const legacy={id:f.newId(),text:'Legacy',reactions:[],replyTo:{id:messages[1].id,noteId:'same-note',text:'Old quote',metadata:{replyTo:messages[98].replyTo,unknown:{keep:true}}}};
 const text=f.portable([legacy],{}),note={content:{text}},before=plain(f.readMessages(note));snapshot(before[0],'new');f.write(note,f.readMessages(note),f.readSettings(note));
 assert.deepEqual(plain(f.readMessages(note)),before,'Existing nested replies must remain intact');

@@ -6,8 +6,8 @@ An IM-style editor for Standard Notes
 This repository now contains two separately installable interfaces built from
 one shared format-3 core:
 
-- **[IM-style-editor 4.4.40](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
-- **[Mosaic 1.5.49](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
+- **[IM-style-editor 4.4.41](https://joshuazang.github.io/IM-style-editor/im-style-editor-next.ext.json)** — a message timeline.
+- **[Mosaic 1.5.50](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json)** — a plain-text card board. [Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Guide](mosaic/README.md).
 
 Both can open the same format-3 note without conversion. All development and
 releases for both interfaces happen here. The standalone
@@ -43,7 +43,7 @@ Editor 4.0.7 releases past save contents from the host bridge, skips identical s
 
 Editor 4.0.8 fixes metadata-only sync updates restoring an older draft after Send. Host timestamps update without replacing the current message content or draft; ordinary content updates and draft autosaving continue normally.
 
-Editor 4.1.0 adds **Merge selected** to the selection three-dot menu, with a combined-message preview. Text stays in note order, separated by blank lines; tags and pins are combined and reply destinations are preserved. The first message keeps its position/date. The combined message is edited and its Copied/Exported statuses reset.
+**Merge selected** combines text in note order with blank lines between messages, keeps the first message’s position and date, and combines tags and pins. Copied and Exported reset. Saved reply quotes stay visible. Links to the other selected messages may no longer jump to the merged result.
 
 Reading older messages now stays anchored when messages change below. Near the bottom, new messages follow smoothly; otherwise the down-arrow shows how many new messages are below. Date boundaries have doubled separator margins, and clicking a date’s selection control selects that day’s messages in the current view, including off-screen filter matches. **Iris blue** is `rgb(78, 92, 240)` with white text.
 

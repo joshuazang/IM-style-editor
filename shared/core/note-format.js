@@ -73,11 +73,6 @@ const imFormat = (() => {
       }
     }
     addForwarding(message.forwarding);
-    if(Array.isArray(message.mergeSources))for(const record of message.mergeSources){
-      if(!object(record))continue;
-      all.push([record.noteId,record.id]);addForwarding(record.forwarding);
-      for(const ref of readSourceRefs(record.sourceRefs))all.push(ref);
-    }
     return uniqueSourceRefs(all);
   }
   function normalizeReply(reply) {
@@ -128,10 +123,11 @@ const imFormat = (() => {
     return result;
   };
   const mergeText = messages => messages.map((message,index)=>index&&title(message)?title(message)+'\n'+message.text:message.text).join('\n\n');
-  function mergeContent(messages,noteId){
+  function mergeContent(messages){
     const first=normalizeMessage(messages[0]);
     const combined={...editMessage(first,mergeText(messages)),reactions:[...new Set(messages.flatMap(message=>message.reactions))],edited:true};
-    combined.sourceRefs=uniqueSourceRefs(messages.flatMap(message=>[[noteId,message.id],[message.noteId,message.id],...sourceRefs(message)]));
+    delete combined.sourceRefs;
+    delete combined.noteId;
     if(messages.some(isImported))combined.imported=true;
     delete combined.copied;delete combined.exported;
     return combined;
