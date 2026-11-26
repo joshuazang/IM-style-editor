@@ -77,6 +77,8 @@ function closeModal(force = false) {
   modalState?.tagObserver?.disconnect();
   modalState?.tagBadges?.remove();
   modal.style.removeProperty('--tag-overhang');
+  modal.style.removeProperty('--card-opening-top');
+  modal.classList.remove('card-position-anchored');
   modalState?.body?.imRich?.destroy();
   hideMenu();
   if (modal.open) modal.close();
@@ -767,6 +769,12 @@ function editorDialog(id = null) {
   }
   scroller.scrollTop = 0;
   d.updateScroll();
+  if (!isIPhone) {
+    // Keep the original top edge when input changes line wrapping. The inner
+    // scroller takes over once the content reaches the viewport edge.
+    modal.style.setProperty('--card-opening-top', `${modal.getBoundingClientRect().top}px`);
+    modal.classList.add('card-position-anchored');
+  }
   animateCard(d);
   if (!d.bodyReady) {
     if (d.cardAnimation) d.deferBodyUntilMotion = true;

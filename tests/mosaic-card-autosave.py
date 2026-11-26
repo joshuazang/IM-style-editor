@@ -111,5 +111,42 @@ try:
   cdp.send('Input.insertText',{'text':'中文输入尚未结束'});wait_saved('中文输入尚未结束');verify('中文输入尚未结束')
   before=page.evaluate('saves.length');e.get_by_role('button',name='Close',exact=True).click();expect(e.locator('dialog')).not_to_be_visible();assert page.evaluate('saves.length')==before
   print('PASS continuous six-second checkpoint, composition guard, no-op Close after confirmed autosave',flush=True)
+  for quote in ['', '> ']:
+   e=start();body=open_card(e);dialog=e.locator('dialog');cdp=context.new_cdp_session(page)
+   seed=quote+'第一段保存原位置'+'\n\n'+quote+'第二段输入中文'
+   fill_field(body,seed);body.press('Control+End');expect(body.locator('p')).to_have_count(2)
+   wait_saved('第二段输入中文')
+   geometry='''n=>{
+     const card=n.closest('dialog').getBoundingClientRect();
+     const first=n.querySelector('p').getBoundingClientRect();
+     const second=n.querySelectorAll('p')[1];
+     const prefix=document.createRange();
+     prefix.setStart(second.firstChild,0);prefix.setEnd(second.firstChild,2);
+     const text=prefix.getBoundingClientRect();
+     const quote=n.querySelector('blockquote:last-child')?.getBoundingClientRect();
+     return {top:card.top,height:card.height,left:card.left,width:card.width,
+       firstTop:first.top,firstLeft:first.left,textLeft:text.left,textWidth:text.width,
+       quoteLeft:quote?.left??null,quoteWidth:quote?.width??null};
+   }'''
+   opening=body.evaluate(geometry);before=page.evaluate('saves.length');heights=[]
+   def stable_position():
+    body.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+    current=body.evaluate(geometry)
+    for key,value in current.items():
+     if key!='height':assert value==opening[key],(key,opening,current)
+    return current['height']
+   for pinyin in ['z','zhongwenshuruwenben'*8,'zh','zhongwenshuruwenben'*6]:
+    cdp.send('Input.imeSetComposition',{'text':pinyin,'selectionStart':len(pinyin),'selectionEnd':len(pinyin)})
+    heights.append(stable_position())
+   assert max(heights)>min(heights),heights
+   assert page.evaluate('saves.length')==before
+   cdp.send('Input.insertText',{'text':'中文'});stable_position()
+   cdp.send('Input.insertText',{'text':'。'});stable_position()
+   punctuation='。'*110
+   cdp.send('Input.insertText',{'text':punctuation});stable_position()
+   expected=seed+'中文。'+punctuation
+   expect(body).to_have_js_property('value',expected);wait_saved(expected);verify(expected)
+   e.get_by_role('button',name='Close',exact=True).click();expect(dialog).not_to_be_visible()
+   print('PASS stable card position and quote width through pinyin wrapping, candidate commit and Chinese punctuation',bool(quote),flush=True)
   context.close();browser.close()
 finally:server.shutdown();server.server_close()
