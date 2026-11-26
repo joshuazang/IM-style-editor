@@ -472,7 +472,7 @@ function cardNode(message, width) {
       node.click();
     }
   });
-  bindContextMenu(node, event => {
+  bindBoardContextMenu(node, event => {
     const current = s.messages.find(m => m.id === message.id);
     if (current) cardMenu(current, event);
   }, () => active === s && !s.view.selecting && !boardDrag.placeholder(message.id));

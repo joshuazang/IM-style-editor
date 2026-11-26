@@ -190,7 +190,7 @@ function safeRun(action) {
   }
 }
 /* A hold only arms the menu. Release opens it; movement/cancellation never does. */
-function bindContextMenu(node, open, canHold = () => true, preferNative = () => false) {
+function bindBoardContextMenu(node, open, canHold) {
   let gesture = null,
     timer = 0,
     suppressUntil = 0;
@@ -249,7 +249,7 @@ function bindContextMenu(node, open, canHold = () => true, preferNative = () => 
     }
   }, true);
   node.addEventListener('contextmenu', event => {
-    if (event.target.closest('#menu') || preferNative()) return;
+    if (event.target.closest('#menu')) return;
     const touch = !!gesture || event.pointerType === 'touch' || (matchMedia(
       '(pointer:coarse) and (hover:none)').matches && event.pointerType !== 'mouse');
     if (touch && event.target.closest('input,textarea,select,[contenteditable]')) return;
@@ -594,6 +594,7 @@ menu.addEventListener('click', event => {
   menuPress = false;
 }, true);
 document.addEventListener('contextmenu', event => {
+  if (event.target.closest('.card-edit-dialog')) return;
   if (matchMedia('(pointer:coarse)').matches && event.target.closest(
       'button,[role="button"],.ui-selection-status')) event.preventDefault();
 }, true);

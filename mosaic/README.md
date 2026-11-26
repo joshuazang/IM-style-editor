@@ -2,7 +2,7 @@
 
 A plain-text card board for Standard Notes, built from scratch.
 
-**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.51](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.51.zip)**
+**[Preview](https://joshuazang.github.io/IM-style-editor/mosaic/index.html?preview=1) · [Install](https://joshuazang.github.io/IM-style-editor/mosaic.ext.json) · [Download 1.5.52](https://joshuazang.github.io/IM-style-editor/Mosaic-1.5.52.zip)**
 
 Mosaic and IM-style-editor 4.x are separate plugins sharing one note format and
 one source core. Choose either editor for the same note in Standard Notes. No
@@ -43,8 +43,9 @@ This is the current note's board, rather than an account-wide dashboard.
 - Edit title for an existing separate title from the context menu opens a target preview in the bottom
   composer. Enter saves and Shift+Enter adds a line. Cancel restores the capture
   draft. Starting another title cannot overwrite unfinished title entry.
-- An opened card initially has no editable title field. Edit title from its
-  context menu unlocks it above the body. Enter adds lines; edits autosave.
+- In an opened card, right-click uses the system text menu. Open **Card options**
+  (three dots) for card actions. **Edit title** unlocks the title above the body.
+  Enter adds lines; edits autosave.
   Close and departures submit the latest edits immediately.
   An existing title otherwise displays as a heading; untitled cards have no
   placeholder or reserved title space.
@@ -89,10 +90,10 @@ This is the current note's board, rather than an account-wide dashboard.
   retain their timestamp and separate statuses.
 - A separate quick-tag grid above the shared context actions. Emojis wrap across
   rows so the complete picker is visible. There is no Add label button
-  or inline emoji selector in the opened card. Context-tag changes in an opened
-  card are staged and saved on Close; board context-tag changes save immediately.
+  or inline emoji selector in the opened card. Tag changes from **Card options**
+  are staged and saved on Close; board context-tag changes save immediately.
 - Visual Markdown editing, quoted replies and navigation to the original.
-- Touch context menus wait for release after a hold; moving or cancelling the
+- Board touch context menus wait for release after a hold; moving or cancelling the
   gesture does not open them. The opening release cannot activate a menu action.
 - Selection matches IM: five top actions (tag, copy, export, more, delete) and
   bottom Select all/count/Cancel controls. Select all follows the current filter.

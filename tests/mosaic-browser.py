@@ -186,7 +186,7 @@ readText:async()=>window.__incomingClipboard||''}});
     parsed=parse(page.evaluate('notes.a.content.text'));assert small['messages'][2]['id'] in parsed['settings']['pinnedMessageIds']
     find_card(2).click(button='right');e.get_by_role('menuitem',name='Unpin',exact=True).click()
     parsed=parse(page.evaluate('notes.a.content.text'));assert small['messages'][2]['id'] not in parsed['settings']['pinnedMessageIds']
-    find_card(2).click();e.get_by_role('textbox',name='Card body',exact=True).click(button='right')
+    find_card(2).click();e.locator('dialog').get_by_role('button',name='Card options',exact=True).click()
     e.get_by_role('button',name='Tag 📍',exact=True).click();e.get_by_role('button',name='Close',exact=True).click()
     expect(e.locator('dialog')).not_to_be_visible();parsed=parse(page.evaluate('notes.a.content.text'))
     assert parsed['messages'][2]['text']==small['messages'][2]['text'] and parsed['messages'][2]['reactions']==['📍'] and not parsed['messages'][2].get('edited')

@@ -63,6 +63,18 @@ try:
                 page.mouse.up()
                 still_open()
 
+            def right_click_text(field, position=None):
+                field.evaluate('''n=>{
+                    window.cardContextPrevented=undefined;
+                    document.addEventListener('contextmenu',event=>{
+                        window.cardContextPrevented=event.defaultPrevented;
+                    },{once:true});
+                }''')
+                field.click(button='right', position=position)
+                assert field.evaluate('()=>window.cardContextPrevented') is False
+                expect(editor.locator('#menu')).not_to_be_visible()
+                still_open()
+
             # Escape clears highlighted text before closing; without a selection,
             # it closes even when a formatting panel owns focus.
             for toolbar_mode in ['caret','manual','selection','backward-selection','toolbar-focus','title-input','readonly-title']:
@@ -97,22 +109,20 @@ try:
                 assert page.evaluate('saves.length')==0
             open_card()
             body.press('Control+Home')
+            assert body.evaluate('n=>n.spellcheck&&getSelection().isCollapsed')
+            right_click_text(body, {'x': 20, 'y': 20})
+            right_click_text(editor.locator('.detail-title'))
+            body.press('Control+Home')
             body.press('Shift+End')
             highlighted = body.evaluate('()=>getSelection().toString()')
             assert highlighted
             point = body.evaluate('''n=>{
-                document.addEventListener('contextmenu',event=>{
-                    window.cardContextPrevented=event.defaultPrevented;
-                },{once:true});
                 const selection=getSelection().getRangeAt(0).getClientRects()[0];
                 const field=n.getBoundingClientRect();
                 return {x:selection.left-field.left+5,y:selection.top-field.top+selection.height/2};
             }''')
-            body.click(button='right', position=point)
-            assert body.evaluate('()=>window.cardContextPrevented') is False
+            right_click_text(body, point)
             assert body.evaluate('()=>getSelection().toString()') == highlighted
-            expect(editor.locator('#menu')).not_to_be_visible()
-            still_open()
 
             for side in ['right', 'left', 'top', 'bottom']:
                 drag(body, side)
@@ -122,6 +132,9 @@ try:
             editor.get_by_role('menuitem', name='Edit title', exact=True).click()
             drag(editor.get_by_role('textbox', name='Card title', exact=True), 'left')
             title = editor.get_by_role('textbox', name='Card title', exact=True)
+            title.press('Home')
+            assert title.evaluate('n=>n.spellcheck&&n.selectionStart===n.selectionEnd')
+            right_click_text(title)
             title.press('Control+a')
             assert title.evaluate("n=>n.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2}))")
             expect(editor.locator('#menu')).not_to_be_visible()
@@ -179,7 +192,7 @@ try:
             expect(dialog).not_to_be_visible()
             assert scope['parse'](page.evaluate('notes.a.content.text'))['messages'][0]['text'] == text + '\nWait for acknowledgment'
             assert not errors, errors
-            print(f'PASS reduced={reduced}: real body/title selection in all directions, press origin, cancellation, replaced dialogs, selection-first Escape from body/keyboard toolbars and one-press close without selection, ordinary outside close, acknowledgment and retained Escape failed save/retry', flush=True)
+            print(f'PASS reduced={reduced}: native right-click with and without a selection, body/title selection and Escape, backdrop dismissal, replaced dialogs, and failed save/retry', flush=True)
             context.close()
         context = browser.new_context(viewport={'width': 390, 'height': 1200}, user_agent='Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36', is_mobile=True, has_touch=True)
         page = context.new_page()

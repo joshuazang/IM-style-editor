@@ -84,11 +84,11 @@ try:
    vectors=menu.locator('.ui-action-panel svg').evaluate_all('nodes=>nodes.map(n=>n.innerHTML)')
    menu.get_by_role('button',name='Tag 📍',exact=True).click();expect(menu).not_to_be_visible()
    assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['reactions']==['📍']
-   # Context tags and palette are usable inside the native edit dialog.
+   # The explicit Card options and palette buttons remain usable while editing.
    card.click();body=e.get_by_role('textbox',name='Card body',exact=True);fill_field(body,'Edited with color and tags')
    expect(dialog.locator('.card-created-time')).to_have_text('Created 2026-11-06 12:00 PM')
    expect(last_edited).to_have_count(0)
-   body.click(button='right');expect(menu).to_be_visible();menu.get_by_role('button',name='Tag 📓',exact=True).click()
+   dialog.get_by_role('button',name='Card options',exact=True).click();expect(menu).to_be_visible();menu.get_by_role('button',name='Tag 📓',exact=True).click()
    dialog.get_by_role('button',name='Background options',exact=True).click()
    palette=e.get_by_role('group',name='Card background colors',exact=True);expect(palette).to_be_visible();palette.get_by_role('button',name='Rose',exact=True).click()
    expect(body).to_have_js_property('value','Edited with color and tags');e.get_by_role('button',name='Close',exact=True).click()

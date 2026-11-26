@@ -604,12 +604,6 @@ function editorDialog(id = null) {
       d.scheduleSave();
     });
   }
-  // Enter is ordinary multiline editing here; the capture field has its own send keys.
-  const hasSelection = () => cardHasTextSelection(d) || hasDOMSelectionIn(d.root);
-  const canHoldCard = () => active === s && modalState === d && !hasSelection();
-  bindContextMenu(d.root, event => cardMenu(s.messages.find(m => m.id === id), event), canHoldCard, hasSelection);
-  bindContextMenu(d.tagBadges, event => cardMenu(s.messages.find(m => m.id === id), event), canHoldCard,
-    hasSelection);
   d.commit = saveEditor;
   async function saveEditor(closeAfter = true) {
     if (active !== s || modalState !== d) return false;
