@@ -42,14 +42,18 @@ try:
    assert dialog.get_by_role('textbox',name='New label',exact=True).count()==0
    expect(dialog.get_by_role('button',name='Background options',exact=True)).to_be_visible()
    body=e.get_by_role('textbox',name='Card body',exact=True);expect(body).to_be_focused()
-   created=dialog.locator('.card-created-time');last_edited=dialog.locator('.card-last-edited-time')
-   expect(created).to_have_text('2026-11-06 12:00 PM');expect(created).to_be_visible()
-   expect(last_edited).to_be_hidden()
+   created=dialog.locator('.card-created-tooltip');last_edited=dialog.locator('.card-last-edited-time')
+   expect(last_edited).to_have_text('Edited 2026-11-07 9:42 PM');expect(last_edited).to_be_visible()
+   expect(created).to_be_hidden()
    if width>=600:
+    dialog.evaluate('async n=>{await Promise.all(n.getAnimations().map(a=>a.finished.catch(()=>{})))}')
+    dialog.locator('.card-timestamp').scroll_into_view_if_needed()
+    position=last_edited.bounding_box()
     dialog.locator('.card-timestamp').hover()
-    expect(last_edited).to_have_text('Last edited 2026-11-07 9:42 PM');expect(last_edited).to_be_visible()
-    expect(created).to_be_hidden();body.hover();expect(created).to_be_visible()
-   expect(e.locator('.card-edited')).to_have_text('edited')
+    expect(created).to_have_text('Created 2026-11-06 12:00 PM');expect(created).to_be_visible()
+    expect(last_edited).to_be_visible();assert last_edited.bounding_box()==position
+    body.hover();expect(created).to_be_hidden()
+   expect(e.locator('.card-edited')).to_have_count(0)
    expect(e.get_by_role('textbox',name='Card title',exact=True)).not_to_be_visible();title=body.bounding_box();title['height']=44
    assert dialog.locator('.card-detail-tools>button').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("aria-label"))')==['Text formatting','Pin card','Background options','Card options','Close']
    before=page.evaluate('notes.a.content.text');fill_field(body,'Changed body');body.press('End');body.press('Enter');body.type('Next line')
@@ -82,6 +86,8 @@ try:
    assert parse(page.evaluate('notes.a.content.text'))['messages'][2]['reactions']==['📍']
    # Context tags and palette are usable inside the native edit dialog.
    card.click();body=e.get_by_role('textbox',name='Card body',exact=True);fill_field(body,'Edited with color and tags')
+   expect(dialog.locator('.card-created-time')).to_have_text('Created 2026-11-06 12:00 PM')
+   expect(last_edited).to_have_count(0)
    body.click(button='right');expect(menu).to_be_visible();menu.get_by_role('button',name='Tag 📓',exact=True).click()
    dialog.get_by_role('button',name='Background options',exact=True).click()
    palette=e.get_by_role('group',name='Card background colors',exact=True);expect(palette).to_be_visible();palette.get_by_role('button',name='Rose',exact=True).click()
@@ -130,12 +136,12 @@ try:
     page.wait_for_function('notes.a.content.text.includes("Changed in IM")')
     saved_im=parse(page.evaluate('notes.a.content.text'))['messages'][-1]
     assert saved_im['id']==last_id and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z',saved_im['lastEditedAt'])
-    expect(im.get_by_text(re.compile(r'^Last edited '))).to_have_count(0)
+    expect(im.get_by_text(re.compile(r'^Edited \d{4}-'))).to_have_count(0)
     page.evaluate('openEditor("a","/mosaic/index.html",false)')
     fill_search(e,'Changed in IM');e.locator(f'[data-id="{last_id}"]').click()
     dialog.locator('.card-timestamp').hover()
-    expect(last_edited).to_be_visible()
-    expect(last_edited).to_have_text(re.compile(r'^Last edited \d{4}-\d{2}-\d{2} \d{1,2}:\d{2} [AP]M$'))
+    expect(created).to_be_visible()
+    expect(last_edited).to_have_text(re.compile(r'^Edited \d{4}-\d{2}-\d{2} \d{1,2}:\d{2} [AP]M$'))
    assert not errors,errors;assert not outside,outside
    print(f'PASS {width}px: direct editing, multiline Enter, bottom Close/metadata, no board timestamps, ack/failure retention, modal palette/tags, bottom capture and identical functional IM/Mosaic menus',flush=True)
    if width==390:page.screenshot(path='/tmp/shared-message-menu.png')

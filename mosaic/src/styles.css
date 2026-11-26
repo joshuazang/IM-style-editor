@@ -236,10 +236,9 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .detail-pin{position:absolute;right:20px;top:23px;background:transparent;color:inherit}
 .detail-pin[aria-pressed=true]{color:var(--accent);background:var(--accent-soft)}
 .card-detail-meta{display:flex;justify-content:flex-end;flex-wrap:wrap;align-items:center;gap:4px;margin-top:18px;font-size:11px;line-height:1.5;opacity:.8;text-align:right}
-.card-timestamp.has-edit-time{display:inline-grid}
-.card-timestamp.has-edit-time>span{grid-area:1/1}
-.card-last-edited-time,.card-timestamp.has-edit-time:is(:hover,:focus-visible)>.card-created-time{visibility:hidden}
-.card-timestamp:is(:hover,:focus-visible)>.card-last-edited-time{visibility:visible}
+.card-timestamp{position:relative}
+.card-created-tooltip{visibility:hidden;position:absolute;z-index:2;right:0;bottom:calc(100% + 4px);padding:5px 8px;border-radius:6px;background:#45494b;color:#fff;white-space:nowrap;pointer-events:none}
+.card-timestamp:is(:hover,:focus-visible)>.card-created-tooltip{visibility:visible}
 .card-detail-tools{display:flex;align-items:center;gap:8px;margin-top:15px}
 .card-detail-tools .icon-button{color:inherit}
 .detail-more{margin-left:auto}

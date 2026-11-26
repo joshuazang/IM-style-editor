@@ -199,14 +199,18 @@ function refreshEditorMetadata() {
   const created = detailTimestamp(message.createdAt), lastEdited = detailTimestamp(message.lastEditedAt);
   if (created || lastEdited) {
     const timestamp = add('', 'card-timestamp');
-    timestamp.append(el('span', 'card-created-time', created ?? 'Creation time unavailable'));
-    if (lastEdited) {
-      timestamp.classList.add('has-edit-time');
+    if (lastEdited) timestamp.append(el('span', 'card-last-edited-time', `Edited ${lastEdited}`));
+    else timestamp.append(el('span', 'card-created-time', `Created ${created}`));
+    if (lastEdited && created) {
       timestamp.tabIndex = 0;
-      timestamp.append(el('span', 'card-last-edited-time', `Last edited ${lastEdited}`));
+      const tooltip = el('span', 'card-created-tooltip', `Created ${created}`);
+      tooltip.id = 'card-created-tooltip';
+      tooltip.setAttribute('role', 'tooltip');
+      timestamp.setAttribute('aria-describedby', tooltip.id);
+      timestamp.append(tooltip);
     }
   }
-  if (message.edited) add('edited', 'card-edited');
+  if (message.edited && !lastEdited) add('edited', 'card-edited');
   renderEditorTags(d);
 }
 
