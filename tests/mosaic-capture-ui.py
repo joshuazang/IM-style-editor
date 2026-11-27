@@ -19,9 +19,71 @@ threading.Thread(target=server.serve_forever,daemon=True).start();BASE='http://1
 small=fixture(200)
 small['messages'][192]['title']='Legacy title'
 small['note']['content']['text']=subprocess.check_output(['node','-e',"const fs=require('fs'),vm=require('vm'),crypto=require('crypto');const f=vm.runInNewContext(fs.readFileSync('shared/core/note-format.js','utf8')+';imFormat',{crypto,btoa});const d=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(f.portable(d.messages,d.settings,d.draft));"],cwd=ROOT,input=json.dumps(small),text=True)
+
+def check_chinese_capture(field, context, page):
+ settle=lambda:field.evaluate('()=>new Promise(requestAnimationFrame)')
+ cdp=context.new_cdp_session(page)
+ insert=lambda text:cdp.send('Input.insertText',{'text':text})
+ def compose(text):
+  cdp.send('Input.imeSetComposition',{'text':text,'selectionStart':len(text),'selectionEnd':len(text)})
+  settle()
+ def glyph(offset):
+  settle()
+  return field.evaluate('''(n,i)=>{
+   const p=[...n.querySelectorAll('p')].at(-1),walker=document.createTreeWalker(p,NodeFilter.SHOW_TEXT);
+   for(let text=walker.nextNode();text;text=walker.nextNode()){
+    if(i>=text.length){i-=text.length;continue;}
+    const r=new Range();r.setStart(text,i);r.setEnd(text,i+1);
+    const box=r.getBoundingClientRect();return [box.x,box.top-p.getBoundingClientRect().top,box.width];
+   }
+  }''',offset)
+ fill_field(field,'字'*120)
+ line_length=field.evaluate('''n=>{
+  const line=n.querySelector('p').firstChild,r=new Range();r.setStart(line,0);r.setEnd(line,1);
+  const top=r.getBoundingClientRect().top;
+  for(let i=1;i<line.length;i++){
+   r.setStart(line,i);r.setEnd(line,i+1);
+   if(r.getBoundingClientRect().top!==top)return i;
+  }
+  return line.length;
+ }''')
+ seed='上一段保持原样\n\n'+'字'*(line_length*2)
+ fill_field(field,seed);field.press('Control+End')
+ offset=line_length*2-1
+ before=glyph(offset)
+ for _ in range(2):
+  insert('。');assert glyph(offset)==before
+  assert glyph(offset+1)[1]>before[1], 'The sentence-ending mark should wrap on its own'
+  field.press('Backspace');assert glyph(offset)==before
+ for pinyin in ['z','zhongwenshuruwenben'*4,'zhong']:
+  compose(pinyin);assert glyph(offset)==before
+ insert('中文');assert glyph(offset)==before
+ expect(field).to_have_js_property('value',seed+'中文')
+ field.press('Backspace');field.press('Backspace');assert glyph(offset)==before
+ expect(field).to_have_js_property('value',seed)
+
+ fill_field(field,'文字。');field.press('Control+End')
+ mark=glyph(2);insert('，');assert glyph(2)==mark
+ field.press('Backspace');assert glyph(2)==mark
+
+ fill_field(field,'> 中文引用');field.press('Control+End')
+ quote=field.locator('blockquote');width=quote.evaluate('n=>n.getBoundingClientRect().width')
+ compose('zhongwenshuruwenben'*4);assert quote.evaluate('n=>n.getBoundingClientRect().width')==width
+ insert('中文');insert('。');settle();assert quote.evaluate('n=>n.getBoundingClientRect().width')==width
+ field.press('Backspace');assert quote.evaluate('n=>n.getBoundingClientRect().width')==width
+
+ fill_field(field,'English words keep wrapping normally.');assert field.locator('[data-cjk-wrap]').count()==0
+ fill_field(field,'字');field.press('Control+End')
+ before=field.evaluate('n=>[n.getBoundingClientRect().x,n.clientWidth]')
+ insert('字'*(line_length*16));settle()
+ assert field.evaluate('n=>n.scrollHeight>n.clientHeight&&n.scrollLeft===0')
+ assert field.evaluate('n=>[n.getBoundingClientRect().x,n.clientWidth]')==before
+ fill_field(field,'')
+ cdp.detach()
+
 try:
  with sync_playwright() as p:
-  browser=p.chromium.launch(**chromium_options())
+  browser=p.chromium.launch(**chromium_options(),ignore_default_args=['--hide-scrollbars'])
   for width in [320,390,1100]:
    context=browser.new_context(viewport={'width':width,'height':844},is_mobile=width<600,has_touch=width<600)
    page=context.new_page();errors=[];external=[]
@@ -51,6 +113,8 @@ try:
    # An IME confirmation Enter is not a send.
    fill_field(field,'中文输入');field.evaluate("n=>n.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',keyCode:229,isComposing:true,bubbles:true,cancelable:true}))")
    expect(field).to_have_js_property('value','中文输入');assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==202
+   check_chinese_capture(field,context,page)
+   assert len(parse(page.evaluate('notes.a.content.text'))['messages'])==202
    fill_field(field,'');page.wait_for_function('!notes.a.content.text.includes("中文输入")')
    # Select All and a selection-generated click leave the text as a draft.
    draft='Selecting this text must keep the draft'
@@ -114,7 +178,7 @@ try:
    page.wait_for_function('!notes.a.content.text.includes("cardColor")')
    assert 'cardColor' not in parse(page.evaluate('notes.a.content.text'))['messages'][192]
    assert not errors,errors;assert not external,external
-   print(f'PASS {width}px: selection keeps draft, deliberate outside click sends, Enter/Shift+Enter, IME, reveal/focus, saved labels/colors, IM interchange and failed-send retry',flush=True)
+   print(f'PASS {width}px: stable Chinese wrapping, composition, punctuation and deletion, draft selection, deliberate sending, card actions and retry',flush=True)
    if width==390:
     fill_search(e,'');e.locator('#viewport').evaluate('n=>n.scrollTop=0');page.screenshot(path='/tmp/mosaic-mobile-new.png')
    context.close()

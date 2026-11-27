@@ -418,6 +418,7 @@ captureEditor = imRichField.create({
   sendButton: true,
   onSubmit: () => safeRun(() => submitCapture())
 });
+captureEditor.view.setProps({decorations: captureLineWrapping()});
 const originalCapture = $('capture-field');
 originalCapture.replaceWith(captureEditor.wrapper);
 $('capture-input').addEventListener('im-markdown-change', inputCapture);

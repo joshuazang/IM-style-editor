@@ -1,4 +1,22 @@
 /* Board composer, draft checkpoints, and submission. */
+function captureLineWrapping() {
+  const {Decoration, DecorationSet} = imRichDeps.view;
+  const cjk = /[\p{Script=Han}\u3000-\u303f\uff01-\uff65]/u;
+  let previousDoc, decorations;
+  return state => {
+    if (state.doc === previousDoc) return decorations;
+    const blocks = [];
+    state.doc.descendants((node, pos) => {
+      if (!node.isTextblock) return;
+      if (cjk.test(node.textContent)) blocks.push(Decoration.node(pos, pos + node.nodeSize, {'data-cjk-wrap': ''}));
+      return false;
+    });
+    previousDoc = state.doc;
+    decorations = DecorationSet.create(state.doc, blocks);
+    return decorations;
+  };
+}
+
 function renderCapture() {
   const s = active,
     field = $('capture-input');
