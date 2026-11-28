@@ -16,15 +16,15 @@ function renderCapture() {
   quote.hidden = !s?.reply && !s?.titleEntry;
   if (s?.titleEntry) {
     const source = s.messages.find(m => m.id === s.titleEntry.id);
-    quote.append(el('strong', '', 'Title for card'), el('span', 'inline-quote', source ? imMarkdown.message(source)
-      .text.slice(0, 160) || 'Card' : 'Card'), button('Cancel title entry', 'close', () => {
+    quote.append(el('strong', '', 'Title for card'), el('span', 'inline-quote', source ? imMarkdown.snippet(source)
+      .slice(0, 160) || 'Card' : 'Card'), button('Cancel title entry', 'close', () => {
       s.titleEntry = null;
       if (!s.dirty && !s.pending) retainedSessions.delete(s.note.uuid);
       renderCapture();
     }, 'icon-button'));
   } else if (s?.reply) {
     const text = button('Show quoted card', null, () => jumpTo(s.reply), 'inline-quote');
-    text.textContent = imMarkdown.message(s.reply).text.replace(/\s+/g, ' ').slice(0, 160) || 'Quoted message';
+    text.textContent = imMarkdown.snippet(s.reply).replace(/\s+/g, ' ').slice(0, 160) || 'Quoted message';
     quote.append(text, button('Cancel reply', 'close', () => safeRun(() => update(s, {
       reply: null
     }, false)), 'icon-button danger'));

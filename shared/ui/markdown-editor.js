@@ -25,6 +25,19 @@ const imRichField=(()=>{
     wrapper.className='im-rich-field';main.className='im-rich-main';toolbar.className='im-format-toolbar';toolbar.hidden=true;toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
     let preferSelectionExtent=false;
+    let revealedSpoiler=null;
+    function revealSpoiler(next=null){
+      if(next===revealedSpoiler)return;
+      revealedSpoiler?.removeAttribute('data-revealed');
+      revealedSpoiler=next;
+      next?.setAttribute('data-revealed','');
+    }
+    function revealSpoilerAtCaret(){
+      const {empty,$head}=view.state.selection;
+      if(!view.hasFocus()||!empty||!schema.marks.spoiler.isInSet($head.marks())){revealSpoiler();return;}
+      const {node}=view.domAtPos($head.pos);
+      revealSpoiler((node.nodeType===1?node:node.parentElement)?.closest('.im-spoiler-edit')||null);
+    }
     // The live document owns edits. Read and cache the text when a caller
     // needs it, including fields with a synchronous onChange callback.
     function value(){
@@ -48,12 +61,13 @@ const imRichField=(()=>{
       const state=view.state,headingLevel=K.headingLevel(state),inTable=!!imMarkdownTables.current(state),hasTable=imMarkdownTables.intersects(state);
       for(const [key,button] of controls){
         let active=false;
-        if(key==='strong'||key==='em'||key==='strike')active=K.markActive(state,key);
+        if(key==='strong'||key==='em'||key==='strike'||key==='spoiler')active=K.markActive(state,key);
         else if(key==='quote')active=K.quoteActive(state);
         else if(['bullet','ordered','checklist'].includes(key))active=K.listKind(state)===key;
         else if(key==='normal')active=K.paragraphActive(state);
         button.setAttribute('aria-pressed',String(active));button.disabled=disabled||readOnly||(hasTable&&['quote','bullet','ordered','checklist'].includes(key));
       }
+      revealSpoilerAtCaret();
       for(const [level,button] of headingLevels){button.setAttribute('aria-pressed',String(headingLevel===level));button.disabled=disabled||readOnly||hasTable;}
       if(tableButton)tableButton.disabled=disabled||readOnly||hasTable;
       if(tableTools)tableTools.hidden=!inTable;
@@ -134,6 +148,11 @@ const imRichField=(()=>{
         const tr=state.tr.insertText(match[1],start,end);let active=state.storedMarks||state.selection.$from.marks();
         for(const type of marks){const mark=type.create();tr.addMark(start,start+match[1].length,mark);active=mark.addToSet(active);}return tr.setStoredMarks(active);
       }));
+      rules.push(new R.InputRule(/(?<![\\|])\|\|([^|\n]+)\|\|$/,(state,match,start,end)=>{
+        if(!match[1].trim())return null;
+        const spoiler=schema.marks.spoiler;
+        return state.tr.insertText(match[1],start,end).addMark(start,start+match[1].length,spoiler.create()).removeStoredMark(spoiler);
+      }));
       return R.inputRules({rules});
     }
     const baseKeys=Object.fromEntries(Object.entries(C.baseKeymap).filter(([key])=>!key.includes('Enter')));
@@ -167,7 +186,8 @@ const imRichField=(()=>{
       handleDOMEvents:{
         keydown:(v,event)=>{if(event.key==='Enter'){enterKeyActive=true;enterKeyHandled=false;enterModifiers={key:'Enter',shiftKey:event.shiftKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,repeat:event.repeat};}else{enterKeyActive=false;enterKeyHandled=false;}return false;},
         keyup:(v,event)=>{if(event.key==='Enter'){enterKeyActive=false;enterKeyHandled=false;}return false;},
-        blur:()=>{enterKeyActive=false;enterKeyHandled=false;if(config.capture&&typeof imFlushDraftSaves==='function')imFlushDraftSaves();return false;},
+        blur:()=>{revealSpoiler();enterKeyActive=false;enterKeyHandled=false;if(config.capture&&typeof imFlushDraftSaves==='function')imFlushDraftSaves();return false;},
+        click:(v,event)=>{const spoiler=event.target.closest('.im-spoiler-edit');if(spoiler&&dom.contains(spoiler)&&v.state.selection.empty)revealSpoiler(spoiler);return false;},
         compositionstart:()=>{ime=true;enterKeyActive=false;enterKeyHandled=false;floating?.update();return false;},compositionend:()=>{ime=false;lastIME=performance.now();return false;},
         beforeinput:(v,event)=>{
           if(!['insertParagraph','insertLineBreak'].includes(event.inputType)||event.isComposing||ime||view.composing||performance.now()-lastIME<40)return false;
@@ -182,6 +202,10 @@ const imRichField=(()=>{
           enter(enterKeyActive?enterModifiers:{key:'Enter'});return true;
         }
       },
+      markViews:{spoiler:()=>{
+        const span=document.createElement('span');span.className='im-spoiler-edit';span.setAttribute('data-im-spoiler','');
+        return {dom:span,contentDOM:span,ignoreMutation:event=>event.type==='attributes'&&event.target===span};
+      }},
       nodeViews:{table:initial=>{const dom=document.createElement('div'),table=document.createElement('table'),contentDOM=document.createElement('tbody');dom.className='im-md-table-wrap';table.append(contentDOM);dom.append(table);const update=node=>{if(node.type!==schema.nodes.table)return false;const width=Math.max(280,node.firstChild.childCount*140)+'px';if(table.style.minWidth!==width)table.style.minWidth=width;return true;};update(initial);return {dom,contentDOM,update,ignoreMutation:m=>m.type==='attributes'&&m.target===table};},list_item:(initial,v,getPos)=>{
         let node=initial,check=null,touch=null,lastTouchCheck=-Infinity;const li=document.createElement('li'),contentDOM=document.createElement('div');contentDOM.className='im-md-item';
         const toggleCheck=focus=>{const pos=getPos();if(!disabled&&!readOnly&&typeof pos==='number'){const focused=v.hasFocus();v.dispatch(v.state.tr.setNodeMarkup(pos,null,{checked:!node.attrs.checked}));if(focus&&(focused||config.focusOnCheck!==false))v.focus();}};
@@ -232,12 +256,13 @@ const imRichField=(()=>{
     dom.setSelectionRange=(from,to,direction)=>{const a=position(from),b=position(to);view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc,direction==='backward'?b:a,direction==='backward'?a:b)));};
     dom.select=()=>view.dispatch(view.state.tr.setSelection(new imRichDeps.state.AllSelection(view.state.doc)));
     function icon(button,name){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.8');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.innerHTML=imUiIcons[name];button.replaceChildren(svg);return button;}
-    function add(key,label,text,command){const b=icon(action(label,text,()=>execute(command)),{strong:'formatBold',em:'formatItalic',strike:'formatStrike',quote:'formatQuote',bullet:'formatBullet',ordered:'formatNumber',checklist:'formatChecklist'}[key]);controls.set(key,b);toolbar.append(b);return b;}
+    function add(key,label,text,command){const b=icon(action(label,text,()=>execute(command)),{strong:'formatBold',em:'formatItalic',strike:'formatStrike',spoiler:'formatSpoiler',quote:'formatQuote',bullet:'formatBullet',ordered:'formatNumber',checklist:'formatChecklist'}[key]);controls.set(key,b);toolbar.append(b);return b;}
     {
       add('strong','Bold','B',C.toggleMark(schema.marks.strong)).classList.add('im-format-bold');
       add('em','Italic','I',C.toggleMark(schema.marks.em));
       add('quote','Quotation block','❞',K.quote);
       add('strike','Strikethrough','S',C.toggleMark(schema.marks.strike)).classList.add('im-format-strike');
+      add('spoiler','Spoiler','•••',C.toggleMark(schema.marks.spoiler));
       add('bullet','Bullet list','•',K.toggleList('bullet'));
       add('ordered','Numbered list','1.',K.toggleList('ordered'));
       add('checklist','Checklist','☑',K.toggleList('checklist'));

@@ -3,7 +3,7 @@ const source=['shared/vendor/markdown-editor.js','shared/ui/markdown-model.js'].
 const m=vm.runInNewContext(source+';imMarkdown'),s=m.schema;
 const manifest=JSON.parse(fs.readFileSync('shared/vendor/markdown-sources.json'));
 assert.equal(crypto.createHash('sha256').update(fs.readFileSync('shared/vendor/markdown-editor.js')).digest('hex'),manifest.bundle_sha256);
-assert.deepEqual(Object.keys(s.marks),['strong','em','strike']);
+assert.deepEqual(Object.keys(s.marks),['spoiler','strong','em','strike']);
 assert.deepEqual(Object.keys(s.nodes),['doc','paragraph','heading','blockquote','horizontal_rule','table','table_row','table_cell','table_header','bullet_list','ordered_list','list_item','text','hard_break']);
 const examples=[
  '---','***','___','before\n\n---\n\nafter','> ---','ordinary text','**bold** and ~~struck~~','# Heading\n\nBody',
@@ -15,6 +15,23 @@ const examples=[
  'first\n\n\nsecond','\nfirst','first\n\n','> first\n>\n> '
 ];
 for(const text of examples){const doc=m.parse(text);assert.ok(m.parse(m.serialize(doc)).eq(doc),text);}
+for(const [text,snippet] of [
+ ['One ||secret|| and ||another||.','One ••• and •••.'],
+ ['||bold **and** 中文🧪||','•••'],
+ ['**Before ||hidden|| and after**','Before ••• and after'],
+ ['\\|\\|literal\\|\\|','||literal||'],
+ ['Unclosed ||','Unclosed ||'],
+ ['`||inline code||`','`||inline code||`'],
+ ['| Column |\n| --- |\n| <span data-im-spoiler>secret</span> |','Column\n•••'],
+ ['<span data-im-spoiler>one<br>two</span>','•••'],
+ ['<span data-im-spoiler onclick="alert(1)">text</span>','<span data-im-spoiler onclick="alert(1)">text</span>']
+]){
+ const parsed=m.parse(text),saved=m.serialize(parsed);
+ assert.equal(m.snippet({text}),snippet,text);
+ assert.ok(m.parse(saved).eq(parsed),saved);
+}
+assert.equal(m.serialize(m.parse('||secret||')),'||secret||');
+assert.equal(m.serialize(m.parse('||中文！🧪||')),'||中文！🧪||');
 const p=text=>s.node('paragraph',null,text?[s.text(text)]:[]),doc=content=>s.node('doc',null,content);
 for(let empty=1;empty<=4;empty++){
  for(const blocks of [[p('before'),...Array.from({length:empty},()=>p()),p('after')],[...Array.from({length:empty},()=>p()),p('after')],[p('before'),...Array.from({length:empty},()=>p())]]){

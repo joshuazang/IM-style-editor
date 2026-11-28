@@ -5,6 +5,7 @@ const imUiIcons = {
   formatClear:'<path d="m7 16 5-12 5 12M9 12h6M4 3l16 18M4 20h7"/>',
   formatDivider:'<path d="M4 12h16"/>',
   formatItalic:'<path d="M9 4h8M7 20h8M14 4l-4 16"/>',
+  formatSpoiler:'<path d="M5 8h.1m7 0h.1m7 0h.1M8 12h.1m8 0h.1M5 16h.1m7 0h.1m7 0h.1" stroke-width="2.8"/>',
   formatTable:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M10 4v16"/>',
   tableRowAdd:'<path d="M3 5h14v4H3zM3 13h7M3 18h7M17 12v8M13 16h8"/>',
   tableColumnAdd:'<path d="M3 4h5v16H3zM12 4h7v5M16 12v8M12 16h8"/>',

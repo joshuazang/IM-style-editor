@@ -67,6 +67,19 @@
 .editor-shell .composer .im-rich-input{width:100%;border-radius:22px;padding-left:10px}
 .editor-shell .composer .im-rich-input[data-empty=true]:not(:focus):before{left:10px}
 .im-rich-display{overflow-wrap:anywhere;white-space:pre-wrap}
+.im-spoiler:not([data-revealed]),.im-spoiler-edit:not([data-revealed]){
+  --spoiler-dot:color-mix(in srgb,var(--ink,#263b33) 66%,var(--surface,#fff));
+  color:transparent!important;text-shadow:none!important;text-decoration-color:transparent;
+  border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone;
+  background-color:color-mix(in srgb,var(--ink,#263b33) 11%,var(--surface,#fff));
+  background-image:radial-gradient(circle,var(--spoiler-dot) .7px,transparent 1px),radial-gradient(circle,var(--spoiler-dot) .55px,transparent .95px);
+  background-size:5px 5px,7px 6px;background-position:0 0,2px 1px;
+}
+.im-spoiler:not([data-revealed]){cursor:pointer;user-select:none;-webkit-user-select:none}
+.im-spoiler-edit:not([data-revealed]){caret-color:var(--ink,#202124)}
+.im-spoiler:focus-visible{outline:2px solid var(--focus-ring,#285b89);outline-offset:2px}
+.im-spoiler-edit[data-revealed]{text-decoration:underline dotted var(--muted,#718078);text-underline-offset:3px}
+.selection-mode .im-spoiler,.im-rich-display[data-selecting=true] .im-spoiler{pointer-events:none}
 .card .card-body.im-rich-display{display:block;max-height:var(--board-body-height,560px);overflow:hidden}
 .card-body.im-rich-display:has(:is(h1,h2,h3,h4,h5,h6):first-child){padding-top:0}
 .card.is-truncated .card-body.im-rich-display{position:relative}

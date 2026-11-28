@@ -77,7 +77,7 @@ class MosaicBoardDrag {
   get dragging() {return !!this.gesture?.dragging;}
   placeholder(id) {return this.gesture?.dragging&&this.gesture.id===id||this.settlingId===id;}
   down(event) {
-    if(event.button!==0||event.isPrimary===false||event.target.closest('button,input,textarea,select,a'))return;
+    if(event.button!==0||event.isPrimary===false||event.target.closest('button,input,textarea,select,a,.im-spoiler:not([data-revealed])'))return;
     const node=event.target.closest('.card');if(!node||!this.canStart(node)||this.gesture||this.settlingId)return;
     const g={id:node.dataset.id,node,pointerId:event.pointerId,touch:event.pointerType==='touch',
       startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,

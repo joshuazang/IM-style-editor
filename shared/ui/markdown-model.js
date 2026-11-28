@@ -19,25 +19,41 @@ const imMarkdown=(()=>{
     text:{group:'inline'},
     hard_break:{inline:true,group:'inline',selectable:false,parseDOM:[{tag:'br'}],toDOM:()=>['br']}
   },marks:{
+    spoiler:{inclusive:false,parseDOM:[{tag:'span[data-im-spoiler]'}],toDOM:()=>['span',{'data-im-spoiler':''},0]},
     strong:{parseDOM:[{tag:'strong'},{tag:'b',getAttrs:n=>n.style.fontWeight!=='normal'&&null},{style:'font-weight',getAttrs:v=>/^(bold(er)?|[6-9]00)$/.test(v)&&null}],toDOM:()=>['strong',0]},
     em:{parseDOM:[{tag:'em'},{tag:'i'},{style:'font-style',getAttrs:v=>v==='italic'&&null}],toDOM:()=>['em',0]},
     strike:{parseDOM:[{tag:'s'},{tag:'del'},{tag:'strike'},{style:'text-decoration',getAttrs:v=>v.includes('line-through')&&null}],toDOM:()=>['s',0]}
   }});
+  const spoilerMark=schema.marks.spoiler;
+  const spoilerPattern=/^\|\|(?!\|)((?:\\[^\n]|[^\\|\n]|\|(?!\|))+?)\|\|/;
+  const lexerOptions={gfm:true,breaks:true};
+  const spoilerLexerOptions={...lexerOptions,extensions:{
+    startInline:[text=>text.indexOf('||')],
+    inline:[function(text){
+      if(!text.startsWith('||'))return;
+      const match=spoilerPattern.exec(text);
+      if(match&&match[1].trim())return {type:'spoiler',raw:match[0],tokens:this.lexer.inlineTokens(match[1])};
+    }]
+  }};
   const base=imRichDeps.serializer.defaultMarkdownSerializer;
   const htmlInline=new WeakMap();
   function needsHTML(parent){
     if(htmlInline.has(parent))return htmlInline.get(parent);
     let unsafe=false,previous=[];
     parent.forEach(node=>{
-      if(node.marks.length&&(!node.isText||node.marks.length>1||/^[\p{P}\p{S}\s]|[\p{P}\p{S}\s]$/u.test(node.text)||previous.length&&!imRichDeps.model.Mark.sameSet(previous,node.marks)))unsafe=true;
+      if(node.marks.length){
+        const boundary=spoilerMark.isInSet(node.marks)?/\n|^\s*$|^\||\|$/:/^[\p{P}\p{S}\s]|[\p{P}\p{S}\s]$/u;
+        if(!node.isText||node.marks.length>1||boundary.test(node.text)||previous.length&&!imRichDeps.model.Mark.sameSet(previous,node.marks))unsafe=true;
+      }
       previous=node.marks;
     });htmlInline.set(parent,unsafe);return unsafe;
   }
-  const inlineMark=(delimiter,tag)=>({mixable:true,expelEnclosingWhitespace:false,
-    open:s=>s.options.imHTMLMarks?'<'+tag+'>':delimiter,close:s=>s.options.imHTMLMarks?'</'+tag+'>':delimiter});
+  const inlineMark=(delimiter,tag,attribute='')=>({mixable:true,expelEnclosingWhitespace:false,
+    open:s=>s.options.imHTMLMarks?'<'+tag+attribute+'>':delimiter,close:s=>s.options.imHTMLMarks?'</'+tag+'>':delimiter});
   function renderInline(s,n,preserve){
     const text=s.text,total=n.textContent.length,html=s.options.imHTMLMarks,breakName=s.options.hardBreakNodeName;let offset=0;
-    s.options.imHTMLMarks=needsHTML(n);if(s.options.imHTMLMarks)s.options.hardBreakNodeName='im_html_break';
+    s.options.imHTMLMarks=needsHTML(n)||s.options.imTable&&n.content.content.some(node=>spoilerMark.isInSet(node.marks));
+    if(s.options.imHTMLMarks)s.options.hardBreakNodeName='im_html_break';
     if(preserve)s.text=function(value,escape=true){
       if(escape===false)return text.call(this,value,escape);
       const start=offset===0?(/^[ \t]+/.exec(value)?.[0].length||0):0;
@@ -99,7 +115,8 @@ const imMarkdown=(()=>{
     // Single newlines display as line breaks in both editors. Consecutive or
     // trailing soft breaks need an explicit br so they cannot become paragraphs.
     hard_break:(s,n,parent,index)=>s.write(s.options.imHTMLMarks||s.options.imTable||parent.type===schema.nodes.heading?'<br>':index===parent.childCount-1?(s.options.imLastBlock===parent&&parent.type===schema.nodes.paragraph&&!s.delim&&parent.textContent.trim()?'\n':'<br>'):parent.child(index+1).type===schema.nodes.hard_break?'<br>':'\n'),text:base.nodes.text
-  },{strong:inlineMark('**','strong'),em:inlineMark('*','em'),strike:inlineMark('~~','s')},{tightLists:true,escapeExtraCharacters:/[&<]/g});
+  },{strong:inlineMark('**','strong'),em:inlineMark('*','em'),strike:inlineMark('~~','s'),
+    spoiler:inlineMark('||','span',' data-im-spoiler')},{tightLists:true,escapeExtraCharacters:/[&<]|\|(?=\|)|(?<=\|)\|/g});
   const cache=new Map(),records=new WeakMap();let cachedCharacters=0;
   const entities={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:'\u00a0'};
   const decode=text=>text.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi,(raw,name)=>{
@@ -111,10 +128,11 @@ const imMarkdown=(()=>{
     const nodes=[],stack=[];let active=marks;
     for(const token of tokens||[]){
       if(token.type==='checkbox')continue;
-      const tag=token.type==='html'&&/^<(\/)?(strong|em|s)>$/i.exec(token.raw);
-      if(tag&&!tag[1]){stack.push({tag:tag[2].toLowerCase(),marks:active});active=schema.marks[{strong:'strong',em:'em',s:'strike'}[tag[2].toLowerCase()]].create().addToSet(active);continue;}
-      if(tag&&tag[1]&&stack.at(-1)?.tag===tag[2].toLowerCase()){active=stack.pop().marks;continue;}
-      if(['strong','em','del'].includes(token.type))nodes.push(...inline(token.tokens,schema.marks[token.type==='del'?'strike':token.type].create().addToSet(active)));
+      const tag=token.type==='html'&&/^<(?:\/(strong|em|s|span)|(strong|em|s)|(span) data-im-spoiler(?:="")?)>$/i.exec(token.raw);
+      const openTag=tag&&(tag[2]||tag[3])?.toLowerCase();
+      if(openTag){stack.push({tag:openTag,marks:active});active=schema.marks[{strong:'strong',em:'em',s:'strike',span:'spoiler'}[openTag]].create().addToSet(active);continue;}
+      if(tag?.[1]&&stack.at(-1)?.tag===tag[1].toLowerCase()){active=stack.pop().marks;continue;}
+      if(['strong','em','del','spoiler'].includes(token.type))nodes.push(...inline(token.tokens,schema.marks[token.type==='del'?'strike':token.type].create().addToSet(active)));
       else if(token.type==='br'||token.type==='html'&&/^<br\s*\/?>$/i.test(token.raw))nodes.push(schema.nodes.hard_break.create(null,null,active));
       else if(token.type==='text'&&token.tokens)nodes.push(...inline(token.tokens,active));
       else{const text=token.type==='text'?decode(token.text||''):token.type==='escape'?(token.text||''):(token.raw||token.text||'');if(text)nodes.push(schema.text(text,active));}
@@ -162,8 +180,9 @@ const imMarkdown=(()=>{
   function parse(value){
     const text=typeof value==='string'?value:'';
     if(cache.has(text)){const doc=cache.get(text);cache.delete(text);cache.set(text,doc);return doc;}
-    const simple=!/[*~#<>\[\]`\\&\r\n]/.test(text)&&!/^\s*(?:[-+]|\d+[.)])\s/.test(text)&&!/^ {0,3}(?:-\s*){3,}$|^ {0,3}(?:_\s*){3,}$/.test(text);
-    const doc=simple?schema.nodes.doc.create(null,schema.nodes.paragraph.create(null,text?schema.text(text):null)):schema.nodes.doc.create(null,blocks(imRichDeps.lexer._Lexer.lex(text.replace(/\r\n?/g,'\n'),{gfm:true,breaks:true})));
+    const firstPair=text.indexOf('||'),hasSpoiler=firstPair>=0&&text.indexOf('||',firstPair+2)>=0;
+    const simple=!hasSpoiler&&!/[*~#<>\[\]`\\&\r\n]/.test(text)&&!/^\s*(?:[-+]|\d+[.)])\s/.test(text)&&!/^ {0,3}(?:-\s*){3,}$|^ {0,3}(?:_\s*){3,}$/.test(text);
+    const doc=simple?schema.nodes.doc.create(null,schema.nodes.paragraph.create(null,text?schema.text(text):null)):schema.nodes.doc.create(null,blocks(imRichDeps.lexer._Lexer.lex(text.replace(/\r\n?/g,'\n'),hasSpoiler?spoilerLexerOptions:lexerOptions)));
     if(text.length<=262144){cache.set(text,doc);cachedCharacters+=text.length;while(cache.size>128||cachedCharacters>1048576){const key=cache.keys().next().value;cachedCharacters-=key.length;cache.delete(key);}}
     return doc;
   }
@@ -217,6 +236,28 @@ const imMarkdown=(()=>{
     const old=records.get(record);if(old?.source===record.text)return old;
     const doc=parse(record.text),result={source:record.text,doc,text:doc.textBetween(0,doc.content.size,'\n','\n')};records.set(record,result);return result;
   }
+  function snippet(record){
+    const entry=message(record);
+    if(entry.snippet!==undefined)return entry.snippet;
+    if(!entry.source.includes('||')&&!entry.source.includes('data-im-spoiler'))return entry.snippet=entry.text;
+    const blocks=[];let found=false;
+    entry.doc.descendants(node=>{
+      if(!node.isTextblock)return;
+      let hidden=false,text='';
+      node.forEach(child=>{
+        if(spoilerMark.isInSet(child.marks)){
+          if(!hidden)text+='•••';
+          hidden=found=true;
+        }else{
+          hidden=false;
+          text+=child.isText?child.text:'\n';
+        }
+      });
+      blocks.push(text);
+      return false;
+    });
+    return entry.snippet=found?blocks.join('\n'):entry.text;
+  }
   function bounded(record){const entry=message(record);return entry.preview||(entry.preview=clip(entry.doc,96,16384).doc);}
   function toggleCheck(text,index){
     const doc=parse(text);let at=-1,count=0,checked=false;
@@ -226,8 +267,22 @@ const imMarkdown=(()=>{
   }
   function render(target,doc,onCheck){
     let checkbox=0;const document=target.ownerDocument;
+    function hiddenText(){
+      const cover=document.createElement('span'),content=document.createElement('span');
+      cover.className='im-spoiler';cover.setAttribute('role','button');cover.setAttribute('aria-label','Reveal spoiler');cover.tabIndex=0;
+      content.setAttribute('aria-hidden','true');cover.append(content);
+      function reveal(event){
+        if(cover.closest('.selection-mode,[data-selecting="true"]'))return;
+        event.preventDefault();event.stopPropagation();
+        cover.setAttribute('data-revealed','');cover.removeAttribute('role');cover.removeAttribute('aria-label');cover.removeAttribute('tabindex');
+        content.removeAttribute('aria-hidden');cover.removeEventListener('click',reveal);cover.removeEventListener('keydown',key);
+      }
+      function key(event){if(event.key==='Enter'||event.key===' ')reveal(event);}
+      cover.addEventListener('click',reveal);cover.addEventListener('keydown',key);
+      return {cover,content};
+    }
     function nodeDOM(node){
-      if(node.isText){let out=document.createTextNode(node.text);for(const mark of node.marks){const wrap=document.createElement(mark.type===schema.marks.strong?'strong':mark.type===schema.marks.em?'em':'s');wrap.append(out);out=wrap;}return out;}
+      if(node.isText){let out=document.createTextNode(node.text);for(const mark of node.marks){if(mark.type===spoilerMark)continue;const wrap=document.createElement(mark.type===schema.marks.strong?'strong':mark.type===schema.marks.em?'em':'s');wrap.append(out);out=wrap;}return out;}
       if(node.type===schema.nodes.horizontal_rule)return document.createElement('hr');
       if(node.type===schema.nodes.hard_break)return document.createTextNode('\n');
       const names={paragraph:'p',heading:'h'+node.attrs.level,blockquote:'blockquote',bullet_list:'ul',ordered_list:'ol',list_item:'li',table:'table',table_row:'tr',table_cell:'td',table_header:'th'};
@@ -239,7 +294,13 @@ const imMarkdown=(()=>{
         if(onCheck)check.addEventListener('click',event=>{event.stopPropagation();if(check.isConnected)onCheck(index);});else{check.disabled=true;check.tabIndex=-1;}
         out.append(check);
       }
-      node.forEach(child=>out.append(nodeDOM(child)));
+      let spoiler;
+      node.forEach(child=>{
+        if(spoilerMark.isInSet(child.marks)){
+          if(!spoiler){spoiler=hiddenText();out.append(spoiler.cover);}
+          spoiler.content.append(nodeDOM(child));
+        }else{spoiler=null;out.append(nodeDOM(child));}
+      });
       if(node.type===schema.nodes.table){const wrap=document.createElement('div');wrap.className='im-md-table-wrap';out.style.minWidth=Math.max(280,node.firstChild.childCount*140)+'px';wrap.append(out);return wrap;}return out;
     }
     const fragment=document.createDocumentFragment();doc.forEach(node=>fragment.append(nodeDOM(node)));target.replaceChildren(fragment);target.classList.add('im-rich-display');
@@ -249,5 +310,5 @@ const imMarkdown=(()=>{
     for(let index=0;index<node.childCount;index++)if(documentHasText(node.child(index)))return true;
     return false;
   }
-  return {schema,parse,serialize,preview,message,bounded,toggleCheck,render,documentHasText,hasText:text=>documentHasText(parse(text)),cacheStats:()=>({documents:cache.size,characters:cachedCharacters})};
+  return {schema,parse,serialize,preview,message,snippet,bounded,toggleCheck,render,documentHasText,hasText:text=>documentHasText(parse(text)),cacheStats:()=>({documents:cache.size,characters:cachedCharacters})};
 })();

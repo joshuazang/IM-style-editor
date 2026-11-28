@@ -396,7 +396,7 @@ function cardNode(message, width) {
       .id);
   };
   if (parts.title) node.append(el('h2', 'card-title', parts.title));
-  if (message.replyTo) node.append(el('div', 'card-reply', imMarkdown.message(message.replyTo).text.replace(/\s+/g,
+  if (message.replyTo) node.append(el('div', 'card-reply', imMarkdown.snippet(message.replyTo).replace(/\s+/g,
     ' ').slice(0, 150) || 'Quoted message'));
   if (parts.body) {
     const body = el('div', 'card-body im-rich-display');

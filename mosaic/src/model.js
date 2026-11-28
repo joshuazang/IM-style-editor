@@ -75,7 +75,7 @@ const MosaicModel = (() => {
     const value={byId,counts,tags,untagged,lastQuery:null};indexes.set(messages,value);latestIndex=value;return value;
   }
   const preview = message => prepare(message).parts;
-  const label = message => {const {title,body}=preview(message);return title||(typeof imMarkdown==='undefined'?body:imMarkdown.message(message).text).slice(0,70).replace(/\s+/g,' ').trim()||'Empty card';};
+  const label = message => {const {title,body}=preview(message);return title||(typeof imMarkdown==='undefined'?body:imMarkdown.snippet(message)).slice(0,70).replace(/\s+/g,' ').trim()||'Empty card';};
   const boardTagLimit=10;
   const matches = (message, query, tag, pinned, pinIds) =>
     (!query || prepare(message).search.includes(query.toLocaleLowerCase())) &&

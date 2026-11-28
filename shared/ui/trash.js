@@ -121,7 +121,7 @@ function imCreateTrashView({root = document.createElement('section'), variant, c
           time.dateTime = message.trashedOn;
           const check = make('button','im-trash-select');
           check.type = 'button';
-          const label = (title || imMarkdown.message(message).text).trim().slice(0,80);
+          const label = (title || imMarkdown.snippet(message)).trim().slice(0,80);
           check.setAttribute('aria-label',label ? 'Select '+label : 'Select item');
           node.append(check,preview,time);
           const background = color?.(message);
