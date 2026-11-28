@@ -18,30 +18,24 @@ BASE = f'http://127.0.0.1:{server.server_port}'
 def check_long_card(page, e, mobile):
     page.evaluate('mobile=>openEditor("a","/mosaic/index.html",mobile)', mobile)
     field = e.get_by_role('textbox', name='Take a note', exact=True)
-    source = ('Visible opening\n\n||short secret|| and ||' + '长文字示例' * 1800 +
+    source = ('Visible opening\n\n||short secret|| and ||second secret|| then ||' + '长文字示例' * 1800 +
               '||\n\n' + 'Unrelated paragraph.\n\n' * 105 + 'End of long card')
     fill_field(field, source)
     e.get_by_role('button', name='Send', exact=True).click()
     expect(field).to_have_js_property('value', '')
     saved = page.evaluate('notes.a.content.text')
     count = page.evaluate('saves.length')
-    message = scope['parse'](saved)['messages'][-1]
+    messages = scope['parse'](saved)['messages']
+    message = messages[-1]
     assert message['text'] == source
     card = e.locator(f'.card[data-id="{message["id"]}"]')
     covers = card.locator('.im-spoiler')
     dialog = e.locator('dialog')
     editor = dialog.get_by_role('textbox', name='Card body', exact=True)
     edit_covers = editor.locator('.im-spoiler-edit')
-    card.evaluate('''()=>{
-      const previous=animateCard;
-      window.spoilersAtClose=[];
-      animateCard=(state,closing)=>{
-        if(closing) window.spoilersAtClose.push(state.body.querySelectorAll('.im-spoiler-edit[data-revealed]').length);
-        return previous(state,closing);
-      };
-    }''')
-    for close_with_escape in (False, True):
-        expect(covers).to_have_count(2)
+    revealed = editor.locator('.im-spoiler-edit[data-revealed]')
+    for index, secret in enumerate(('short secret', 'second secret')):
+        expect(covers).to_have_count(3)
         expect(card.get_by_role('button', name='Reveal spoiler')).to_have_count(0)
         assert covers.first.evaluate('n=>getComputedStyle(n).cursor===getComputedStyle(n.closest(".card")).cursor')
         cover = covers.first
@@ -49,34 +43,85 @@ def check_long_card(page, e, mobile):
         expect(dialog).to_be_visible()
         expect(editor).not_to_have_attribute('aria-busy', 'true')
         expect(editor).to_have_js_property('value', source)
-        expect(edit_covers).to_have_count(2)
-        expect(edit_covers.first).to_have_css('cursor', 'zoom-in')
-        expect(editor.locator('.im-spoiler-edit[data-revealed]')).to_have_count(0)
-        (edit_covers.first.tap if mobile else edit_covers.first.click)(position={'x': 10, 'y': 10})
-        expect(editor.locator('.im-spoiler-edit[data-revealed]')).to_have_text('short secret')
-        if close_with_escape:
+        expect(edit_covers).to_have_count(3)
+        expect(revealed).to_have_count(index)
+        cover = edit_covers.nth(index)
+        expect(cover).to_have_css('cursor', 'pointer')
+        (cover.tap if mobile else cover.click)(position={'x': 10, 'y': 10})
+        expect(revealed).to_have_count(index+1)
+        expect(revealed.last).to_have_text(secret)
+        editor.press('Control+Home')
+        expect(revealed).to_have_count(index+1)
+        if index:
             editor.press('Escape')
         else:
             dialog.get_by_role('button', name='Close', exact=True).click()
         expect(dialog).not_to_be_visible()
         expect(card.locator('.im-spoiler[data-revealed]')).to_have_count(0)
         expect(covers.first.locator('[aria-hidden=true]')).to_have_text('short secret')
-        expect(covers.nth(1).locator('[aria-hidden=true]')).to_contain_text('长文字示例')
+        expect(covers.nth(2).locator('[aria-hidden=true]')).to_contain_text('长文字示例')
         assert page.evaluate('notes.a.content.text') == saved and page.evaluate('saves.length') == count
-    assert card.evaluate('()=>window.spoilersAtClose') == [0, 0]
     cover = covers.first
     (cover.tap if mobile else cover.click)()
     expect(editor).to_have_js_property('value', source)
-    editor.press('Control+End')
-    page.keyboard.insert_text(' edited')
-    expect(editor).to_have_js_property('value', source + ' edited')
+    expect(revealed).to_have_count(2)
+    editor.press('Control+Home')
+    page.keyboard.insert_text('Edited ')
+    expect(editor).to_have_js_property('value', 'Edited ' + source)
+    expect(revealed).to_have_count(2)
     dialog.get_by_role('button', name='Close', exact=True).click()
     expect(dialog).not_to_be_visible()
     saved = scope['parse'](page.evaluate('notes.a.content.text'))['messages'][-1]
-    assert saved['text'] == source + ' edited'
-    page.evaluate('mobile=>openEditor("a","/mosaic/index.html",mobile)', mobile)
-    expect(covers).to_have_count(2)
+    assert saved['text'] == 'Edited ' + source
     expect(card.locator('.im-spoiler[data-revealed]')).to_have_count(0)
+    other = e.locator(f'.card[data-id="{messages[0]["id"]}"]')
+    other.locator('.im-spoiler').first.click()
+    expect(editor).to_have_js_property('value', messages[0]['text'])
+    expect(revealed).to_have_count(0)
+    dialog.get_by_role('button', name='Close', exact=True).click()
+    expect(dialog).not_to_be_visible()
+    covers.first.click()
+    expect(revealed).to_have_count(2)
+    page.evaluate('switchNote("b")')
+    expect(dialog).not_to_be_visible()
+    expect(card).to_have_count(0)
+    page.evaluate('switchNote("a")')
+    expect(covers).to_have_count(3)
+    covers.first.click()
+    expect(editor).to_have_js_property('value', 'Edited ' + source)
+    expect(revealed).to_have_count(0)
+    expect(edit_covers.first).to_have_css('cursor', 'pointer')
+    dialog.get_by_role('button', name='Close', exact=True).click()
+    expect(dialog).not_to_be_visible()
+    card.evaluate('n=>readCard(n.dataset.id)')
+    reader = dialog.locator('.reader-body')
+    reader.get_by_role('button', name='Reveal spoiler').first.click()
+    expect(reader.locator('.im-spoiler[data-revealed]')).to_have_text('short secret')
+    dialog.get_by_role('button', name='Close', exact=True).click()
+    covers.first.click()
+    expect(editor).to_have_js_property('value', 'Edited ' + source)
+    expect(revealed).to_have_text('short secret')
+    edit_covers.last.dispatch_event('click')
+    expect(revealed).to_have_count(2)
+    dialog.get_by_role('button', name='Close', exact=True).click()
+    expect(dialog).not_to_be_visible()
+    card.evaluate('''()=>{
+      const prior=editorDialog;
+      editorDialog=(id)=>{
+        prior(id);
+        const {body,bodyReady}=modalState;
+        window.longSpoilerAtOpen={bodyReady,revealed:body.querySelector('.im-spoiler-edit:last-child')?.hasAttribute('data-revealed')};
+      };
+    }''')
+    covers.first.click()
+    opening = card.evaluate('()=>window.longSpoilerAtOpen')
+    if not mobile:
+        assert not opening['bodyReady'], 'This regression must check the abbreviated opening render'
+    assert opening['revealed']
+    expect(editor).to_have_js_property('value', 'Edited ' + source)
+    expect(revealed).to_have_count(2)
+    dialog.get_by_role('button', name='Close', exact=True).click()
+    expect(dialog).not_to_be_visible()
 
 
 try:
@@ -93,7 +138,7 @@ try:
                 errors = []
                 page.on('pageerror', lambda error: errors.append(str(error)))
                 page.goto(BASE + '/__host')
-                page.evaluate('([note,app,mobile])=>{notes.a=note;openEditor("a","/"+app+"/index.html",mobile)}',
+                page.evaluate('([note,app,mobile])=>{notes.a=note;notes.b={uuid:"b",content_type:"Note",content:{text:""}};openEditor("a","/"+app+"/index.html",mobile)}',
                               [scope['fixture'](0)['note'], app, mobile])
                 e = page.frame_locator('#editor')
                 field = e.get_by_role('textbox', name='Message' if im else 'Take a note', exact=True)

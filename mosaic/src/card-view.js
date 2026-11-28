@@ -1,4 +1,16 @@
 /* Card dialog lifecycle, editing, and keyboard behavior. */
+const revealedCardSpoilers = new Map();
+
+function cardSpoilerReveals(id, text) {
+  const previous = revealedCardSpoilers.get(id);
+  return previous?.text === text ? previous.reveals : new Map();
+}
+
+function rememberCardSpoilers(id, text, reveals) {
+  if (reveals.size) revealedCardSpoilers.set(id, {text, reveals});
+  else revealedCardSpoilers.delete(id);
+}
+
 function clearCardMotion(d) {
   if (!d) return;
   cancelAnimationFrame(d.motionFrame);
@@ -79,6 +91,7 @@ function closeModal(force = false) {
   modal.style.removeProperty('--tag-overhang');
   modal.style.removeProperty('--card-opening-top');
   modal.classList.remove('card-position-anchored');
+  modalState?.rememberSpoilers?.();
   modalState?.body?.imRich?.destroy();
   hideMenu();
   if (modal.open) modal.close();
@@ -303,7 +316,6 @@ function animateCard(d, closing = false) {
 
 function finishCard(d) {
   if (modalState !== d) return;
-  d.body.imRich.concealSpoiler();
   if (d.boardDirty) {
     renderAll();
     d.boardDirty = false;
@@ -400,12 +412,14 @@ function editorDialog(id = null) {
   title.hidden = !d.titleUnlocked;
   const titlePreview = el('h3', 'detail-title', currentTitle);
   titlePreview.hidden = !currentTitle || d.titleUnlocked;
-  const startBody = cardBodyStart(initialText, s.settings),
+  const spoilerReveals = cardSpoilerReveals(id, initialText),
+    startBody = cardBodyStart(initialText, s.settings),
     bodyEditor = imRichField.create({
       className: 'editor-body',
       label: 'Card body',
       placeholder: 'Text',
       value: startBody.text,
+      spoilerReveals,
       readOnly: !startBody.complete,
       focusOnCheck: !phoneBoard,
       preferLineBreakSelectionExtent: true
@@ -423,6 +437,7 @@ function editorDialog(id = null) {
       return originalNewline === '\n' ? value : value.replace(/\n/g, originalNewline);
     }
   });
+  d.rememberSpoilers = () => rememberCardSpoilers(id, d.currentText, spoilerReveals);
   // One scroller owns title, full-height body and trailing metadata. The toolbar
   // stays outside it; the editor itself never reserves a second scrollbar.
   // The visual editor is a normal contenteditable block, so CSS owns its
@@ -798,7 +813,9 @@ function readCard(id) {
     d.root.append(quote);
   }
   const body = el('div', 'reader-body im-rich-display');
-  imMarkdown.render(body, imMarkdown.message(message).doc);
+  const spoilerReveals = cardSpoilerReveals(id, message.text);
+  imMarkdown.render(body, imMarkdown.message(message).doc, undefined, {spoilerReveals});
+  d.rememberSpoilers = () => rememberCardSpoilers(id, message.text, spoilerReveals);
   d.root.append(el('h3', 'reader-title', parts.title), body, el('p', 'reader-meta', metaText(message)));
   const tags = el('div', 'reader-tags');
   for (const tag of message.reactions) tags.append(el('span', 'card-tag', tag));

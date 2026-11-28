@@ -265,25 +265,31 @@ const imMarkdown=(()=>{
     if(at<0)return text;
     const state=imRichDeps.state.EditorState.create({doc});return serialize(state.tr.setNodeMarkup(at,null,{checked:!checked}).doc);
   }
-  function render(target,doc,onCheck,{revealSpoilers=true}={}){
+  function render(target,doc,onCheck,{revealSpoilers=true,spoilerReveals}={}){
     let checkbox=0;const document=target.ownerDocument;
-    function hiddenText(){
+    function hiddenText(from){
       const cover=document.createElement('span'),content=document.createElement('span');
       cover.className='im-spoiler';
       content.setAttribute('aria-hidden','true');cover.append(content);
-      if(!revealSpoilers)return {cover,content};
+      const spoiler={cover,content,to:from};
+      if(!revealSpoilers)return spoiler;
       cover.setAttribute('role','button');cover.setAttribute('aria-label','Reveal spoiler');cover.tabIndex=0;
-      function reveal(event){
-        if(cover.closest('.selection-mode,[data-selecting="true"]'))return;
-        event.preventDefault();event.stopPropagation();
+      function show(){
         cover.setAttribute('data-revealed','');cover.removeAttribute('role');cover.removeAttribute('aria-label');cover.removeAttribute('tabindex');
         content.removeAttribute('aria-hidden');cover.removeEventListener('click',reveal);cover.removeEventListener('keydown',key);
       }
+      function reveal(event){
+        if(cover.closest('.selection-mode,[data-selecting="true"]'))return;
+        event.preventDefault();event.stopPropagation();
+        spoilerReveals?.set(from,spoiler.to);
+        show();
+      }
       function key(event){if(event.key==='Enter'||event.key===' ')reveal(event);}
       cover.addEventListener('click',reveal);cover.addEventListener('keydown',key);
-      return {cover,content};
+      if(spoilerReveals)spoiler.restore=()=>{if(spoilerReveals.get(from)===spoiler.to)show();};
+      return spoiler;
     }
-    function nodeDOM(node){
+    function nodeDOM(node,pos){
       if(node.isText){let out=document.createTextNode(node.text);for(const mark of node.marks){if(mark.type===spoilerMark)continue;const wrap=document.createElement(mark.type===schema.marks.strong?'strong':mark.type===schema.marks.em?'em':'s');wrap.append(out);out=wrap;}return out;}
       if(node.type===schema.nodes.horizontal_rule)return document.createElement('hr');
       if(node.type===schema.nodes.hard_break)return document.createTextNode('\n');
@@ -297,15 +303,18 @@ const imMarkdown=(()=>{
         out.append(check);
       }
       let spoiler;
-      node.forEach(child=>{
+      node.forEach((child,offset)=>{
+        const childPos=pos+1+offset;
         if(spoilerMark.isInSet(child.marks)){
-          if(!spoiler){spoiler=hiddenText();out.append(spoiler.cover);}
-          spoiler.content.append(nodeDOM(child));
-        }else{spoiler=null;out.append(nodeDOM(child));}
+          if(!spoiler){spoiler=hiddenText(childPos);out.append(spoiler.cover);}
+          spoiler.to=childPos+child.nodeSize;
+          spoiler.content.append(nodeDOM(child,childPos));
+        }else{spoiler?.restore?.();spoiler=null;out.append(nodeDOM(child,childPos));}
       });
+      spoiler?.restore?.();
       if(node.type===schema.nodes.table){const wrap=document.createElement('div');wrap.className='im-md-table-wrap';out.style.minWidth=Math.max(280,node.firstChild.childCount*140)+'px';wrap.append(out);return wrap;}return out;
     }
-    const fragment=document.createDocumentFragment();doc.forEach(node=>fragment.append(nodeDOM(node)));target.replaceChildren(fragment);target.classList.add('im-rich-display');
+    const fragment=document.createDocumentFragment();doc.forEach((node,pos)=>fragment.append(nodeDOM(node,pos)));target.replaceChildren(fragment);target.classList.add('im-rich-display');
   }
   function documentHasText(node){
     if(node.isText)return !!node.text.trim();

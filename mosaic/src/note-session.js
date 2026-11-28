@@ -85,6 +85,7 @@ function receive(note, force = false) {
     }
   }
   closeModal(true);
+  if (previous?.note.uuid !== note.uuid) revealedCardSpoilers.clear();
   hideMenu();
   dateOpen = false;
   $('date-panel').replaceChildren();

@@ -26,11 +26,46 @@ const imRichField=(()=>{
     let config={...options},source=String(options.value??'').replace(/\r\n?/g,'\n'),plain=!!options.plain,context=options.context??'',readOnly=!!options.readOnly,disabled=!!options.disabled,destroyed=false,ime=false,lastIME=0,view,focusRunning=false;
     let preferSelectionExtent=false;
     let revealedSpoiler=null;
+    const spoilerReveals=options.spoilerReveals, persistentSpoilers=new Set();
     function revealSpoiler(next=null){
       if(next===revealedSpoiler)return;
-      revealedSpoiler?.removeAttribute('data-revealed');
+      if(!persistentSpoilers.has(revealedSpoiler))revealedSpoiler?.removeAttribute('data-revealed');
       revealedSpoiler=next;
       next?.setAttribute('data-revealed','');
+    }
+    function spoilerBounds(span){
+      return [view.posAtDOM(span,0),view.posAtDOM(span,span.childNodes.length)];
+    }
+    function keepSpoiler(span){
+      if(!spoilerReveals){revealSpoiler(span);return;}
+      const [from,to]=spoilerBounds(span);
+      spoilerReveals.set(from,to);
+      persistentSpoilers.add(span);
+      span.setAttribute('data-revealed','');
+    }
+    function restoreSpoilers(prune=false){
+      if(!spoilerReveals||!spoilerReveals.size&&!persistentSpoilers.size)return;
+      const found=new Set(),previewEnd=readOnly?TextSelection.atEnd(view.state.doc).from:null;
+      persistentSpoilers.clear();
+      for(const span of dom.querySelectorAll('.im-spoiler-edit')){
+        const [from,to]=spoilerBounds(span),savedEnd=spoilerReveals.get(from);
+        // A long card can mount a read-only prefix that ends inside this spoiler.
+        const keep=savedEnd===to||!prune&&to===previewEnd&&savedEnd>to;
+        if(keep){persistentSpoilers.add(span);found.add(from);}
+        span.toggleAttribute('data-revealed',keep||span===revealedSpoiler);
+      }
+      if(prune)for(const from of spoilerReveals.keys())if(!found.has(from))spoilerReveals.delete(from);
+    }
+    function mapSpoilerReveals(transactions){
+      for(const {docChanged,mapping} of transactions){
+        if(!docChanged||!spoilerReveals.size)continue;
+        const old=[...spoilerReveals];spoilerReveals.clear();
+        for(const [from,to] of old){
+          const start=mapping.map(from,1),end=mapping.map(to,-1);
+          if(start<end)spoilerReveals.set(start,end);
+        }
+      }
+      restoreSpoilers(true);
     }
     function revealSpoilerAtCaret(){
       const {empty,$head}=view.state.selection;
@@ -165,6 +200,7 @@ const imRichField=(()=>{
         const before=view.state.doc,result=view.state.applyTransaction(transaction);
         preferSelectionExtent=!!options.preferLineBreakSelectionExtent&&transaction.getMeta('im-line-break')===true;
         try{view.updateState(result.state);}finally{preferSelectionExtent=false;}
+        if(spoilerReveals&&before!==result.state.doc)mapSpoilerReveals(result.transactions);
         refresh();
         if(!before.eq(result.state.doc)){
           source=transaction.getMeta('im-paste-source')??null;
@@ -187,7 +223,7 @@ const imRichField=(()=>{
         keydown:(v,event)=>{if(event.key==='Enter'){enterKeyActive=true;enterKeyHandled=false;enterModifiers={key:'Enter',shiftKey:event.shiftKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,repeat:event.repeat};}else{enterKeyActive=false;enterKeyHandled=false;}return false;},
         keyup:(v,event)=>{if(event.key==='Enter'){enterKeyActive=false;enterKeyHandled=false;}return false;},
         blur:()=>{revealSpoiler();enterKeyActive=false;enterKeyHandled=false;if(config.capture&&typeof imFlushDraftSaves==='function')imFlushDraftSaves();return false;},
-        click:(v,event)=>{const spoiler=event.target.closest('.im-spoiler-edit');if(spoiler&&dom.contains(spoiler)&&v.state.selection.empty)revealSpoiler(spoiler);return false;},
+        click:(v,event)=>{const spoiler=event.target.closest('.im-spoiler-edit');if(spoiler&&dom.contains(spoiler)&&v.state.selection.empty)keepSpoiler(spoiler);return false;},
         compositionstart:()=>{ime=true;enterKeyActive=false;enterKeyHandled=false;floating?.update();return false;},compositionend:()=>{ime=false;lastIME=performance.now();return false;},
         beforeinput:(v,event)=>{
           if(!['insertParagraph','insertLineBreak'].includes(event.inputType)||event.isComposing||ime||view.composing||performance.now()-lastIME<40)return false;
@@ -240,7 +276,7 @@ const imRichField=(()=>{
     function setValue(value,reset=false){
       value=String(value??'').replace(/\r\n?/g,'\n');if(!reset&&value===source)return;
       source=value;const parsed=plain?plainDoc(value):imMarkdown.parse(value);
-      if(reset||!parsed.eq(view.state.doc))view.updateState(newState(value));refresh();
+      if(reset||!parsed.eq(view.state.doc)){view.updateState(newState(value));restoreSpoilers();}refresh();
     }
     const start=()=>TextSelection.atStart(view.state.doc).from,end=()=>TextSelection.atEnd(view.state.doc).to;
     const offset=pos=>pos===end()?value().length:pos===start()?0:Math.max(0,pos-1);
@@ -283,7 +319,8 @@ const imRichField=(()=>{
     main.append(dom);
     if(options.sendButton){send=action('Send','↑',()=>config.onSubmit?.());send.classList.add('im-rich-send');main.append(send);}
     wrapper.append(main);if(formatting)wrapper.append(toolbar);floating=imSelectionFormatting({dom,toolbar,toggle,view,manual:formatting,canFormat:()=>!plain&&!disabled&&!readOnly&&!ime&&!view.composing});refresh();
-    const controller={dom,wrapper,toggle,toolbar,view,concealSpoiler:()=>revealSpoiler(),
+    restoreSpoilers();
+    const controller={dom,wrapper,toggle,toolbar,view,
       setContext:(key,value,plainMode=false)=>{const reset=key!==context||plain!==plainMode;if(reset){enterKeyActive=false;enterKeyHandled=false;floating?.reset();}context=key;plain=plainMode;setValue(value,reset);},
       configure:next=>{const before=JSON.stringify(attrs());config={...config,...next};if(next.disabled!==undefined)disabled=!!next.disabled;if(next.readOnly!==undefined)readOnly=!!next.readOnly;if(JSON.stringify(attrs())!==before)editableChanged();else refresh();},
       insertText:text=>{view.dispatch(view.state.tr.insertText(text).scrollIntoView());view.focus();},
