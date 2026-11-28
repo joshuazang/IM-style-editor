@@ -34,6 +34,7 @@ function renderAll(inserting = false) {
   renderAppearance();
   renderStatus();
   renderNotice();
+  if (trashView) return;
   renderCapture();
   renderTags();
   $('welcome').hidden = !!s;

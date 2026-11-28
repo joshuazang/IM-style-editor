@@ -231,3 +231,16 @@ function ImContextLabel({kind,label}) {
     x.jsx('span',{children:label})
   ]});
 }
+function ImTrashPane({records, writable, close, change}) {
+  const root = dt.useRef(null), view = dt.useRef(null), latest = dt.useRef(null);
+  latest.current = {close,change};
+  dt.useLayoutEffect(() => {
+    const pane = imCreateTrashView({root:root.current,variant:'im',close:()=>latest.current.close(),
+      change:(action,ids)=>latest.current.change(action,ids)});
+    view.current = pane;
+    pane.focus();
+    return () => pane.destroy();
+  }, []);
+  dt.useLayoutEffect(() => view.current?.update(records,writable), [records,writable]);
+  return x.jsx('section',{ref:root});
+}

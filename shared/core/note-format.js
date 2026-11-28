@@ -12,6 +12,11 @@ const imFormat = (() => {
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
   const newMessage = text => ({ id: newId(), text, reactions: [] });
+  const validTrashDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+  function trashDate(date = new Date()) {
+    return [date.getFullYear(),date.getMonth()+1,date.getDate()].map((part,i)=>String(part).padStart(i?2:4,'0')).join('-');
+  }
   function validateReply(reply) {
     if (!object(reply) || !validId(reply.id) || typeof reply.text !== 'string' || typeof reply.noteId !== 'string' || ('createdAt' in reply && typeof reply.createdAt!=='string') || ('metadata' in reply && (!object(reply.metadata)||['id','text','createdAt'].some(key=>Object.hasOwn(reply.metadata,key))))) throw new Error('Invalid reply reference');
     if(reply.metadata)validateMessages([{...reply.metadata,id:reply.id,text:reply.text,reactions:reply.metadata.reactions??[],...(reply.createdAt?{createdAt:reply.createdAt}:{})}]);
@@ -23,6 +28,7 @@ const imFormat = (() => {
       if (!object(message) || !validId(message.id) || ids.has(message.id) || typeof message.text !== 'string' ||
           !Array.isArray(message.reactions) || !message.reactions.every(tag => typeof tag === 'string') ||
           ('createdAt' in message && typeof message.createdAt !== 'string') ||
+          ('trashedOn' in message && !validTrashDate(message.trashedOn)) ||
           ('title' in message && typeof message.title !== 'string') ||
           ('separatorAfter' in message && typeof message.separatorAfter !== 'string')) throw new Error('Invalid or duplicate bubble metadata');
       if (Object.hasOwn(message,'replyTo')) validateReply(message.replyTo);
@@ -363,37 +369,98 @@ const imFormat = (() => {
     const text=note?.content?.text??'', previous=notes.get(note);
     if(previous?.text===text)return previous;
     const parsed=inspect(text), portable=parsed.kind==='portable';
-    const result={text,kind:parsed.kind,messages:portable?parsed.messages:parsed.kind==='plain'?fromPlainText(text):[],
+    const all=portable?parsed.messages:parsed.kind==='plain'?fromPlainText(text):[];
+    const result={text,kind:parsed.kind,...partition(all),
       settings:portable?parsed.settings:{},draft:portable?parsed.draft:'',reply:portable?parsed.reply:null};
     notes.set(note,result);return result;
   }
+  function partition(all) {
+    const trash=all.filter(message=>message.trashedOn);
+    return {all,trash,messages:trash.length?all.filter(message=>!message.trashedOn):all};
+  }
   const readMessages=note=>state(note).messages;
+  const readTrash=note=>state(note).trash;
   const readSettings=note=>state(note).settings;
   const readDraft=note=>state(note).draft;
   const readReply=note=>state(note).reply;
   const isCurrent=(note,messages,settings)=>{
     const saved=state(note);
     return saved.kind==='portable' && saved.messages===messages &&
-      JSON.stringify(compactBoardOrder(messages,saved.settings))===JSON.stringify(compactBoardOrder(messages,settings));
+      JSON.stringify(compactBoardOrder(saved.all,saved.settings))===JSON.stringify(compactBoardOrder(saved.all,settings));
   };
   function write(note,messages,settings,draft=readDraft(note),reply=readReply(note)) {
     const previous=state(note);
-    if(previous.kind==='damaged')throw new Error('Malformed records: original text was not changed');
     if(messages!==previous.messages)messages=messages.map(normalizeMessage);
+    let records=messages;
+    if(previous.trash.length){
+      settings=preserveTrashPins(previous,settings);
+      if(messages===previous.messages)records=previous.all;
+      else {
+        const ids=new Set(messages.map(message=>message.id));
+        let next=0;
+        records=[];
+        for(const message of previous.all){
+          if(message.trashedOn)records.push(message);
+          else if(ids.has(message.id))records.push(messages[next++]);
+        }
+        records=records.concat(messages.slice(next));
+      }
+    }
+    return writeRecords(note,previous,{all:records,messages,trash:previous.trash},settings,draft,reply);
+  }
+  function preserveTrashPins(previous,settings){
+    if(settings===previous.settings)return settings;
+    const pins=Array.isArray(settings.pinnedMessageIds)?settings.pinnedMessageIds:settings.pinnedMessageId?[settings.pinnedMessageId]:[];
+    const previousPins=Array.isArray(previous.settings.pinnedMessageIds)?previous.settings.pinnedMessageIds:previous.settings.pinnedMessageId?[previous.settings.pinnedMessageId]:[];
+    if(!previousPins.length)return settings;
+    const trashed=new Set(previous.trash.map(message=>message.id));
+    const kept=previousPins.filter(id=>trashed.has(id)&&!pins.includes(id));
+    return kept.length?{...settings,pinnedMessageIds:pins.concat(kept)}:settings;
+  }
+  function writeTrash(note,ids,action,draft=readDraft(note),reply=readReply(note)) {
+    const previous=state(note), date=action==='move'?trashDate():null;
+    if(!['move','restore','delete'].includes(action))throw new Error('Invalid Trash action');
+    const removed=new Set(), records=[];
+    let changed=false;
+    for(const message of previous.all){
+      if(!ids.has(message.id)||!!message.trashedOn===(action==='move')){records.push(message);continue;}
+      changed=true;
+      if(action==='move')records.push({...message,trashedOn:date});
+      else if(action==='restore'){
+        const {trashedOn,...restored}=message;
+        records.push(restored);
+      } else removed.add(message.id);
+    }
+    if(!changed)return false;
+    let settings=previous.settings;
+    if(removed.size&&(Array.isArray(settings.pinnedMessageIds)||removed.has(settings.pinnedMessageId))){
+      settings={...settings};
+      if(Array.isArray(settings.pinnedMessageIds)){
+        settings.pinnedMessageIds=settings.pinnedMessageIds.filter(id=>!removed.has(id));
+        if(!settings.pinnedMessageIds.length)delete settings.pinnedMessageIds;
+      }
+      if(removed.has(settings.pinnedMessageId))delete settings.pinnedMessageId;
+    }
+    writeRecords(note,previous,partition(records),settings,draft,reply);
+    return true;
+  }
+  function writeRecords(note,previous,records,settings,draft,reply) {
+    if(previous.kind==='damaged')throw new Error('Malformed records: original text was not changed');
+    const {all,messages}=records;
     reply=normalizeReply(reply);
-    settings=compactBoardOrder(messages,settings);
-    const text=portable(messages,settings,draft,reply);
+    settings=compactBoardOrder(all,settings);
+    const text=portable(all,settings,draft,reply);
     const content={...note.content,text};
     // Delete only this editor's obsolete mirrors; retain title, references and other editors' data.
     delete content.appendEditorMessageData;delete content.appendEditorMessages;delete content.appendEditorSettings;
     if(note.clientData?.imStyleEditor){const data={...note.clientData};delete data.imStyleEditor;note.clientData=data;}
     if(messages!==previous.messages || !Object.hasOwn(content,'preview_plain'))content.preview_plain=preview(messages);
     content.preview_html=undefined;note.content=content;
-    const saved={kind:'portable',messages,settings,draft,reply};
-    notes.set(note,{...saved,text});inspectedText=text;inspectedResult=saved;
+    const saved={kind:'portable',settings,draft,reply};
+    notes.set(note,{...saved,...records,text});inspectedText=text;inspectedResult={...saved,messages:all};
     return note;
   }
   const recover=()=>null;
   const restore=()=>{throw new Error('Damaged format 3 records require manual repair');};
-  return {validateReply,title,withTitle,mergeText,mergeContent,readReply,normalizeMessage,encodeMessage,uniqueSourceRefs,sourceRefs,isImported,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readSettings,isCurrent,write,recover,restore};
+  return {validateReply,title,withTitle,mergeText,mergeContent,readReply,normalizeMessage,encodeMessage,uniqueSourceRefs,sourceRefs,isImported,editMessage,readDraft,newId,validId,validateMessages,serialize,portable,inspect,fromPlainText,readMessages,readTrash,readSettings,isCurrent,write,writeTrash,recover,restore};
 })();

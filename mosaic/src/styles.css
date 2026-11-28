@@ -158,10 +158,7 @@ dialog{max-height:calc(100dvh - 24px);border-radius:19px}
 .search-bar .icon-button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .tag-filters{width:100%;max-width:1440px;margin:0 auto;padding:0 36px 16px}
 .inline-composer{position:relative;flex:none;width:calc(100% - 72px);max-width:1368px;margin:0 auto 24px;padding:0 17px 0 15px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 2px 6px #293d3210}
-#capture-input{display:block;width:100%;min-height:46px;max-height:min(180px,32dvh);padding:10px 0;border:0;border-radius:0;resize:none;background:transparent;box-shadow:none;outline:none;overflow-y:auto;scrollbar-gutter:stable}
-/* Leave existing Chinese text in place when punctuation is added or removed. */
-#capture-input [data-cjk-wrap]{line-break:anywhere;text-spacing-trim:space-all}
-#capture-input blockquote{width:auto}
+#capture-input{display:block;width:100%;min-height:46px;max-height:min(180px,32dvh);padding:10px 0;border:0;border-radius:0;resize:none;background:transparent;box-shadow:none;outline:none;overflow-y:auto}
 #capture-input::placeholder{color:var(--muted)}
 #capture-reply{display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:3px 6px 3px 9px;background:var(--accent-soft);border-left:2px solid var(--accent);border-radius:8px}
 .inline-quote{flex:1;min-width:0;padding:7px 0;background:transparent;text-align:left;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

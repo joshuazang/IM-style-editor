@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto');
 const metadata=JSON.parse(fs.readFileSync('editors-release.json'));
 const digest=crypto.createHash('sha256');
-for(const name of ['../vendor/markdown-editor.js','paragraph-spacing.js','markdown-model.js','markdown-commands.js','markdown-tables.js','markdown-editor.js','markdown.css','icons.js','selection-format.js','menu-position.js','menu.css','controls.css','selection.css','save-feedback.js','accessibility.css','search-filters.js','search-filters.css','composer.css']){digest.update(name+'\0');digest.update(fs.readFileSync('shared/ui/'+name));}
+for(const name of ['../vendor/markdown-editor.js','paragraph-spacing.js','markdown-model.js','markdown-commands.js','markdown-tables.js','markdown-editor.js','markdown.css','icons.js','selection-format.js','menu-position.js','menu.css','controls.css','selection.css','save-feedback.js','accessibility.css','search-filters.js','search-filters.css','composer.css','trash.js','trash.css']){digest.update(name+'\0');digest.update(fs.readFileSync('shared/ui/'+name));}
 assert.equal(metadata.shared_ui_sha256,digest.digest('hex'));
 let previous;
 for(const directory of ['next','mosaic']){
@@ -11,7 +11,7 @@ for(const directory of ['next','mosaic']){
  const block=js.slice(js.indexOf('/* IM_SHARED_UI_BEGIN'),js.indexOf('/* IM_SHARED_UI_END */'));
  if(previous)assert.equal(block,previous);previous=block;
  const css=fs.readFileSync(directory+'/'+/href="\.\/([^"?]+\.css)/.exec(html)[1],'utf8');
- for(const name of ['menu.css','controls.css','selection.css','accessibility.css'])assert.ok(css.includes(fs.readFileSync('shared/ui/'+name,'utf8')));
+ for(const name of ['menu.css','controls.css','selection.css','accessibility.css','trash.css'])assert.ok(css.includes(fs.readFileSync('shared/ui/'+name,'utf8')));
  assert.ok(!css.includes('prefers-color-scheme:dark'),'Both editors ship light-only styles');
  assert.ok(js.includes('ui-tag-panel')&&js.includes('ui-action-panel'));
 }

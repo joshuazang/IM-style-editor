@@ -187,6 +187,7 @@ function mainMenu(event) {
   searchOpen = false;
   renderSearchControls();
   showMenu([
+    ['Trash', 'trash', openTrash],
     ['Import from clipboard', 'import', () => importDialog()],
     ['Export all cards', 'export', () => exportRecords(s, s.messages)],
     ['Select cards', 'select', () => startSelection()],

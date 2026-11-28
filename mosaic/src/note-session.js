@@ -45,6 +45,7 @@ function receiveNativeFields(s, note) {
 
 function receive(note, force = false) {
   if (!note || !note.uuid) return;
+  if (active && active.note.uuid !== note.uuid && !note.isMetadataUpdate) closeTrash(false);
   if (active && (active.note.uuid !== note.uuid || !note.isMetadataUpdate && active.note.content.text !== (note
       .content?.text || '') && !knownSessionText(active, note.content?.text || ''))) {
     boardDrag.reset();
@@ -239,9 +240,14 @@ function update(s, change, redraw = true) {
   const captureChanged = takeCapture(s);
   const draft = Object.hasOwn(change, 'draft') ? change.draft : captureChanged ? s.captureValue : s.draft,
     reply = Object.hasOwn(change, 'reply') ? change.reply : s.reply;
-  imFormat.write(s.note, messages, settings, draft, reply);
+  if (change.trash) {
+    if (!imFormat.writeTrash(s.note, change.trash.ids, change.trash.action, draft, reply)) {
+      if (!captureChanged) return Promise.resolve();
+      imFormat.write(s.note, messages, settings, draft, reply);
+    }
+  } else imFormat.write(s.note, messages, settings, draft, reply);
   Object.assign(s, {
-    messages: messages === s.messages ? s.messages : imFormat.readMessages(s.note),
+    messages: change.trash || messages !== s.messages ? imFormat.readMessages(s.note) : s.messages,
     settings: imFormat.readSettings(s.note),
     draft: imFormat.readDraft(s.note),
     reply: imFormat.readReply(s.note)
@@ -276,6 +282,7 @@ function renderNotice() {
   const box = $('notice');
   box.replaceChildren();
   const s = active;
+  if (trashView && s) trashView.update(imFormat.readTrash(s.note), writable(s));
   box.hidden = true;
   if (!s) return;
   let text = '';

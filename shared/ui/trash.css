@@ -1,0 +1,33 @@
+/* Trash uses the same active-filter pill as the standard tag-filtered views. */
+:is(.editor-shell,#app).im-trash-open > :not(.im-trash-pane,.message-tools,#notice,.transfer-backdrop){display:none}
+.editor-shell.im-trash-open .message-tools > :not(.save-notice){display:none}
+#app.im-trash-open::after{display:none}
+.im-trash-pane{display:flex;flex:1;flex-direction:column;min-height:0;min-width:0;isolation:isolate}
+.im-trash-header{display:flex;justify-content:flex-end;padding:12px 16px 8px}
+.im-trash-pane .ui-filter-pill.im-trash-pill{width:auto;min-width:118px}
+.im-trash-label{display:flex;align-items:center;gap:6px;flex:1;margin:0;padding:0 10px;font-size:13px;font-weight:750}
+.im-trash-label svg{width:18px;height:18px}
+.im-trash-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:12px 16px 24px}
+.im-trash-list{display:grid;gap:12px;max-width:1368px;margin-inline:auto}
+.im-trash-board .im-trash-list{grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));align-items:start;row-gap:18px}
+@media(max-width:650px){.im-trash-board .im-trash-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.im-trash-im .im-trash-list{justify-items:start}
+.im-trash-item,.editor-shell .im-trash-item.message-bubble{position:relative;box-sizing:border-box;min-width:0;max-width:100%;margin:0;padding:12px 14px 10px 46px;border:1px solid var(--line,#c9d4cc);border-radius:14px;color:var(--ink,#202124);cursor:pointer}
+.im-trash-board .im-trash-item{padding-inline:14px;background:var(--surface,#fff)}
+.im-trash-item.is-selected,.editor-shell .im-trash-item.is-selected{border-color:#52705b;box-shadow:0 0 0 1px #52705b}
+.im-trash-item-title{margin:0 0 4px;font-size:1.04em;white-space:pre-wrap;overflow-wrap:anywhere}
+.im-trash-preview{max-height:16em;overflow:hidden;pointer-events:none}
+.im-trash-date{display:block;margin-top:6px;color:var(--muted,#555f59);font-size:12px}
+.im-trash-empty{margin:22px 0;text-align:center;color:var(--muted,#606c64)}
+.im-trash-pane .im-trash-select{display:grid;place-items:center;position:absolute;top:9px;left:9px;width:28px;height:28px;min-width:0;min-height:0;padding:0;border:1px solid #8a988e;border-radius:8px;background:var(--surface,#fff);color:#326145;font:700 16px/1 system-ui;cursor:pointer}
+.im-trash-board .im-trash-select{top:-9px;left:-6px;width:24px;height:24px}
+.im-trash-pane .im-trash-select[aria-pressed=true]{border-color:#52705b;background:#e4eee5}
+.im-trash-actions{display:flex;flex:none;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 16px max(12px,env(safe-area-inset-bottom));color:var(--ink,#202124)}
+.im-trash-actions[hidden]{display:none}
+.im-trash-count{margin-inline-end:auto;font-size:13px}
+.im-trash-actions button{min-height:44px;padding:6px 11px;border:1px solid var(--line,#c9d4cc);border-radius:9px;background:var(--surface,#fff);color:inherit;font:inherit;font-size:13px;cursor:pointer}
+.im-trash-actions .im-trash-danger{color:#a12626}
+.im-trash-confirm{max-width:min(360px,calc(100% - 32px));border:1px solid var(--line,#c9d4cc);border-radius:14px;background:var(--surface,#fff);color:var(--ink,#202124);padding:18px}
+.im-trash-confirm::backdrop{background:#16241c55}
+.im-trash-question{margin:0;font-weight:700}
+.im-trash-confirm .im-trash-actions{padding:0}

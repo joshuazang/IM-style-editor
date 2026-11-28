@@ -10,6 +10,7 @@ from collections import deque
 from shared_core import ROOT
 
 BROWSER_SUITES = (
+    'trash-browser.py',
     'native-writing-browser.py',
     'mosaic-card-autosave.py',
     'batch-pin-color-browser.py',

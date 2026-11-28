@@ -40,6 +40,7 @@ const modal = $('modal'),
   viewport = $('viewport'),
   board = $('board');
 let active = null,
+  trashView = null,
   modalState = null,
   cardBackSwipe = null,
   toastTimer, frame = 0,
@@ -418,7 +419,6 @@ captureEditor = imRichField.create({
   sendButton: true,
   onSubmit: () => safeRun(() => submitCapture())
 });
-captureEditor.view.setProps({decorations: captureLineWrapping()});
 const originalCapture = $('capture-field');
 originalCapture.replaceWith(captureEditor.wrapper);
 $('capture-input').addEventListener('im-markdown-change', inputCapture);
@@ -575,6 +575,7 @@ viewport.addEventListener('pointermove', event => {
 });
 let lastWidth = 0;
 const overlayObserver = new ResizeObserver(() => {
+  if (trashView) return;
   if (board.clientWidth !== lastWidth) {
     lastWidth = board.clientWidth;
     rebuildLayout();
@@ -608,7 +609,7 @@ document.addEventListener('pointerdown', event => {
   }
 });
 document.addEventListener('keydown', event => {
-  if (!event.defaultPrevented && !event.isComposing && active && !modal.open && !active.view.selecting && (
+  if (!event.defaultPrevented && !event.isComposing && active && !trashView && !modal.open && !active.view.selecting && (
       event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'f') {
     event.preventDefault();
     searchOpen = true;

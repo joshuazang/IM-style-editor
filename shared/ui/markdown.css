@@ -3,6 +3,10 @@
 .im-rich-main{display:flex;align-items:flex-end;gap:4px;min-width:0}
 .im-rich-input{position:relative;min-width:0;outline:none!important;background:transparent;color:inherit;white-space:pre-wrap;overflow-wrap:anywhere;word-wrap:break-word;cursor:text;tab-size:4}
 .im-rich-main>.im-rich-input{flex:1;min-height:46px;padding:10px 0;max-height:180px;overflow-y:auto}
+/* Keep composer text stable when a scrollbar appears or CJK punctuation wraps. */
+:is(#append-text,#capture-input).im-rich-input{scrollbar-gutter:stable}
+:is(#append-text,#capture-input) [data-cjk-wrap]{line-break:anywhere;text-spacing-trim:space-all}
+:is(#append-text,#capture-input) blockquote{width:auto}
 .im-rich-input[aria-disabled=true]{cursor:default;opacity:.65}
 .im-rich-input[data-empty=true]:not(:focus):before{content:attr(data-placeholder);position:absolute;top:10px;left:0;color:var(--muted,#737b77);pointer-events:none}
 .im-rich-input p,.im-rich-display p{margin:0;min-height:1lh;white-space:pre-wrap}

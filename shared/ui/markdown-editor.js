@@ -1,8 +1,24 @@
 /* A local ProseMirror field with a small imperative bridge for both interfaces. */
 const imRichField=(()=>{
-  const {schema}=imMarkdown,{EditorView}=imRichDeps.view,{EditorState,TextSelection}=imRichDeps.state;
+  const {schema}=imMarkdown,{EditorView,Decoration,DecorationSet}=imRichDeps.view,{EditorState,TextSelection}=imRichDeps.state;
   const C=imRichDeps.commands,K=imMarkdownCommands;let live=0;
   function plainDoc(text){const content=[];text.split(/\r\n?|\n/).forEach((part,i)=>{if(i)content.push(schema.nodes.hard_break.create());if(part)content.push(schema.text(part));});return schema.nodes.doc.create(null,schema.nodes.paragraph.create(null,content));}
+  function composerWrapping(){
+    const cjk=/[\p{Script=Han}\u3000-\u303f\uff01-\uff65]/u;
+    let previousDoc, decorations;
+    return ({doc})=>{
+      if(doc===previousDoc)return decorations;
+      const blocks=[];
+      doc.descendants((node,pos)=>{
+        if(!node.isTextblock)return;
+        if(cjk.test(node.textContent))blocks.push(Decoration.node(pos,pos+node.nodeSize,{'data-cjk-wrap':''}));
+        return false;
+      });
+      previousDoc=doc;
+      decorations=DecorationSet.create(doc,blocks);
+      return decorations;
+    };
+  }
   function create(options={}){
     const phone=navigator.userAgentData?.mobile===true||/\biPhone\b|\biPod\b|Android.*\bMobile\b|Windows Phone/i.test(navigator.userAgent);
     const dom=document.createElement('div'),wrapper=document.createElement('div'),main=document.createElement('div'),toolbar=document.createElement('div');
@@ -124,6 +140,7 @@ const imRichField=(()=>{
     function newState(value){return EditorState.create({schema,doc:plain?plainDoc(value):imMarkdown.parse(value),plugins:[history.history({depth:100}),...(!plain?[typingRules()]:[]),imRichDeps.keymap.keymap(shortcuts),imRichDeps.keymap.keymap(baseKeys),...(!plain?[imRichDeps.tables.tableEditing(),imMarkdownTables.plugin()]:[])]});}
     function attrs(){return {id:config.id||'',class:(config.className||'')+' im-rich-input',role:'textbox','aria-label':config.label||'Text','aria-multiline':'true','aria-readonly':String(readOnly),'aria-disabled':String(disabled),tabindex:disabled?'-1':'0',...imWritingTextAttributes,enterkeyhint:config.capture?'send':'enter','data-placeholder':config.placeholder||''};}
     view=new EditorView({mount:dom},{state:newState(source),attributes:attrs,editable:()=>!disabled&&!readOnly,
+      decorations:options.capture?composerWrapping():undefined,
       preferSelectionExtent:()=>preferSelectionExtent,
       dispatchTransaction:transaction=>{
         const before=view.state.doc,result=view.state.applyTransaction(transaction);

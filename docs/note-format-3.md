@@ -13,6 +13,8 @@ The header is `#!im-style-editor 3`, followed by `#!encoding utf-8`. Settings, o
 
 Body and title edits replace the bubble's optional `lastEditedAt` extra metadata with a UTC timestamp at minute precision. Historical timestamps in `edited:` or `editedAt` remain readable. The `edited` status is independent of the timestamp, so clearing that status preserves the date. Mosaic Card View shows creation and edit times in local time at minute precision.
 
+Trash marks an existing bubble with `trashedOn` in its extra metadata. The only added value is the local calendar date in `YYYY-MM-DD` form. Restore removes the marker and keeps the original bubble. Permanent deletion removes the bubble and its pin and board-order entries. Active views, note previews and clipboard exports skip marked bubbles. Format-3 releases before Trash read the marker as extra metadata and display the bubble in the regular view.
+
 Imported bubbles keep a single `imported` flag. Clearing Imported deletes that flag. The optional `sourceRefs` field groups message IDs by source note ID for duplicate imports and reply navigation. The reader also accepts flat pairs and legacy forwarding chains. The next save writes each source note ID once per bubble. Reply snapshots use the same compact groups and preserve the saved quotes. Clipboard exports use compact JSON in the same clipboard protocol.
 
 Each bubble starts with `@@IM:BUBBLE`, contains its metadata and `@@IM:CONTENT`, and ends at the next **unescaped** `@@IM:BUBBLE` or final `@@IM:END`. There is no structural `@@IM:END-BUBBLE`. A literal old end-marker in message text is ordinary content.

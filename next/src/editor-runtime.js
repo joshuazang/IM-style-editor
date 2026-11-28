@@ -19,6 +19,7 @@ function ImEditor() {
   const [emojiEdit, setEmojiEdit] = dt.useState(null);
   const [searchOpen, setSearchOpen] = dt.useState(false);
   const [moreOpen, setMoreOpen] = dt.useState(false);
+  const [trashOpen, setTrashOpen] = dt.useState(false);
   const [dateOpen, setDateOpen] = dt.useState(false);
   dt.useEffect(() => {
     if (!searchOpen) setDateOpen(false)
@@ -123,6 +124,7 @@ function ImEditor() {
       if (noteRef.current?.uuid !== R.uuid) {
         migrationAttempts.current = null;
         setSaveError("");
+        setTrashOpen(false);
       }
       R.content && (((B = noteRef.current) == null ? void 0 : B.uuid) !== R.uuid && (setDraftText(draftCache
           .current.get(R.uuid) ?? imFormat.readDraft(R)), setPinView(false), setSearchQuery(""),
@@ -186,15 +188,19 @@ function ImEditor() {
     const h = () => setMessageMenu(null);
     return window.addEventListener("pointerdown", h), () => window.removeEventListener("pointerdown", h)
   }, []);
+  const saveCurrentMessages = note => {
+    setNoteMessages(readNoteMessages(note));
+    setEditorSettings(readEditorSettings(note));
+    return saveTracked(note);
+  };
   const saveMessages = (h, R = editorSettings, draft, pendingReply) => {
     const B = noteRef.current;
     if (!(B != null && B.content) || imFormat.inspect(B.content.text).kind === "damaged") return;
     if (!sessions.canWrite(B)) return sessions.persist(B);
     R = imPinSettings(R, h);
     imFormat.write(B, h, R, draft === undefined ? imFormat.readDraft(B) : draft, pendingReply === undefined ?
-      imFormat.readReply(B) : pendingReply), setNoteMessages(readNoteMessages(B)), setEditorSettings(
-      readEditorSettings(B));
-    return saveTracked(B)
+      imFormat.readReply(B) : pendingReply);
+    return saveCurrentMessages(B);
   };
   const changeSettings = h => saveMessages(noteMessages, {
     ...editorSettings,
@@ -486,12 +492,15 @@ function ImEditor() {
     if (titleEdit && !noteMessages.some(m => m.id === titleEdit.id)) sessions.cancelTitle(noteRef.current
       ?.uuid)
   }, [titleEdit?.id, noteMessages]);
-  const deleteMessage = h => {
-    window.confirm("Delete this message?") && (saveMessages(noteMessages.filter(R => R.id !== h)),
-      rememberSelection(R => {
-        const B = new Set(R);
-        return B.delete(h), B
-      }), setMessageMenu(null))
+  const changeTrash = (action, ids, uuid) => {
+    const note = noteRef.current;
+    if (!note || note.uuid !== uuid || !sessions.canWrite(note)) return;
+    if (imFormat.writeTrash(note, ids, action, workingDraft(note))) return saveCurrentMessages(note);
+  };
+  const deleteMessage = id => {
+    if (!window.confirm('Move this message to Trash?')) return;
+    changeTrash('move', new Set([id]), noteRef.current?.uuid)?.catch(() => {});
+    setMessageMenu(null);
   };
   const toggleMessageTag = (h, R) => {
     updateMessage(h, ot => ({
@@ -564,9 +573,9 @@ function ImEditor() {
   };
   const copySelected = () => transfer.copySelected();
   const deleteSelected = () => {
-    !selectedIds.size || !window.confirm(
-      `Delete ${selectedIds.size} selected message${selectedIds.size===1?"":"s"}?`) || (saveMessages(
-      noteMessages.filter(h => !selectedIds.has(h.id))), rememberSelection(new Set))
+    if (!selectedIds.size || !window.confirm(`Move ${selectedIds.size} selected message${selectedIds.size===1?'':'s'} to Trash?`)) return;
+    changeTrash('move', selectedIds, noteRef.current?.uuid)?.catch(() => {});
+    rememberSelection(new Set);
   };
   const reactionCounts = dt.useMemo(() => {
     const h = new Map;
@@ -591,7 +600,7 @@ function ImEditor() {
   }, [noteMessages, searchQuery, tagFilter, pinView, editorSettings]);
   dt.useEffect(() => {
     const find = event => {
-      if (event.defaultPrevented || event.isComposing || pinView || selectedIds.size || !noteReady || event
+      if (event.defaultPrevented || event.isComposing || pinView || trashOpen || selectedIds.size || !noteReady || event
         .target.closest?.('[role="dialog"]')) return;
       if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() ===
         'f') {
@@ -609,7 +618,7 @@ function ImEditor() {
     };
     window.addEventListener('keydown', find);
     return () => window.removeEventListener('keydown', find)
-  }, [selectedIds.size, noteReady, pinView]);
+  }, [selectedIds.size, noteReady, pinView, trashOpen]);
   dt.useEffect(() => {
     if (!pinView) return;
     const key = event => {
@@ -815,8 +824,9 @@ function ImEditor() {
       suppressMessageClick.current = false
     }
   }, [selectedIds.size]);
+  const trashNoteId = noteRef.current?.uuid;
   return x.jsxs("main", {
-    className: `editor-shell bubble-${editorSettings.bubbleTheme} background-${editorSettings.backgroundTheme}${editorSettings.wallpaper?` chat-wallpaper artwork-${imVisibleArtwork(editorSettings.artwork)}`:""}`,
+    className: `editor-shell bubble-${editorSettings.bubbleTheme} background-${editorSettings.backgroundTheme}${editorSettings.wallpaper?` chat-wallpaper artwork-${imVisibleArtwork(editorSettings.artwork)}`:""}${trashOpen?' im-trash-open':''}`,
     style: editorStyle,
     children: [x.jsxs("header", {
       className: "message-tools",
@@ -950,6 +960,18 @@ function ImEditor() {
               .openImport()
           },
           children: "Import from clipboard"
+        }), x.jsx("button", {
+          type: "button",
+          disabled: !noteReady,
+          onClick: () => {
+            setMoreOpen(false);
+            setSearchOpen(false);
+            setAppearanceOpen(false);
+            setArrangingTags(false);
+            inputRef.current?.blur();
+            setTrashOpen(true);
+          },
+          children: "Trash"
         }), x.jsx("button", {
           type: "button",
           className: "danger",
@@ -1476,6 +1498,14 @@ function ImEditor() {
           })]
         }) : "Loading note…"
       })
+    }), trashOpen && x.jsx(ImTrashPane, {
+      records: imFormat.readTrash(noteRef.current),
+      writable: sessions.canWrite(noteRef.current),
+      change: (action, ids) => changeTrash(action, ids, trashNoteId),
+      close: () => {
+        setTrashOpen(false);
+        requestAnimationFrame(() => document.querySelector('.message-tools [aria-label="More options"]')?.focus());
+      }
     }), messageMenu && x.jsxs("div", {
       ref: menuRef,
       className: "context-menu ui-context-menu",

@@ -64,7 +64,7 @@ function imUseTransfer({ noteRef, messages, settings, save, clearFilters, select
     const payload = imTransfer.read(dialog.text);
     if (!payload.ok) { setDialog(current => ({ ...current, error: payload.error })); return; }
     const destination = latest.current;
-    const result = imTransfer.merge(destination.messages, payload);
+    const result = imTransfer.merge(destination.messages, payload, imFormat.readTrash(noteRef.current));
     if (!result.added.length&&!clearAfter) {
       setNotice('These messages are already in this note. No duplicates were added.'); close(); return;
     }

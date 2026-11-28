@@ -12,7 +12,7 @@ const imTransfer = (() => {
   function create(messages, settings, sourceNoteId) {
     const appearance = Object.fromEntries(['bubbleTheme','backgroundTheme','wallpaper','artwork','scale','reactionOrder']
       .filter(key => key in settings).map(key => [key, settings[key]]));
-    const records=messages.map(message=>{
+    const records=messages.filter(message=>!message.trashedOn).map(message=>{
       const encoded=imFormat.encodeMessage(message);
       if(!Array.isArray(encoded.reactions)||encoded.reactions.length)return encoded;
       const {reactions,...record}=encoded;
@@ -34,12 +34,14 @@ const imTransfer = (() => {
       } else {
         const parsed = imFormat.inspect(raw);
         if (parsed.kind !== 'portable') throw new Error('Not a complete IM export');
-        payload = { messages: parsed.messages, settings: parsed.settings, sourceNoteId: '' };
+        payload = { messages: parsed.messages.filter(message=>!message.trashedOn), settings: parsed.settings, sourceNoteId: '' };
       }
       if (!Array.isArray(payload.messages) || !payload.messages.length) throw new Error('No messages to import');
       for (const message of payload.messages) if (object(message) && !Object.hasOwn(message, 'reactions')) message.reactions = [];
       payload.messages=payload.messages.map(imFormat.normalizeMessage);
       imFormat.validateMessages(payload.messages);
+      payload.messages=payload.messages.filter(message=>!message.trashedOn);
+      if(!payload.messages.length)throw new Error('No messages to import');
       const ids = new Set();
       for (const message of payload.messages) {
         if (!object(message) || typeof message.id !== 'string' || !message.id || ids.has(message.id) ||
@@ -53,11 +55,12 @@ const imTransfer = (() => {
       return { ok: false, error: 'This is not a complete IM message export. Use Export in the source note, then paste it here. Nothing has been changed.' };
     }
   }
-  function merge(existing, payload) {
+  function merge(existing, payload, trash = []) {
     if (!payload.ok) throw new Error('Invalid import');
     // Existing format-3 records are immutable; retain their identities so the
     // serializer can reuse their blocks. Only incoming records need cloning.
     const messages = [...existing], added = [], used = new Set(messages.map(message => message.id));
+    for(const message of trash)used.add(message.id);
     const byId=new Map(),bySource=new Map(),comparisons=new WeakMap();
     const append=(index,key,message)=>{if(!index.has(key))index.set(key,[]);index.get(key).push(message);};
     const index=message=>{

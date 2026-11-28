@@ -42,20 +42,45 @@ function jumpTo(reply) {
 
 function deleteCards(s, ids) {
   if (!ids.size || !writable(s)) return;
-  confirmAction(`Delete ${ids.size===1?'this card':ids.size+' cards'}?`,
-    'This removes the selected text from this note. There is no trash folder in Mosaic.', 'Delete', async () => {
-      const next = s.messages.filter(m => !ids.has(m.id));
-      const pins = MosaicModel.pins(s.settings).filter(id => !ids.has(id));
+  confirmAction(`Move ${ids.size===1?'this card':ids.size+' cards'} to Trash?`,
+    'You can restore these cards from Trash in the three-dot menu.', 'Move to Trash', async () => {
       for (const id of ids) s.view.selected.delete(id);
+      if (!s.view.selected.size) s.view.selecting = false;
       rememberSelection();
       await update(s, {
-        messages: next,
-        settings: {
-          ...s.settings,
-          pinnedMessageIds: pins
-        }
+        trash: {ids, action: 'move'}
       });
     }, true);
+}
+
+function openTrash() {
+  const s = active;
+  if (!s || trashView) return;
+  flushCapture(s);
+  searchOpen = false;
+  renderSearchControls();
+  s.view.scroll = viewport.scrollTop;
+  $('app').classList.add('im-trash-open');
+  trashView = imCreateTrashView({
+    variant: 'board',
+    color: card => MosaicModel.color(card).background,
+    close: () => closeTrash(),
+    change: (action, ids) => active?.note.uuid === s.note.uuid && writable() && update(active, {trash: {ids, action}})
+  });
+  $('app').append(trashView.root);
+  trashView.update(imFormat.readTrash(s.note), writable(s));
+  trashView.focus();
+}
+
+function closeTrash(redraw = true) {
+  if (!trashView) return;
+  trashView.destroy();
+  trashView.root.remove();
+  trashView = null;
+  $('app').classList.remove('im-trash-open');
+  if (redraw) renderAll();
+  viewport.scrollTop = active.view.scroll;
+  if (redraw) $('more-button').focus();
 }
 
 function applyTransferMarks(s) {
@@ -164,7 +189,7 @@ function importDialog() {
       return;
     }
     if (active !== s || modalState !== d) return;
-    const merged = imTransfer.merge(s.messages, payload);
+    const merged = imTransfer.merge(s.messages, payload, imFormat.readTrash(s.note));
     d.busy = true;
     normal.disabled = true;
     combined.disabled = true;
