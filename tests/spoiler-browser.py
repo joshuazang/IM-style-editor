@@ -60,12 +60,11 @@ def check_long_card(page, e, mobile):
         else:
             dialog.get_by_role('button', name='Close', exact=True).click()
         expect(dialog).not_to_be_visible()
-        expect(board_reveals).to_have_count(index+1)
-        expect(board_reveals.last).to_have_text(secret)
-        expect(covers.first.locator('[aria-hidden=true]')).to_have_count(0)
+        expect(board_reveals).to_have_count(0)
+        expect(covers.first.locator('[aria-hidden=true]')).to_have_text('short secret')
+        expect(covers.nth(1).locator('[aria-hidden=true]')).to_have_text('second secret')
         expect(covers.nth(2).locator('[aria-hidden=true]')).to_contain_text('长文字示例')
         assert card.evaluate('n=>n===window.testSpoilerCard'), 'Revealing an item does not replace the preview card'
-        assert board_reveals.first.evaluate('n=>getComputedStyle(n).cursor===getComputedStyle(n.closest(".card")).cursor')
         assert page.evaluate('notes.a.content.text') == saved and page.evaluate('saves.length') == count
     cover = covers.first
     (cover.tap if mobile else cover.click)()
@@ -79,7 +78,7 @@ def check_long_card(page, e, mobile):
     expect(dialog).not_to_be_visible()
     saved = scope['parse'](page.evaluate('notes.a.content.text'))['messages'][-1]
     assert saved['text'] == 'Edited ' + source
-    expect(board_reveals).to_have_text(['short secret','second secret'])
+    expect(board_reveals).to_have_count(0)
     other = e.locator(f'.card[data-id="{messages[0]["id"]}"]')
     other.locator('.im-spoiler').first.click()
     expect(editor).to_have_js_property('value', messages[0]['text'])
@@ -106,7 +105,7 @@ def check_long_card(page, e, mobile):
     reader.get_by_role('button', name='Reveal spoiler').first.click()
     expect(reader.locator('.im-spoiler[data-revealed]')).to_have_text('short secret')
     dialog.get_by_role('button', name='Close', exact=True).click()
-    expect(board_reveals).to_have_text('short secret')
+    expect(board_reveals).to_have_count(0)
     covers.first.click()
     expect(editor).to_have_js_property('value', 'Edited ' + source)
     expect(revealed).to_have_text('short secret')
@@ -114,9 +113,10 @@ def check_long_card(page, e, mobile):
     expect(revealed).to_have_count(2)
     dialog.get_by_role('button', name='Close', exact=True).click()
     expect(dialog).not_to_be_visible()
-    expect(board_reveals).to_have_count(2)
-    expect(board_reveals.last).to_contain_text('长文字示例')
-    assert 0 < len(board_reveals.last.text_content()) < len('长文字示例' * 3800)
+    expect(board_reveals).to_have_count(0)
+    clipped_spoiler = covers.last.locator('[aria-hidden=true]')
+    expect(clipped_spoiler).to_contain_text('长文字示例')
+    assert 0 < len(clipped_spoiler.text_content()) < len('长文字示例' * 3800)
     card.evaluate('''()=>{
       const prior=editorDialog;
       editorDialog=(id)=>{
