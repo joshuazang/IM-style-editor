@@ -1,4 +1,10 @@
 /* Board rendering, filters, selection, and pinning. */
+const boardSpoilerUpdates = new WeakMap();
+
+function syncBoardSpoilers(id) {
+  boardSpoilerUpdates.get(mounted.get(id))?.();
+}
+
 function renderTags() {
   const box = $('tag-filters');
   box.replaceChildren();
@@ -400,7 +406,7 @@ function cardNode(message, width) {
     ' ').slice(0, 150) || 'Quoted message'));
   if (parts.body) {
     const body = el('div', 'card-body im-rich-display');
-    imMarkdown.render(body, imMarkdown.bounded(message), index => {
+    const syncSpoilers = imMarkdown.render(body, imMarkdown.bounded(message), index => {
       if (active !== s || !writable(s)) return;
       if (s.view.selecting) {
         toggleSelection(message.id);
@@ -411,7 +417,8 @@ function cardNode(message, width) {
         messages: s.messages.map(m => m === source ? imFormat.editMessage(m, imMarkdown.toggleCheck(m
           .text, index)) : m)
       }));
-    }, {revealSpoilers: false});
+    }, {revealSpoilers: false, spoilerReveals: cardSpoilerReveals(message.id, message.text)});
+    if (syncSpoilers) boardSpoilerUpdates.set(node, () => syncSpoilers(cardSpoilerReveals(message.id, message.text)));
     node.append(body);
   }
   if (message.reactions.length) {

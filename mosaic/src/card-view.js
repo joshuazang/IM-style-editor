@@ -3,12 +3,13 @@ const revealedCardSpoilers = new Map();
 
 function cardSpoilerReveals(id, text) {
   const previous = revealedCardSpoilers.get(id);
-  return previous?.text === text ? previous.reveals : new Map();
+  if (previous?.text === text) return previous.reveals;
 }
 
 function rememberCardSpoilers(id, text, reveals) {
   if (reveals.size) revealedCardSpoilers.set(id, {text, reveals});
   else revealedCardSpoilers.delete(id);
+  syncBoardSpoilers(id);
 }
 
 function clearCardMotion(d) {
@@ -316,6 +317,8 @@ function animateCard(d, closing = false) {
 
 function finishCard(d) {
   if (modalState !== d) return;
+  d.rememberSpoilers?.();
+  d.rememberSpoilers = null;
   if (d.boardDirty) {
     renderAll();
     d.boardDirty = false;
@@ -412,7 +415,7 @@ function editorDialog(id = null) {
   title.hidden = !d.titleUnlocked;
   const titlePreview = el('h3', 'detail-title', currentTitle);
   titlePreview.hidden = !currentTitle || d.titleUnlocked;
-  const spoilerReveals = cardSpoilerReveals(id, initialText),
+  const spoilerReveals = cardSpoilerReveals(id, initialText) ?? new Map(),
     startBody = cardBodyStart(initialText, s.settings),
     bodyEditor = imRichField.create({
       className: 'editor-body',
@@ -813,7 +816,7 @@ function readCard(id) {
     d.root.append(quote);
   }
   const body = el('div', 'reader-body im-rich-display');
-  const spoilerReveals = cardSpoilerReveals(id, message.text);
+  const spoilerReveals = cardSpoilerReveals(id, message.text) ?? new Map();
   imMarkdown.render(body, imMarkdown.message(message).doc, undefined, {spoilerReveals});
   d.rememberSpoilers = () => rememberCardSpoilers(id, message.text, spoilerReveals);
   d.root.append(el('h3', 'reader-title', parts.title), body, el('p', 'reader-meta', metaText(message)));

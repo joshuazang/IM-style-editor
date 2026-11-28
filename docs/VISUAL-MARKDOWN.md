@@ -1,8 +1,8 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.45 / Mosaic 1.5.57.
+Status: implemented for IM 4.4.46 / Mosaic 1.5.58.
 
-Both editors support `||spoiler text||`. The formatting toolbar can also mark a selection as a spoiler. Reveal it in an IM message or an opened Mosaic card. Mosaic remembers revealed spoilers while the same note is open, including when you reopen a card. Switching notes resets those reveals. Mosaic Board, reply and pin previews keep spoilers masked.
+Both editors support `||spoiler text||`. The formatting toolbar can also mark a selection as a spoiler. Reveal it in an IM message or an opened Mosaic card. Mosaic Board previews reflect which spoilers you’ve revealed in Card View. Both views keep that state while the same note is open, and switching notes resets it. Reply and pin previews keep spoilers masked.
 
 ## Agreed behavior
 

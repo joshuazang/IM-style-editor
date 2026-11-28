@@ -267,12 +267,13 @@ const imMarkdown=(()=>{
   }
   function render(target,doc,onCheck,{revealSpoilers=true,spoilerReveals}={}){
     let checkbox=0;const document=target.ownerDocument;
+    const previewSpoilers=revealSpoilers?null:[];
     function hiddenText(from){
       const cover=document.createElement('span'),content=document.createElement('span');
       cover.className='im-spoiler';
       content.setAttribute('aria-hidden','true');cover.append(content);
-      const spoiler={cover,content,to:from};
-      if(!revealSpoilers)return spoiler;
+      const spoiler={cover,content,from,to:from};
+      if(previewSpoilers){previewSpoilers.push(spoiler);return spoiler;}
       cover.setAttribute('role','button');cover.setAttribute('aria-label','Reveal spoiler');cover.tabIndex=0;
       function show(){
         cover.setAttribute('data-revealed','');cover.removeAttribute('role');cover.removeAttribute('aria-label');cover.removeAttribute('tabindex');
@@ -315,6 +316,19 @@ const imMarkdown=(()=>{
       if(node.type===schema.nodes.table){const wrap=document.createElement('div');wrap.className='im-md-table-wrap';out.style.minWidth=Math.max(280,node.firstChild.childCount*140)+'px';wrap.append(out);return wrap;}return out;
     }
     const fragment=document.createDocumentFragment();doc.forEach((node,pos)=>fragment.append(nodeDOM(node,pos)));target.replaceChildren(fragment);target.classList.add('im-rich-display');
+    if(!previewSpoilers?.length)return;
+    function syncPreviewSpoilers(reveals){
+      for(const {cover,content,from,to} of previewSpoilers){
+        // A preview may end partway through a spoiler already revealed in full.
+        const shown=reveals?.get(from)>=to;
+        if(cover.hasAttribute('data-revealed')===shown)continue;
+        cover.toggleAttribute('data-revealed',shown);
+        if(shown)content.removeAttribute('aria-hidden');
+        else content.setAttribute('aria-hidden','true');
+      }
+    }
+    syncPreviewSpoilers(spoilerReveals);
+    return syncPreviewSpoilers;
   }
   function documentHasText(node){
     if(node.isText)return !!node.text.trim();
