@@ -202,7 +202,7 @@ function bindBoardContextMenu(node, open, canHold) {
   };
   node.addEventListener('pointerdown', event => {
     if (event.pointerType !== 'touch' || event.isPrimary === false || event.target.closest(
-        'button,input,textarea,select,[contenteditable],#menu,.im-spoiler:not([data-revealed])') || !canHold()) return;
+        'button,input,textarea,select,[contenteditable],#menu') || !canHold()) return;
     cancel();
     gesture = {
       id: event.pointerId,

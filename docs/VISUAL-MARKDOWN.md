@@ -1,8 +1,8 @@
 # Visual Markdown implementation contract
 
-Status: implemented for IM 4.4.43 / Mosaic 1.5.55.
+Status: implemented for IM 4.4.44 / Mosaic 1.5.56.
 
-Both editors support `||spoiler text||`. The formatting toolbar can also mark a selection as a spoiler. Click, tap or press Enter on a dotted cover to reveal it. Reply and pin summaries keep spoilers masked.
+Both editors support `||spoiler text||`. The formatting toolbar can also mark a selection as a spoiler. Reveal it in an IM message or an opened Mosaic card. Mosaic Board, reply and pin previews keep spoilers masked.
 
 ## Agreed behavior
 

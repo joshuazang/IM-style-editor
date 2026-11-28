@@ -44,6 +44,8 @@ input,textarea{min-width:0;color:var(--ink)}
 #board{position:relative;min-height:1px;overflow-anchor:none}
 .section-heading{position:absolute;left:2px;font-size:10px;text-transform:uppercase;letter-spacing:1.6px;color:var(--muted);font-weight:700}
 .card{position:absolute;left:0;top:0;display:flex;flex-direction:column;padding:20px 20px 15px;border:1px solid #dce1d7;border-radius:17px;background:var(--card-color,#fff);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;outline:none;contain:layout style;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.card .im-spoiler:not([data-revealed]){cursor:inherit}
+.card-edit-dialog .im-spoiler-edit:not([data-revealed]),.reader-body .im-spoiler:not([data-revealed]){cursor:zoom-in}
 @media(hover:hover) and (pointer:fine){#board:not(.is-scrolling) .card:not(.selected):hover{box-shadow:0 8px 22px #2f443414;border-color:#b9c6b7}}
 .card:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
 .card-title{font-size:17px;font-weight:650;line-height:25px;margin:0 25px 0 0;letter-spacing:-.25px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--board-title-lines,20);overflow:hidden;flex:none;white-space:pre-wrap}

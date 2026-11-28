@@ -303,6 +303,7 @@ function animateCard(d, closing = false) {
 
 function finishCard(d) {
   if (modalState !== d) return;
+  d.body.imRich.concealSpoiler();
   if (d.boardDirty) {
     renderAll();
     d.boardDirty = false;
@@ -793,7 +794,7 @@ function readCard(id) {
       closeModal();
       jumpTo(message.replyTo);
     }, 'reply-preview');
-    quote.textContent = message.replyTo.text || 'Quoted message';
+    quote.textContent = imMarkdown.snippet(message.replyTo) || 'Quoted message';
     d.root.append(quote);
   }
   const body = el('div', 'reader-body im-rich-display');

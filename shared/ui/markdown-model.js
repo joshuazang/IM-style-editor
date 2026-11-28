@@ -265,12 +265,14 @@ const imMarkdown=(()=>{
     if(at<0)return text;
     const state=imRichDeps.state.EditorState.create({doc});return serialize(state.tr.setNodeMarkup(at,null,{checked:!checked}).doc);
   }
-  function render(target,doc,onCheck){
+  function render(target,doc,onCheck,{revealSpoilers=true}={}){
     let checkbox=0;const document=target.ownerDocument;
     function hiddenText(){
       const cover=document.createElement('span'),content=document.createElement('span');
-      cover.className='im-spoiler';cover.setAttribute('role','button');cover.setAttribute('aria-label','Reveal spoiler');cover.tabIndex=0;
+      cover.className='im-spoiler';
       content.setAttribute('aria-hidden','true');cover.append(content);
+      if(!revealSpoilers)return {cover,content};
+      cover.setAttribute('role','button');cover.setAttribute('aria-label','Reveal spoiler');cover.tabIndex=0;
       function reveal(event){
         if(cover.closest('.selection-mode,[data-selecting="true"]'))return;
         event.preventDefault();event.stopPropagation();

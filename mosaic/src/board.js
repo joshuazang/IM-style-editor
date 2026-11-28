@@ -411,7 +411,7 @@ function cardNode(message, width) {
         messages: s.messages.map(m => m === source ? imFormat.editMessage(m, imMarkdown.toggleCheck(m
           .text, index)) : m)
       }));
-    });
+    }, {revealSpoilers: false});
     node.append(body);
   }
   if (message.reactions.length) {

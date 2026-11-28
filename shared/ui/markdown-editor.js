@@ -283,7 +283,7 @@ const imRichField=(()=>{
     main.append(dom);
     if(options.sendButton){send=action('Send','↑',()=>config.onSubmit?.());send.classList.add('im-rich-send');main.append(send);}
     wrapper.append(main);if(formatting)wrapper.append(toolbar);floating=imSelectionFormatting({dom,toolbar,toggle,view,manual:formatting,canFormat:()=>!plain&&!disabled&&!readOnly&&!ime&&!view.composing});refresh();
-    const controller={dom,wrapper,toggle,toolbar,view,
+    const controller={dom,wrapper,toggle,toolbar,view,concealSpoiler:()=>revealSpoiler(),
       setContext:(key,value,plainMode=false)=>{const reset=key!==context||plain!==plainMode;if(reset){enterKeyActive=false;enterKeyHandled=false;floating?.reset();}context=key;plain=plainMode;setValue(value,reset);},
       configure:next=>{const before=JSON.stringify(attrs());config={...config,...next};if(next.disabled!==undefined)disabled=!!next.disabled;if(next.readOnly!==undefined)readOnly=!!next.readOnly;if(JSON.stringify(attrs())!==before)editableChanged();else refresh();},
       insertText:text=>{view.dispatch(view.state.tr.insertText(text).scrollIntoView());view.focus();},
